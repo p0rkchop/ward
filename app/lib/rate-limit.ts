@@ -1,6 +1,11 @@
 /**
- * Simple in-memory rate limiter using sliding window algorithm
- * Suitable for single-instance deployments
+ * Simple in-memory rate limiter using sliding window algorithm.
+ * Suitable for single-instance deployments.
+ *
+ * WARNING: On Vercel serverless, each function invocation may get its own
+ * isolated memory space, making this rate limiter ineffective across
+ * requests. For production-grade rate limiting, replace this with a
+ * distributed store such as Upstash Redis (@upstash/ratelimit).
  */
 
 interface RateLimitConfig {

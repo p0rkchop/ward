@@ -17,12 +17,12 @@ export const timeRangeSchema = z.object({
 
 // Shift creation schema
 export const createShiftSchema = timeRangeSchema.extend({
-  resourceId: z.string().uuid(),
+  resourceId: z.string().min(1, 'Resource ID is required'),
 });
 
 // Booking creation schema
 export const createBookingSchema = timeRangeSchema.extend({
-  clientId: z.string().uuid(),
+  clientId: z.string().min(1, 'Client ID is required'),
 });
 
 // Validation utilities

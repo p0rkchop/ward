@@ -66,8 +66,18 @@ DATABASE_URL="file:./dev.db"
 # TURSO_AUTH_TOKEN="your-turso-auth-token"
 
 # NextAuth Configuration
+# NEXTAUTH_SECRET is used to encrypt session tokens (JWTs) and cookies.
+# Even though Twilio handles phone verification, NextAuth manages the
+# session *after* verification succeeds. This secret ensures session
+# tokens can't be forged or tampered with. Generate one with:
+#   openssl rand -base64 32
 NEXTAUTH_SECRET="generate-a-secure-random-secret-here"
-NEXTAUTH_URL="http://localhost:3000"  # Update for production
+
+# NEXTAUTH_URL tells NextAuth the canonical URL of your app. It uses this
+# to build callback URLs and redirect users after sign-in. For local dev
+# it's http://localhost:3000. In production, set it to your deployed URL
+# (e.g., https://your-app.vercel.app or your custom domain).
+NEXTAUTH_URL="http://localhost:3000"
 
 # Twilio Configuration (required for phone verification)
 TWILIO_ACCOUNT_SID="your-twilio-account-sid"
@@ -83,14 +93,36 @@ NODE_ENV="development"  # Set to "production" in production
 
 ### Generating Secure Secrets
 
-1. **NEXTAUTH_SECRET**: Generate a secure random string:
+1. **NEXTAUTH_SECRET** — This secret is used by NextAuth.js to sign and encrypt
+   JWT session tokens stored in cookies. Although Twilio Verify handles the actual
+   phone-number verification (sending and checking SMS codes), NextAuth manages
+   the authenticated session that follows. Without a strong secret, an attacker
+   could forge session tokens and impersonate users.
+
+   Generate a cryptographically random value with **one** of these commands:
    ```bash
+   # Option A — OpenSSL (macOS / Linux)
    openssl rand -base64 32
-   # or
+
+   # Option B — Node.js (any platform)
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    ```
+   Copy the output and use it as the value of `NEXTAUTH_SECRET`. **Never commit
+   this value to source control** — set it via your `.env` file locally and via
+   Vercel Environment Variables in production.
 
-2. **Database Passwords/Tokens**: Use Turso CLI or dashboard to generate tokens.
+2. **NEXTAUTH_URL** — The public-facing URL of your application.
+   - **Local development**: `http://localhost:3000`
+   - **Vercel production**: `https://your-app.vercel.app` (or your custom domain)
+
+   NextAuth uses this URL to construct callback/redirect URLs during the sign-in
+   flow. If it doesn't match the URL users actually visit, authentication
+   redirects will fail. On Vercel, `NEXTAUTH_URL` is
+   [automatically inferred](https://next-auth.js.org/configuration/options#nextauth_url)
+   from the `VERCEL_URL` env var in most cases, but it's best to set it
+   explicitly — especially if you use a custom domain.
+
+3. **Database Passwords/Tokens**: Use Turso CLI or dashboard to generate tokens.
 
 ### Environment Validation
 
@@ -194,8 +226,8 @@ In Vercel project settings (**Settings** → **Environment Variables**), add:
 |----------|-------|-------|
 | `DATABASE_URL` | `libsql://your-database.turso.io` | Your Turso database URL |
 | `TURSO_AUTH_TOKEN` | Your Turso auth token | Required for Turso authentication |
-| `NEXTAUTH_SECRET` | Secure random string | Generate with `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | `https://your-app.vercel.app` | Your production URL |
+| `NEXTAUTH_SECRET` | Secure random string | Run `openssl rand -base64 32` and paste the output. Encrypts session JWTs — see [Generating Secure Secrets](#generating-secure-secrets). |
+| `NEXTAUTH_URL` | `https://your-app.vercel.app` | Your production URL (or custom domain). Used by NextAuth to build sign-in callback URLs. |
 | `TWILIO_ACCOUNT_SID` | Your Twilio Account SID | From Twilio dashboard |
 | `TWILIO_AUTH_TOKEN` | Your Twilio Auth Token | From Twilio dashboard |
 | `TWILIO_VERIFY_SERVICE_SID` | Your Twilio Verify Service SID | Starts with `VA...` |
@@ -308,12 +340,28 @@ turso db backup restore ward-production <backup-id>
 
 ## Authentication Setup
 
-### Phone Verification Flow
+### How Twilio + NextAuth Work Together
 
-1. **User enters phone number** → Request sent to Twilio Verify
-2. **Twilio sends SMS code** → User enters code
-3. **Application verifies code** → Creates/updates user session
-4. **Auto-registration**: New users are automatically created with CLIENT role
+This app uses **Twilio Verify** for identity verification and **NextAuth.js** for
+session management. Here's how the pieces fit:
+
+1. **User enters phone number** → App calls the Twilio Verify API to send an SMS code.
+2. **Twilio sends SMS code** → User enters the 6-digit code in the app.
+3. **App verifies code with Twilio** → If correct, NextAuth creates a signed JWT
+   session token (encrypted with `NEXTAUTH_SECRET`) and stores it in an HTTP-only
+   cookie.
+4. **Subsequent requests** → NextAuth reads the cookie, verifies the JWT signature
+   using `NEXTAUTH_SECRET`, and provides the session (user ID, role, phone) to
+   the app.
+5. **Auto-registration**: New phone numbers are automatically registered with the
+   CLIENT role.
+
+> **Why `NEXTAUTH_SECRET` matters**: Twilio only verifies the phone number once.
+> After that, the user's identity lives in the JWT session token. If the secret
+> is weak or compromised, attackers can forge tokens and bypass Twilio entirely.
+>
+> **Why `NEXTAUTH_URL` matters**: NextAuth redirects users to callback URLs
+> derived from this value. A mismatch causes redirect failures after sign-in.
 
 ### Twilio Configuration Details
 

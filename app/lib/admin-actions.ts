@@ -1,9 +1,26 @@
 'use server';
 
 import { db } from './db';
+import { getServerSession } from './auth';
 import { Role, BookingStatus } from '@/app/generated/prisma/enums';
 
+/**
+ * Verify that the current user is an ADMIN.
+ * All admin actions must call this before performing mutations.
+ */
+async function requireAdmin() {
+  const session = await getServerSession();
+  if (!session?.user) {
+    throw new Error('Authentication required');
+  }
+  if (session.user.role !== Role.ADMIN) {
+    throw new Error('Admin access required');
+  }
+  return session.user;
+}
+
 export async function getAdminStats() {
+  await requireAdmin();
   // Get user counts by role
   const userCounts = await db.user.groupBy({
     by: ['role'],
@@ -167,6 +184,7 @@ export type AdminStats = Awaited<ReturnType<typeof getAdminStats>>;
 
 // Resource Management
 export async function getResources() {
+  await requireAdmin();
   return await db.resource.findMany({
     where: { deletedAt: null },
     orderBy: { name: 'asc' },
@@ -174,6 +192,7 @@ export async function getResources() {
 }
 
 export async function createResource(data: { name: string; description?: string; isActive: boolean }) {
+  await requireAdmin();
   return await db.resource.create({
     data: {
       name: data.name,
@@ -184,6 +203,7 @@ export async function createResource(data: { name: string; description?: string;
 }
 
 export async function updateResource(id: string, data: { name?: string; description?: string; isActive?: boolean }) {
+  await requireAdmin();
   return await db.resource.update({
     where: { id, deletedAt: null },
     data,
@@ -191,6 +211,7 @@ export async function updateResource(id: string, data: { name?: string; descript
 }
 
 export async function deleteResource(id: string) {
+  await requireAdmin();
   // Soft delete
   return await db.resource.update({
     where: { id, deletedAt: null },
@@ -200,6 +221,7 @@ export async function deleteResource(id: string) {
 
 // User Management
 export async function getUsers() {
+  await requireAdmin();
   return await db.user.findMany({
     where: { deletedAt: null },
     include: {
@@ -219,6 +241,7 @@ export async function getUsers() {
 export type UserWithRelations = Awaited<ReturnType<typeof getUsers>>[number];
 
 export async function updateUserRole(id: string, role: Role) {
+  await requireAdmin();
   return await db.user.update({
     where: { id, deletedAt: null },
     data: { role },
@@ -226,6 +249,7 @@ export async function updateUserRole(id: string, role: Role) {
 }
 
 export async function deleteUser(id: string) {
+  await requireAdmin();
   // Soft delete
   return await db.user.update({
     where: { id, deletedAt: null },
@@ -235,6 +259,7 @@ export async function deleteUser(id: string) {
 
 // Admin Tools
 export async function exportData() {
+  await requireAdmin();
   const [users, resources, shifts, bookings] = await Promise.all([
     db.user.findMany({
       where: { deletedAt: null },
@@ -296,6 +321,7 @@ export async function exportData() {
 }
 
 export async function clearTestData() {
+  await requireAdmin();
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 

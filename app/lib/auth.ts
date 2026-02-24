@@ -1,4 +1,4 @@
-import originalGetServerSession from 'next-auth';
+import { getServerSession as nextAuthGetServerSession } from 'next-auth';
 import { authOptions } from '@/app/lib/auth-config';
 
-export const getServerSession = () => originalGetServerSession(authOptions);
+export const getServerSession = () => nextAuthGetServerSession(authOptions);

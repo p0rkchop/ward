@@ -1,6 +1,7 @@
 'use server';
 
 import { db } from '@/app/lib/db';
+import { getServerSession } from '@/app/lib/auth';
 import { generateTimeSlots, isAlignedTo30MinuteBoundary, timeRangesOverlap } from '@/app/lib/timeslot-utils';
 import {
   ValidationError,
@@ -100,12 +101,19 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
 
 /**
  * Book a time slot (auto-match a professional)
- * @param clientId The ID of the client making the booking
+ * clientId is derived from the authenticated session — not accepted from the client.
  * @param start Start time of the slot (must align with 30-minute interval)
  * @param end End time of the slot (must be start + 30 minutes)
  * @returns The created booking or error
  */
-export async function bookTimeslot(clientId: string, start: Date, end: Date) {
+export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
+  // Derive clientId from server session to prevent IDOR
+  const session = await getServerSession();
+  if (!session?.user?.id) {
+    throw new Error('Authentication required');
+  }
+  const clientId = session.user.id;
+
   // Validate input schema
   const input = validateSchema(createBookingSchema, { clientId, start, end });
 
@@ -345,11 +353,18 @@ export async function getClientBookings(
 
 /**
  * Cancel a booking
+ * clientId is derived from the authenticated session — not accepted from the client.
  * @param bookingId The booking ID to cancel
- * @param clientId The client's user ID (for authorization)
  * @returns The updated booking
  */
-export async function cancelBooking(bookingId: string, clientId: string) {
+export async function cancelBooking(bookingId: string, _clientId?: string) {
+  // Derive clientId from server session to prevent IDOR
+  const session = await getServerSession();
+  if (!session?.user?.id) {
+    throw new Error('Authentication required');
+  }
+  const clientId = session.user.id;
+
   // First, verify the booking exists and belongs to the client
   const booking = await db.booking.findUnique({
     where: { id: bookingId },
@@ -378,10 +393,11 @@ export async function cancelBooking(bookingId: string, clientId: string) {
     throw new BusinessRuleError('Cannot cancel past bookings');
   }
 
-  // Soft delete the booking
+  // Soft delete the booking and update status
   const updatedBooking = await db.booking.update({
     where: { id: bookingId },
     data: {
+      status: 'CANCELLED',
       deletedAt: new Date(),
     },
     include: {

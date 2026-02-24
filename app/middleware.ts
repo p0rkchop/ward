@@ -65,6 +65,11 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
+    // Allow unauthenticated access to auth pages and public routes
+    if (pathname.startsWith('/auth/')) {
+      return NextResponse.next();
+    }
+
     // Redirect based on role if accessing root
     if (pathname === '/') {
       if (!token) {
@@ -98,7 +103,18 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        const pathname = req.nextUrl?.pathname || '';
+        // Allow unauthenticated access to auth pages, health endpoint, and public assets
+        if (
+          pathname.startsWith('/auth/') ||
+          pathname.startsWith('/api/auth/') ||
+          pathname === '/api/health'
+        ) {
+          return true;
+        }
+        return !!token;
+      },
     },
   }
 );

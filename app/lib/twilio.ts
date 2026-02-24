@@ -18,13 +18,31 @@ export const twilioClient = twilio(
 export const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
 
 /**
+ * Normalize phone number to E.164 format required by Twilio
+ */
+function toE164(phoneNumber: string): string {
+  const digits = phoneNumber.replace(/\D/g, '');
+  // If it already has a country code (11+ digits starting with 1 for US), add +
+  // Otherwise assume US/CA and prepend +1
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return `+${digits}`;
+  }
+  if (digits.length === 10) {
+    return `+1${digits}`;
+  }
+  // For other lengths, assume it already includes country code
+  return `+${digits}`;
+}
+
+/**
  * Send verification code to phone number via Twilio Verify
  */
 export async function sendVerificationCode(phoneNumber: string) {
   try {
+    const e164Phone = toE164(phoneNumber);
     const verification = await twilioClient.verify.v2
       .services(verifyServiceSid)
-      .verifications.create({ to: phoneNumber, channel: 'sms' });
+      .verifications.create({ to: e164Phone, channel: 'sms' });
 
     return { success: true, sid: verification.sid };
   } catch (error) {
@@ -38,9 +56,10 @@ export async function sendVerificationCode(phoneNumber: string) {
  */
 export async function verifyCode(phoneNumber: string, code: string) {
   try {
+    const e164Phone = toE164(phoneNumber);
     const verificationCheck = await twilioClient.verify.v2
       .services(verifyServiceSid)
-      .verificationChecks.create({ to: phoneNumber, code });
+      .verificationChecks.create({ to: e164Phone, code });
 
     return {
       success: verificationCheck.status === 'approved',
