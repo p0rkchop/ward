@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  ADMIN
+  PROFESSIONAL
+  CLIENT
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id          String   @id @default(cuid())
+  name        String
+  phoneNumber String   @unique
+  email       String?  @unique
+  role        Role
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  shiftsAsProfessional Shift[]    @relation("ProfessionalShifts")
+  bookingsAsClient     Booking[]  @relation("ClientBookings")
+
+  @@index([role])
+  @@index([deletedAt])
+}
+
+model Resource {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  shifts Shift[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+model Shift {
+  id             String   @id @default(cuid())
+  startTime      DateTime
+  endTime        DateTime
+  deletedAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Foreign keys
+  professionalId String
+  resourceId     String
+
+  // Relations
+  professional User     @relation("ProfessionalShifts", fields: [professionalId], references: [id])
+  resource    Resource  @relation(fields: [resourceId], references: [id])
+  bookings    Booking[]
+
+  @@index([professionalId])
+  @@index([resourceId])
+  @@index([startTime])
+  @@index([endTime])
+  @@index([deletedAt])
+  @@index([professionalId, startTime, deletedAt])
+  @@index([resourceId, startTime, deletedAt])
+  @@unique([professionalId, startTime, endTime])
+  @@unique([resourceId, startTime, endTime])
+}
+
+model Booking {
+  id         String        @id @default(cuid())
+  startTime  DateTime
+  endTime    DateTime
+  status     BookingStatus @default(CONFIRMED)
+  notes      String?
+  deletedAt  DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  // Foreign keys
+  clientId String
+  shiftId  String
+
+  // Relations
+  client User  @relation("ClientBookings", fields: [clientId], references: [id])
+  shift  Shift @relation(fields: [shiftId], references: [id])
+
+  @@index([clientId])
+  @@index([shiftId])
+  @@index([startTime])
+  @@index([deletedAt])
+  @@index([status])
+  @@index([shiftId, startTime, status, deletedAt])
+  @@index([clientId, startTime, deletedAt])
+  @@unique([shiftId, startTime, endTime])
+}

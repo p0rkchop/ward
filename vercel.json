@@ -1,0 +1,51 @@
+{
+  "build": {
+    "env": {
+      "DATABASE_URL": {
+        "description": "Database connection string (e.g., libsql://your-database.turso.io)",
+        "required": true
+      },
+      "TURSO_AUTH_TOKEN": {
+        "description": "Authentication token for Turso database (if using Turso)",
+        "required": false
+      },
+      "NEXTAUTH_SECRET": {
+        "description": "Secret for NextAuth.js encryption",
+        "required": true
+      },
+      "NEXTAUTH_URL": {
+        "description": "Public URL of your application (e.g., https://your-app.vercel.app)",
+        "required": true
+      },
+      "TWILIO_ACCOUNT_SID": {
+        "description": "Twilio Account SID for phone verification",
+        "required": true
+      },
+      "TWILIO_AUTH_TOKEN": {
+        "description": "Twilio Auth Token for phone verification",
+        "required": true
+      },
+      "TWILIO_VERIFY_SERVICE_SID": {
+        "description": "Twilio Verify Service SID for phone verification",
+        "required": true
+      },
+      "PRISMA_ACCELERATE_URL": {
+        "description": "Prisma Accelerate URL for database caching (optional)",
+        "required": false
+      }
+    }
+  },
+  "functions": {
+    "app/api/**/*": {
+      "maxDuration": 10
+    }
+  },
+  "installCommand": "npm install",
+  "buildCommand": "npx prisma generate && npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

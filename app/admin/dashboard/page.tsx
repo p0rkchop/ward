@@ -1,0 +1,228 @@
+import { getServerSession } from '@/app/lib/auth';
+import { redirect } from 'next/navigation';
+import { Role } from '@/app/generated/prisma/enums';
+import { getAdminStats } from '@/app/lib/admin-actions';
+import { format } from 'date-fns';
+
+export const dynamic = 'force-dynamic';
+
+export default async function AdminDashboard() {
+  const session = await getServerSession();
+
+  if (!session?.user) {
+    redirect('/auth/login');
+  }
+
+  if (session.user.role !== Role.ADMIN) {
+    redirect('/auth/unauthorized');
+  }
+
+  let stats = null;
+  try {
+    stats = await getAdminStats();
+  } catch (error) {
+    console.error('Error fetching admin stats:', error);
+  }
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          Admin Dashboard
+        </h1>
+        <p className="mt-2 text-gray-600">
+          Overview of system metrics and recent activity.
+        </p>
+      </div>
+
+      {stats ? (
+        <>
+          {/* Stats Grid */}
+          <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-lg bg-white p-6 shadow">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 rounded-full bg-purple-100 p-3">
+                  <svg
+                    className="h-6 w-6 text-purple-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0c-.9 0-1.7.2-2.5.6V19h5v-1a6 6 0 00-2.5-5.4z"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Users</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.userCounts.total}</p>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                <div className="text-gray-500">Admins: {stats.userCounts.admins}</div>
+                <div className="text-gray-500">Professionals: {stats.userCounts.professionals}</div>
+                <div className="text-gray-500">Clients: {stats.userCounts.clients}</div>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-white p-6 shadow">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 rounded-full bg-green-100 p-3">
+                  <svg
+                    className="h-6 w-6 text-green-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Active Resources</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.resourceCounts.active}</p>
+                </div>
+              </div>
+              <div className="mt-4 text-sm">
+                <div className="text-gray-500">Total Resources: {stats.resourceCounts.total}</div>
+                <div className="text-gray-500">Inactive: {stats.resourceCounts.total - stats.resourceCounts.active}</div>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-white p-6 shadow">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 rounded-full bg-blue-100 p-3">
+                  <svg
+                    className="h-6 w-6 text-blue-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Shifts</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.shiftCounts.total}</p>
+                </div>
+              </div>
+              <div className="mt-4 text-sm">
+                <div className="text-gray-500">Upcoming: {stats.shiftCounts.upcoming}</div>
+                <div className="text-gray-500">Past: {stats.shiftCounts.total - stats.shiftCounts.upcoming}</div>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-white p-6 shadow">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 rounded-full bg-yellow-100 p-3">
+                  <svg
+                    className="h-6 w-6 text-yellow-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Bookings</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.bookingCounts.total}</p>
+                </div>
+              </div>
+              <div className="mt-4 text-sm">
+                <div className="text-gray-500">Confirmed: {stats.bookingCounts.confirmed}</div>
+                <div className="text-gray-500">Cancelled: {stats.bookingCounts.cancelled}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="rounded-lg bg-white p-6 shadow">
+            <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+            <div className="mt-4 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead>
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Action
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Details
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {stats.recentActivity.map((activity) => (
+                      <tr key={activity.id}>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                          {format(new Date(activity.timestamp), 'MMM d, h:mm a')}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                            activity.type === 'BOOKING'
+                              ? 'bg-green-100 text-green-800'
+                              : activity.type === 'SHIFT'
+                              ? 'bg-blue-100 text-blue-800'
+                              : activity.type === 'USER'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {activity.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {activity.description}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
+          <svg
+            className="mx-auto h-12 w-12 text-gray-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+          <h3 className="mt-4 text-lg font-medium text-gray-900">Unable to load dashboard</h3>
+          <p className="mt-2 text-gray-500">
+            There was an error loading the dashboard data.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
