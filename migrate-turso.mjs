@@ -86,6 +86,28 @@ const statements = [
   `ALTER TABLE "User" ADD COLUMN "setupComplete" BOOLEAN NOT NULL DEFAULT false`,
   `ALTER TABLE "User" ADD COLUMN "eventId" TEXT REFERENCES "Event"("id") ON DELETE SET NULL ON UPDATE CASCADE`,
 
+  // ── ALTER Resource table to add quantity and professionalsPerUnit ──
+  `ALTER TABLE "Resource" ADD COLUMN "quantity" INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE "Resource" ADD COLUMN "professionalsPerUnit" INTEGER NOT NULL DEFAULT 1`,
+
+  // ── ALTER Event table to add defaultStartTime and defaultEndTime ──
+  `ALTER TABLE "Event" ADD COLUMN "defaultStartTime" TEXT NOT NULL DEFAULT '09:00'`,
+  `ALTER TABLE "Event" ADD COLUMN "defaultEndTime" TEXT NOT NULL DEFAULT '17:00'`,
+
+  // ── EventDay table ──
+  `CREATE TABLE IF NOT EXISTS "EventDay" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "date" DATETIME NOT NULL,
+    "startTime" TEXT NOT NULL DEFAULT '09:00',
+    "endTime" TEXT NOT NULL DEFAULT '17:00',
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "deletedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    "eventId" TEXT NOT NULL,
+    CONSTRAINT "EventDay_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  )`,
+
   // ── Unique indexes ──
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_phoneNumber_key" ON "User"("phoneNumber")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email")`,
@@ -118,6 +140,12 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS "Booking_status_idx" ON "Booking"("status")`,
   `CREATE INDEX IF NOT EXISTS "Booking_shiftId_startTime_status_deletedAt_idx" ON "Booking"("shiftId", "startTime", "status", "deletedAt")`,
   `CREATE INDEX IF NOT EXISTS "Booking_clientId_startTime_deletedAt_idx" ON "Booking"("clientId", "startTime", "deletedAt")`,
+
+  // ── EventDay indexes ──
+  `CREATE UNIQUE INDEX IF NOT EXISTS "EventDay_eventId_date_key" ON "EventDay"("eventId", "date")`,
+  `CREATE INDEX IF NOT EXISTS "EventDay_eventId_idx" ON "EventDay"("eventId")`,
+  `CREATE INDEX IF NOT EXISTS "EventDay_date_idx" ON "EventDay"("date")`,
+  `CREATE INDEX IF NOT EXISTS "EventDay_deletedAt_idx" ON "EventDay"("deletedAt")`,
 ];
 
 console.log(`Running ${statements.length} statements...`);
@@ -145,5 +173,11 @@ console.log("User columns:", userCols.rows.map(r => r.name));
 
 const eventCols = await client.execute("PRAGMA table_info('Event')");
 console.log("Event columns:", eventCols.rows.map(r => r.name));
+
+const resourceCols = await client.execute("PRAGMA table_info('Resource')");
+console.log("Resource columns:", resourceCols.rows.map(r => r.name));
+
+const eventDayCols = await client.execute("PRAGMA table_info('EventDay')");
+console.log("EventDay columns:", eventDayCols.rows.map(r => r.name));
 
 client.close();

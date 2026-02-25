@@ -55,7 +55,6 @@ export default function AdminNav({ user }: AdminNavProps) {
               <div className="flex items-center space-x-4">
                 <div className="text-sm">
                   <div className="font-medium text-gray-900">{user.name}</div>
-                  <div className="text-gray-500">{user.phoneNumber}</div>
                 </div>
                 <button
                   onClick={() => signOut({ callbackUrl: '/auth/login' })}
@@ -110,7 +109,6 @@ export default function AdminNav({ user }: AdminNavProps) {
           <div className="border-t border-gray-200 pt-4">
             <div className="px-3 py-2">
               <div className="text-sm font-medium text-gray-900">{user.name}</div>
-              <div className="text-sm text-gray-500">{user.phoneNumber}</div>
             </div>
             <button
               onClick={() => signOut({ callbackUrl: '/auth/login' })}

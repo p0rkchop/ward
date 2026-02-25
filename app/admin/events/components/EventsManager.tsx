@@ -19,6 +19,8 @@ export default function EventsManager({ initialEvents }: Props) {
   const [newDescription, setNewDescription] = useState('');
   const [newStartDate, setNewStartDate] = useState('');
   const [newEndDate, setNewEndDate] = useState('');
+  const [newDefaultStartTime, setNewDefaultStartTime] = useState('09:00');
+  const [newDefaultEndTime, setNewDefaultEndTime] = useState('17:00');
   const [newPassword, setNewPassword] = useState('');
 
   // Edit form state
@@ -26,6 +28,8 @@ export default function EventsManager({ initialEvents }: Props) {
   const [editDescription, setEditDescription] = useState('');
   const [editStartDate, setEditStartDate] = useState('');
   const [editEndDate, setEditEndDate] = useState('');
+  const [editDefaultStartTime, setEditDefaultStartTime] = useState('09:00');
+  const [editDefaultEndTime, setEditDefaultEndTime] = useState('17:00');
   const [editPassword, setEditPassword] = useState('');
   const [editActive, setEditActive] = useState(true);
 
@@ -39,6 +43,8 @@ export default function EventsManager({ initialEvents }: Props) {
       description: newDescription || null,
       startDate: newStartDate,
       endDate: newEndDate,
+      defaultStartTime: newDefaultStartTime,
+      defaultEndTime: newDefaultEndTime,
       professionalPassword: newPassword,
     });
 
@@ -49,6 +55,7 @@ export default function EventsManager({ initialEvents }: Props) {
     }
 
     // Refresh by adding to list
+    const dayCount = Math.max(1, Math.ceil((new Date(newEndDate).getTime() - new Date(newStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1);
     setEvents((prev) => [
       {
         id: result.id,
@@ -56,11 +63,13 @@ export default function EventsManager({ initialEvents }: Props) {
         description: newDescription.trim() || null,
         startDate: new Date(newStartDate),
         endDate: new Date(newEndDate),
+        defaultStartTime: newDefaultStartTime,
+        defaultEndTime: newDefaultEndTime,
         professionalPassword: newPassword.trim(),
         isActive: true,
         adminId: '',
         createdAt: new Date(),
-        _count: { professionals: 0 },
+        _count: { professionals: 0, days: dayCount },
       },
       ...prev,
     ]);
@@ -69,6 +78,8 @@ export default function EventsManager({ initialEvents }: Props) {
     setNewDescription('');
     setNewStartDate('');
     setNewEndDate('');
+    setNewDefaultStartTime('09:00');
+    setNewDefaultEndTime('17:00');
     setNewPassword('');
     setShowCreate(false);
     setLoading(false);
@@ -80,6 +91,8 @@ export default function EventsManager({ initialEvents }: Props) {
     setEditDescription(event.description || '');
     setEditStartDate(new Date(event.startDate).toISOString().split('T')[0]);
     setEditEndDate(new Date(event.endDate).toISOString().split('T')[0]);
+    setEditDefaultStartTime(event.defaultStartTime || '09:00');
+    setEditDefaultEndTime(event.defaultEndTime || '17:00');
     setEditPassword(event.professionalPassword);
     setEditActive(event.isActive);
     setError('');
@@ -94,6 +107,8 @@ export default function EventsManager({ initialEvents }: Props) {
       description: editDescription || null,
       startDate: editStartDate,
       endDate: editEndDate,
+      defaultStartTime: editDefaultStartTime,
+      defaultEndTime: editDefaultEndTime,
       professionalPassword: editPassword,
       isActive: editActive,
     });
@@ -104,6 +119,7 @@ export default function EventsManager({ initialEvents }: Props) {
       return;
     }
 
+    const dayCount = Math.max(1, Math.ceil((new Date(editEndDate).getTime() - new Date(editStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1);
     setEvents((prev) =>
       prev.map((ev) =>
         ev.id === id
@@ -113,8 +129,11 @@ export default function EventsManager({ initialEvents }: Props) {
               description: editDescription.trim() || null,
               startDate: new Date(editStartDate),
               endDate: new Date(editEndDate),
+              defaultStartTime: editDefaultStartTime,
+              defaultEndTime: editDefaultEndTime,
               professionalPassword: editPassword.trim(),
               isActive: editActive,
+              _count: { ...ev._count, professionals: ev._count?.professionals ?? 0, days: dayCount },
             }
           : ev
       )
@@ -214,6 +233,26 @@ export default function EventsManager({ initialEvents }: Props) {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Daily Start Time</label>
+              <input
+                type="time"
+                value={newDefaultStartTime}
+                onChange={(e) => setNewDefaultStartTime(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+              />
+              <p className="mt-1 text-xs text-gray-500">Default open time for each day</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Daily End Time</label>
+              <input
+                type="time"
+                value={newDefaultEndTime}
+                onChange={(e) => setNewDefaultEndTime(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+              />
+              <p className="mt-1 text-xs text-gray-500">Default close time for each day</p>
+            </div>
           </div>
 
           <div>
@@ -271,6 +310,12 @@ export default function EventsManager({ initialEvents }: Props) {
                   Pros
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Days
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Hours
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Status
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
@@ -282,7 +327,7 @@ export default function EventsManager({ initialEvents }: Props) {
               {events.map((event) =>
                 editingId === event.id ? (
                   <tr key={event.id} className="bg-blue-50">
-                    <td className="px-6 py-4" colSpan={6}>
+                    <td className="px-6 py-4" colSpan={8}>
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <input
@@ -308,7 +353,7 @@ export default function EventsManager({ initialEvents }: Props) {
                             <span className="text-sm text-gray-700">Active</span>
                           </label>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                           <input
                             type="date"
                             value={editStartDate}
@@ -321,6 +366,24 @@ export default function EventsManager({ initialEvents }: Props) {
                             onChange={(e) => setEditEndDate(e.target.value)}
                             className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
                           />
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Daily Start</label>
+                            <input
+                              type="time"
+                              value={editDefaultStartTime}
+                              onChange={(e) => setEditDefaultStartTime(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Daily End</label>
+                            <input
+                              type="time"
+                              value={editDefaultEndTime}
+                              onChange={(e) => setEditDefaultEndTime(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+                            />
+                          </div>
                         </div>
                         <textarea
                           value={editDescription}
@@ -367,6 +430,12 @@ export default function EventsManager({ initialEvents }: Props) {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
                       {event._count?.professionals ?? 0}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {event._count?.days ?? 0}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {event.defaultStartTime || '09:00'} – {event.defaultEndTime || '17:00'}
                     </td>
                     <td className="px-6 py-4">
                       <span

@@ -54,6 +54,8 @@ model Event {
   description          String?
   startDate            DateTime
   endDate              DateTime
+  defaultStartTime     String    @default("09:00")
+  defaultEndTime       String    @default("17:00")
   professionalPassword String
   isActive             Boolean   @default(true)
   deletedAt            DateTime?
@@ -64,8 +66,9 @@ model Event {
   adminId String
 
   // Relations
-  admin         User   @relation("EventAdmin", fields: [adminId], references: [id])
-  professionals User[] @relation("EventProfessionals")
+  admin         User       @relation("EventAdmin", fields: [adminId], references: [id])
+  professionals User[]     @relation("EventProfessionals")
+  days          EventDay[] @relation("EventDays")
 
   @@index([adminId])
   @@index([isActive])
@@ -73,14 +76,38 @@ model Event {
   @@index([startDate, endDate])
 }
 
+model EventDay {
+  id        String    @id @default(cuid())
+  date      DateTime
+  startTime String    @default("09:00")
+  endTime   String    @default("17:00")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Foreign keys
+  eventId String
+
+  // Relations
+  event Event @relation("EventDays", fields: [eventId], references: [id])
+
+  @@unique([eventId, date])
+  @@index([eventId])
+  @@index([date])
+  @@index([deletedAt])
+}
+
 model Resource {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  isActive    Boolean  @default(true)
-  deletedAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  name                String
+  description         String?
+  quantity            Int      @default(1)
+  professionalsPerUnit Int     @default(1)
+  isActive            Boolean  @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   // Relations
   shifts Shift[]

@@ -8,6 +8,8 @@ interface Resource {
   id: string;
   name: string;
   description: string | null;
+  quantity: number;
+  professionalsPerUnit: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -23,7 +25,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedResource, setEditedResource] = useState<Partial<Resource> | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newResource, setNewResource] = useState({ name: '', description: '', isActive: true });
+  const [newResource, setNewResource] = useState({ name: '', description: '', quantity: 1, professionalsPerUnit: 1, isActive: true });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +49,8 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
       await updateResource(id, {
         name: editedResource.name,
         description: editedResource.description ?? undefined,
+        quantity: editedResource.quantity,
+        professionalsPerUnit: editedResource.professionalsPerUnit,
         isActive: editedResource.isActive,
       });
 
@@ -97,11 +101,13 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
       const created = await createResource({
         name: newResource.name,
         description: newResource.description || undefined,
+        quantity: newResource.quantity,
+        professionalsPerUnit: newResource.professionalsPerUnit,
         isActive: newResource.isActive,
       });
 
       setResources([...resources, created]);
-      setNewResource({ name: '', description: '', isActive: true });
+      setNewResource({ name: '', description: '', quantity: 1, professionalsPerUnit: 1, isActive: true });
       setShowCreateForm(false);
       router.refresh();
     } catch (err: any) {
@@ -153,7 +159,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                 value={newResource.name}
                 onChange={(e) => setNewResource({ ...newResource, name: e.target.value })}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
-                placeholder="e.g., Massage Therapy"
+                placeholder="e.g., Massage Table"
               />
             </div>
             <div>
@@ -169,6 +175,32 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                 />
                 <span className="ml-2 text-sm text-gray-700">Active</span>
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Quantity
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={newResource.quantity}
+                onChange={(e) => setNewResource({ ...newResource, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">How many of this resource do you have?</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Professionals Per Unit
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={newResource.professionalsPerUnit}
+                onChange={(e) => setNewResource({ ...newResource, professionalsPerUnit: Math.max(1, parseInt(e.target.value) || 1) })}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">How many professionals can be assigned to each unit?</p>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700">
@@ -212,6 +244,12 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                 Description
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                Qty
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                Pros/Unit
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -247,6 +285,32 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                     />
                   ) : (
                     <div className="text-sm text-gray-500">{resource.description || '-'}</div>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-6 py-4">
+                  {editingId === resource.id ? (
+                    <input
+                      type="number"
+                      min={1}
+                      value={editedResource?.quantity ?? 1}
+                      onChange={(e) => setEditedResource({ ...editedResource, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                      className="block w-20 rounded-md border border-gray-300 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900">{resource.quantity}</div>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-6 py-4">
+                  {editingId === resource.id ? (
+                    <input
+                      type="number"
+                      min={1}
+                      value={editedResource?.professionalsPerUnit ?? 1}
+                      onChange={(e) => setEditedResource({ ...editedResource, professionalsPerUnit: Math.max(1, parseInt(e.target.value) || 1) })}
+                      className="block w-20 rounded-md border border-gray-300 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900">{resource.professionalsPerUnit}</div>
                   )}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
