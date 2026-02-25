@@ -55,10 +55,29 @@ export const authOptions: NextAuthOptions = {
         }
 
         const phoneNumber = credentials.phoneNumber.replace(/\D/g, '');
-        console.log('[authorize] Raw phoneNumber:', JSON.stringify(credentials.phoneNumber), '→ Stripped:', JSON.stringify(phoneNumber), '| Code:', JSON.stringify(credentials.code));        
 
-        const verification = await verifyCode(phoneNumber, credentials.code);
-        if (!verification.success) {
+        let verification;
+        let verifyError;
+        try {
+          verification = await verifyCode(phoneNumber, credentials.code);
+        } catch (err) {
+          verifyError = err instanceof Error ? err.message : String(err);
+        }
+        
+        // Single consolidated log — Vercel only captures one console.log per invocation
+        console.log('[authorize] DEBUG:', JSON.stringify({
+          rawPhone: credentials.phoneNumber,
+          strippedPhone: phoneNumber,
+          code: credentials.code,
+          codeLength: credentials.code.length,
+          verifyResult: verification ?? null,
+          verifyError: verifyError ?? null,
+        }));
+
+        if (verifyError) {
+          throw new Error(`Verification failed: ${verifyError}`);
+        }
+        if (!verification || !verification.success) {
           throw new Error('Invalid verification code');
         }
 
