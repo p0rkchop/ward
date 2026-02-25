@@ -90,7 +90,8 @@ model EventDay {
   eventId String
 
   // Relations
-  event Event @relation("EventDays", fields: [eventId], references: [id])
+  event     Event              @relation("EventDays", fields: [eventId], references: [id])
+  blackouts EventDayBlackout[] @relation("EventDayBlackouts")
 
   @@unique([eventId, date])
   @@index([eventId])
@@ -98,10 +99,30 @@ model EventDay {
   @@index([deletedAt])
 }
 
+model EventDayBlackout {
+  id          String    @id @default(cuid())
+  startTime   String
+  endTime     String
+  description String?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Foreign keys
+  eventDayId String
+
+  // Relations
+  eventDay EventDay @relation("EventDayBlackouts", fields: [eventDayId], references: [id])
+
+  @@index([eventDayId])
+  @@index([deletedAt])
+}
+
 model Resource {
   id                  String   @id @default(cuid())
   name                String
   description         String?
+  location            String?
   quantity            Int      @default(1)
   professionalsPerUnit Int     @default(1)
   isActive            Boolean  @default(true)

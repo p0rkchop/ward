@@ -79,6 +79,8 @@ describe('shift-actions', () => {
         role: Role.PROFESSIONAL,
         name: 'Test Professional',
         phoneNumber: '+1234567890',
+        setupComplete: true,
+        isNewUser: false,
       },
       expires: new Date().toISOString(),
     })
@@ -163,6 +165,8 @@ describe('shift-actions', () => {
           role: Role.CLIENT,
           name: 'Test Client',
           phoneNumber: '+1234567890',
+          setupComplete: true,
+          isNewUser: false,
         },
         expires: new Date().toISOString(),
       })
@@ -384,8 +388,8 @@ describe('shift-actions', () => {
   describe('getActiveResources', () => {
     it('returns active resources', async () => {
       const mockResources = [
-        { id: 'resource-1', name: 'Resource 1', description: null, isActive: true, createdAt: new Date(), updatedAt: new Date(), deletedAt: null },
-        { id: 'resource-2', name: 'Resource 2', description: null, isActive: true, createdAt: new Date(), updatedAt: new Date(), deletedAt: null },
+        { id: 'resource-1', name: 'Resource 1', description: null, location: null, quantity: 1, professionalsPerUnit: 1, isActive: true, createdAt: new Date(), updatedAt: new Date(), deletedAt: null },
+        { id: 'resource-2', name: 'Resource 2', description: null, location: null, quantity: 1, professionalsPerUnit: 1, isActive: true, createdAt: new Date(), updatedAt: new Date(), deletedAt: null },
       ]
       vi.mocked(db.resource.findMany).mockResolvedValue(mockResources)
 

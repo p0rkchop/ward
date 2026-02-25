@@ -35,6 +35,17 @@ export type EventDayData = {
   eventId: string;
 };
 
+export type BlackoutData = {
+  id: string;
+  startTime: string;
+  endTime: string;
+  description: string | null;
+};
+
+export type EventDayWithBlackouts = EventDayData & {
+  blackouts: BlackoutData[];
+};
+
 export async function getEvents(): Promise<EventData[]> {
   await requireAdmin();
 
@@ -52,13 +63,22 @@ export async function getEvents(): Promise<EventData[]> {
   return events as EventData[];
 }
 
-export async function getEventDays(eventId: string): Promise<EventDayData[]> {
+export async function getEventDays(eventId: string): Promise<EventDayWithBlackouts[]> {
   await requireAdmin();
 
-  return await db.eventDay.findMany({
+  const days = await db.eventDay.findMany({
     where: { eventId, deletedAt: null },
     orderBy: { date: 'asc' },
+    include: {
+      blackouts: {
+        where: { deletedAt: null },
+        orderBy: { startTime: 'asc' },
+        select: { id: true, startTime: true, endTime: true, description: true },
+      },
+    },
   });
+
+  return days as EventDayWithBlackouts[];
 }
 
 /**
@@ -234,5 +254,107 @@ export async function deleteEvent(id: string): Promise<{ ok: true } | { ok: fals
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[deleteEvent] Error:', msg);
     return { ok: false, error: 'Failed to delete event' };
+  }
+}
+
+// ── Event Day Management ──
+
+export async function updateEventDay(
+  id: string,
+  data: { startTime?: string; endTime?: string; isActive?: boolean }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  try {
+    // Validate time format
+    const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (data.startTime && !timeRegex.test(data.startTime)) {
+      return { ok: false, error: 'Invalid start time format (HH:MM)' };
+    }
+    if (data.endTime && !timeRegex.test(data.endTime)) {
+      return { ok: false, error: 'Invalid end time format (HH:MM)' };
+    }
+    if (data.startTime && data.endTime && data.startTime >= data.endTime) {
+      return { ok: false, error: 'Start time must be before end time' };
+    }
+
+    await db.eventDay.update({
+      where: { id, deletedAt: null },
+      data: {
+        ...(data.startTime !== undefined && { startTime: data.startTime }),
+        ...(data.endTime !== undefined && { endTime: data.endTime }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+      },
+    });
+
+    return { ok: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[updateEventDay] Error:', msg);
+    return { ok: false, error: 'Failed to update event day' };
+  }
+}
+
+// ── Blackout Management ──
+
+export async function createBlackout(data: {
+  eventDayId: string;
+  startTime: string;
+  endTime: string;
+  description?: string;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  try {
+    const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (!timeRegex.test(data.startTime)) {
+      return { ok: false, error: 'Invalid start time format (HH:MM)' };
+    }
+    if (!timeRegex.test(data.endTime)) {
+      return { ok: false, error: 'Invalid end time format (HH:MM)' };
+    }
+    if (data.startTime >= data.endTime) {
+      return { ok: false, error: 'Start time must be before end time' };
+    }
+
+    // Verify the event day exists
+    const eventDay = await db.eventDay.findUnique({
+      where: { id: data.eventDayId, deletedAt: null },
+    });
+    if (!eventDay) {
+      return { ok: false, error: 'Event day not found' };
+    }
+
+    const blackout = await db.eventDayBlackout.create({
+      data: {
+        eventDayId: data.eventDayId,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        description: data.description || null,
+      },
+    });
+
+    return { ok: true, id: blackout.id };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[createBlackout] Error:', msg);
+    return { ok: false, error: 'Failed to create blackout' };
+  }
+}
+
+export async function deleteBlackout(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  try {
+    await db.eventDayBlackout.update({
+      where: { id, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+
+    return { ok: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[deleteBlackout] Error:', msg);
+    return { ok: false, error: 'Failed to delete blackout' };
   }
 }

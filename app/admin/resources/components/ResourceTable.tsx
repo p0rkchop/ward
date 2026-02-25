@@ -8,6 +8,7 @@ interface Resource {
   id: string;
   name: string;
   description: string | null;
+  location: string | null;
   quantity: number;
   professionalsPerUnit: number;
   isActive: boolean;
@@ -25,7 +26,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedResource, setEditedResource] = useState<Partial<Resource> | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newResource, setNewResource] = useState({ name: '', description: '', quantity: 1, professionalsPerUnit: 1, isActive: true });
+  const [newResource, setNewResource] = useState({ name: '', description: '', location: '', quantity: 1, professionalsPerUnit: 1, isActive: true });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +50,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
       await updateResource(id, {
         name: editedResource.name,
         description: editedResource.description ?? undefined,
+        location: editedResource.location ?? undefined,
         quantity: editedResource.quantity,
         professionalsPerUnit: editedResource.professionalsPerUnit,
         isActive: editedResource.isActive,
@@ -101,13 +103,14 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
       const created = await createResource({
         name: newResource.name,
         description: newResource.description || undefined,
+        location: newResource.location || undefined,
         quantity: newResource.quantity,
         professionalsPerUnit: newResource.professionalsPerUnit,
         isActive: newResource.isActive,
       });
 
       setResources([...resources, created]);
-      setNewResource({ name: '', description: '', quantity: 1, professionalsPerUnit: 1, isActive: true });
+      setNewResource({ name: '', description: '', location: '', quantity: 1, professionalsPerUnit: 1, isActive: true });
       setShowCreateForm(false);
       router.refresh();
     } catch (err: any) {
@@ -202,6 +205,19 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
               />
               <p className="mt-1 text-xs text-gray-500">How many professionals can be assigned to each unit?</p>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Location
+              </label>
+              <input
+                type="text"
+                value={newResource.location}
+                onChange={(e) => setNewResource({ ...newResource, location: e.target.value })}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                placeholder="e.g., Room 101, Hall A"
+              />
+              <p className="mt-1 text-xs text-gray-500">Optional physical location of this resource</p>
+            </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700">
                 Description
@@ -242,6 +258,9 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Description
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                Location
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Qty
@@ -285,6 +304,18 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                     />
                   ) : (
                     <div className="text-sm text-gray-500">{resource.description || '-'}</div>
+                  )}
+                </td>
+                <td className="px-6 py-4">
+                  {editingId === resource.id ? (
+                    <input
+                      type="text"
+                      value={editedResource?.location || ''}
+                      onChange={(e) => setEditedResource({ ...editedResource, location: e.target.value })}
+                      className="block w-full rounded-md border border-gray-300 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-500">{resource.location || '-'}</div>
                   )}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">

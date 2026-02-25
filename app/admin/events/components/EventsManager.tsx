@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createEvent, updateEvent, deleteEvent, type EventData } from '@/app/lib/event-actions';
+import EventDaysEditor from './EventDaysEditor';
 
 interface Props {
   initialEvents: EventData[];
@@ -13,6 +14,7 @@ export default function EventsManager({ initialEvents }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [manageDaysEventId, setManageDaysEventId] = useState<string | null>(null);
 
   // Create form state
   const [newName, setNewName] = useState('');
@@ -450,6 +452,12 @@ export default function EventsManager({ initialEvents }: Props) {
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
                       <button
+                        onClick={() => setManageDaysEventId(event.id)}
+                        className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+                      >
+                        Days
+                      </button>
+                      <button
                         onClick={() => startEdit(event)}
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                       >
@@ -468,6 +476,15 @@ export default function EventsManager({ initialEvents }: Props) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Event Days Editor Modal */}
+      {manageDaysEventId && (
+        <EventDaysEditor
+          eventId={manageDaysEventId}
+          eventName={events.find((e) => e.id === manageDaysEventId)?.name ?? ''}
+          onClose={() => setManageDaysEventId(null)}
+        />
       )}
     </div>
   );

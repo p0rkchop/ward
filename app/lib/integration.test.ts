@@ -102,6 +102,8 @@ describe('Integration Tests - Complete User Flows', () => {
           role: Role.PROFESSIONAL,
           name: 'Test Professional',
           phoneNumber: '+1234567890',
+          setupComplete: true,
+          isNewUser: false,
         },
         expires: new Date().toISOString(),
       })
@@ -166,6 +168,8 @@ describe('Integration Tests - Complete User Flows', () => {
           role: Role.CLIENT,
           name: 'Test Client',
           phoneNumber: '+1234567890',
+          setupComplete: true,
+          isNewUser: false,
         },
         expires: new Date().toISOString(),
       })

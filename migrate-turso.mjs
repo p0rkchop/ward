@@ -146,6 +146,26 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS "EventDay_eventId_idx" ON "EventDay"("eventId")`,
   `CREATE INDEX IF NOT EXISTS "EventDay_date_idx" ON "EventDay"("date")`,
   `CREATE INDEX IF NOT EXISTS "EventDay_deletedAt_idx" ON "EventDay"("deletedAt")`,
+
+  // ── ALTER Resource table to add location ──
+  `ALTER TABLE "Resource" ADD COLUMN "location" TEXT`,
+
+  // ── EventDayBlackout table ──
+  `CREATE TABLE IF NOT EXISTS "EventDayBlackout" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "startTime" TEXT NOT NULL,
+    "endTime" TEXT NOT NULL,
+    "description" TEXT,
+    "deletedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    "eventDayId" TEXT NOT NULL,
+    CONSTRAINT "EventDayBlackout_eventDayId_fkey" FOREIGN KEY ("eventDayId") REFERENCES "EventDay" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  )`,
+
+  // ── EventDayBlackout indexes ──
+  `CREATE INDEX IF NOT EXISTS "EventDayBlackout_eventDayId_idx" ON "EventDayBlackout"("eventDayId")`,
+  `CREATE INDEX IF NOT EXISTS "EventDayBlackout_deletedAt_idx" ON "EventDayBlackout"("deletedAt")`,
 ];
 
 console.log(`Running ${statements.length} statements...`);

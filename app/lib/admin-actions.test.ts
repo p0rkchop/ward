@@ -203,11 +203,14 @@ describe('admin-actions', () => {
         const resourceData = {
           name: 'New Resource',
           description: 'A new resource',
+          quantity: 1,
+          professionalsPerUnit: 1,
           isActive: true,
         }
         const mockCreatedResource = {
           id: 'new-id',
           ...resourceData,
+          location: null,
           createdAt: new Date(),
           updatedAt: new Date(),
           deletedAt: null,
@@ -218,7 +221,14 @@ describe('admin-actions', () => {
 
         expect(result).toEqual(mockCreatedResource)
         expect(db.resource.create).toHaveBeenCalledWith({
-          data: resourceData,
+          data: {
+            name: resourceData.name,
+            description: resourceData.description,
+            location: undefined,
+            quantity: resourceData.quantity,
+            professionalsPerUnit: resourceData.professionalsPerUnit,
+            isActive: resourceData.isActive,
+          },
         })
       })
     })
@@ -234,6 +244,9 @@ describe('admin-actions', () => {
           id: resourceId,
           ...updateData,
           description: 'Test Description',
+          location: null,
+          quantity: 1,
+          professionalsPerUnit: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
           deletedAt: null
@@ -456,7 +469,7 @@ describe('admin-actions', () => {
         })
 
         // Verify lt date is approximately 30 days ago (within 1 second)
-        const ltDate = call.where.deletedAt.lt
+        const ltDate = (call.where as any).deletedAt.lt as Date
         expect(Math.abs(ltDate.getTime() - thirtyDaysAgo.getTime())).toBeLessThan(1000)
 
         // Verify data
