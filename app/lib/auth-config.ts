@@ -1,43 +1,8 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { db } from '@/app/lib/db';
-import { verifyCode } from '@/app/lib/twilio';
+import { checkCode } from '@/app/lib/twilio';
 import { Role } from '@/app/generated/prisma/enums';
-
 import type { NextAuthOptions } from 'next-auth';
-
-// Validate required environment variables
-function validateAuthConfig() {
-  const requiredEnvVars = [
-    'NEXTAUTH_SECRET',
-    'NEXTAUTH_URL',
-    'TWILIO_ACCOUNT_SID',
-    'TWILIO_AUTH_TOKEN',
-    'TWILIO_VERIFY_SERVICE_SID',
-  ] as const;
-
-  const missing = requiredEnvVars.filter(v => !process.env[v]);
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-  }
-
-  // Warn if using default secrets in production
-  if (process.env.NEXTAUTH_SECRET === 'your-secret-key-here-change-in-production') {
-    console.warn('⚠️  WARNING: Using default NEXTAUTH_SECRET. Change this in production!');
-  }
-  if (process.env.NEXTAUTH_URL === 'http://localhost:3000' && process.env.NODE_ENV === 'production') {
-    console.warn('⚠️  WARNING: Using localhost NEXTAUTH_URL in production!');
-  }
-}
-
-// Validate on first request (server-side only), not at module load time
-// to avoid build failures when env vars aren't available.
-let authConfigValidated = false;
-function ensureAuthConfig() {
-  if (!authConfigValidated && typeof window === 'undefined') {
-    validateAuthConfig();
-    authConfigValidated = true;
-  }
-}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -48,48 +13,32 @@ export const authOptions: NextAuthOptions = {
         code: { label: 'Verification Code', type: 'text' },
       },
       async authorize(credentials) {
-        ensureAuthConfig();
-
         if (!credentials?.phoneNumber || !credentials?.code) {
           throw new Error('Phone number and verification code required');
         }
 
-        const phoneNumber = credentials.phoneNumber.replace(/\D/g, '');
+        // Strip to digits only — must match what was used to send the code
+        const phone = credentials.phoneNumber.replace(/\D/g, '');
+        const code = credentials.code.trim();
 
-        let verification;
-        let verifyError;
-        try {
-          verification = await verifyCode(phoneNumber, credentials.code);
-        } catch (err) {
-          verifyError = err instanceof Error ? err.message : String(err);
-        }
-        
-        // Single consolidated log — Vercel only captures one console.log per invocation
-        console.log('[authorize] DEBUG:', JSON.stringify({
-          rawPhone: credentials.phoneNumber,
-          strippedPhone: phoneNumber,
-          code: credentials.code,
-          codeLength: credentials.code.length,
-          verifyResult: verification ?? null,
-          verifyError: verifyError ?? null,
-        }));
+        console.log('[authorize]', JSON.stringify({ phone, codeLen: code.length }));
 
-        if (verifyError) {
-          throw new Error(`Verification failed: ${verifyError}`);
-        }
-        if (!verification || !verification.success) {
-          throw new Error('Invalid verification code');
+        // Verify the code with Twilio
+        const result = await checkCode(phone, code);
+        if (!result.ok) {
+          console.log('[authorize] verification failed:', result.error);
+          throw new Error(result.error ?? 'Invalid verification code');
         }
 
-        let user = await db.user.findUnique({
-          where: { phoneNumber },
-        });
+        console.log('[authorize] code verified, looking up user');
 
+        // Find or create user
+        let user = await db.user.findUnique({ where: { phoneNumber: phone } });
         if (!user) {
           user = await db.user.create({
             data: {
-              phoneNumber,
-              name: `User ${phoneNumber.slice(-4)}`,
+              phoneNumber: phone,
+              name: `User ${phone.slice(-4)}`,
               role: Role.CLIENT,
             },
           });
@@ -128,7 +77,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt' as const,
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

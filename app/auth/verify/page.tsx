@@ -14,24 +14,28 @@ function VerifyPageContent() {
   const [resendSuccess, setResendSuccess] = useState(false);
   const [resending, setResending] = useState(false);
 
-  const phoneNumber = searchParams.get('phone') || '';
+  // This is already digits-only — it was normalized by the login page
+  const phone = searchParams.get('phone') ?? '';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (code.length !== 6) return;
     setLoading(true);
     setError(null);
 
+    // Pass the digits-only phone to NextAuth. The authorize callback
+    // will strip non-digits again (no-op since it's already digits),
+    // then send that to checkCode which normalizes to E.164.
     const result = await signIn('credentials', {
-      phoneNumber,
+      phoneNumber: phone,
       code,
       redirect: false,
     });
 
     if (result?.error) {
-      setError('Invalid verification code');
+      setError('Invalid verification code. Please try again.');
       setLoading(false);
     } else {
-      // Success - redirect to dashboard based on role
       router.push('/');
     }
   };
@@ -41,18 +45,20 @@ function VerifyPageContent() {
     setError(null);
     setResendSuccess(false);
 
-    const result = await requestVerificationCode(phoneNumber);
-
-    if (result.success) {
+    const result = await requestVerificationCode(phone);
+    if (result.ok) {
       setResendSuccess(true);
-      // Clear success message after 3 seconds
       setTimeout(() => setResendSuccess(false), 3000);
     } else {
-      setError(result.error || 'Failed to resend verification code');
+      setError(result.error ?? 'Failed to resend code');
     }
-
     setResending(false);
   };
+
+  // Format phone for display: (414) 861-6375
+  const displayPhone = phone.length === 10
+    ? `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`
+    : phone;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -62,7 +68,7 @@ function VerifyPageContent() {
             Enter verification code
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Code sent to {phoneNumber}
+            Code sent to {displayPhone}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -89,13 +95,13 @@ function VerifyPageContent() {
             <div className="text-red-600 text-sm text-center">{error}</div>
           )}
           {resendSuccess && (
-            <div className="text-green-600 text-sm text-center">Verification code resent successfully!</div>
+            <div className="text-green-600 text-sm text-center">Code resent!</div>
           )}
 
           <div className="space-y-4">
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || code.length !== 6}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Verifying...' : 'Verify and sign in'}
@@ -107,7 +113,7 @@ function VerifyPageContent() {
               disabled={loading || resending}
               className="w-full text-center text-sm text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
             >
-              {resending ? 'Resending...' : 'Didn\'t receive a code? Resend'}
+              {resending ? 'Resending...' : "Didn't receive a code? Resend"}
             </button>
           </div>
         </form>

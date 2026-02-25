@@ -1,93 +1,73 @@
 import twilio from 'twilio';
 
-type TwilioClient = ReturnType<typeof twilio>;
+// ─── Twilio client singleton ───────────────────────────────────────────────────
 
-const globalForTwilio = globalThis as unknown as {
-  twilioClient: TwilioClient | undefined;
-};
+let client: ReturnType<typeof twilio> | null = null;
 
-function getTwilioClient(): TwilioClient {
-  if (globalForTwilio.twilioClient) {
-    return globalForTwilio.twilioClient;
-  }
-
-  if (!process.env.TWILIO_ACCOUNT_SID) {
-    throw new Error('TWILIO_ACCOUNT_SID is not set');
-  }
-  if (!process.env.TWILIO_AUTH_TOKEN) {
-    throw new Error('TWILIO_AUTH_TOKEN is not set');
-  }
-
-  const client = twilio(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-  );
-  globalForTwilio.twilioClient = client;
+function getClient() {
+  if (client) return client;
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  if (!sid || !token) throw new Error('Missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN');
+  client = twilio(sid, token);
   return client;
 }
 
-function getVerifyServiceSid(): string {
-  if (!process.env.TWILIO_VERIFY_SERVICE_SID) {
-    throw new Error('TWILIO_VERIFY_SERVICE_SID is not set');
-  }
-  return process.env.TWILIO_VERIFY_SERVICE_SID;
+function getServiceSid() {
+  const sid = process.env.TWILIO_VERIFY_SERVICE_SID;
+  if (!sid) throw new Error('Missing TWILIO_VERIFY_SERVICE_SID');
+  return sid;
 }
 
+// ─── Phone number normalization ────────────────────────────────────────────────
+
 /**
- * Normalize phone number to E.164 format required by Twilio
+ * Normalize any phone input to E.164 format for US numbers.
+ * Always returns the same string for the same underlying number,
+ * regardless of input format.
+ *
+ * Examples:
+ *   "4148616375"     → "+14148616375"
+ *   "14148616375"    → "+14148616375"
+ *   "+14148616375"   → "+14148616375"
+ *   "(414) 861-6375" → "+14148616375"
  */
-function toE164(phoneNumber: string): string {
-  const digits = phoneNumber.replace(/\D/g, '');
-  // If it already has a country code (11+ digits starting with 1 for US), add +
-  // Otherwise assume US/CA and prepend +1
-  if (digits.length === 11 && digits.startsWith('1')) {
-    return `+${digits}`;
-  }
-  if (digits.length === 10) {
-    return `+1${digits}`;
-  }
-  // For other lengths, assume it already includes country code
+export function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
   return `+${digits}`;
 }
 
-/**
- * Send verification code to phone number via Twilio Verify
- */
-export async function sendVerificationCode(phoneNumber: string) {
-  try {
-    const e164Phone = toE164(phoneNumber);
-    const verification = await getTwilioClient().verify.v2
-      .services(getVerifyServiceSid())
-      .verifications.create({ to: e164Phone, channel: 'sms' });
+// ─── Public API ────────────────────────────────────────────────────────────────
 
-    return { success: true, sid: verification.sid, e164Phone };
-  } catch (error) {
-    console.error('Failed to send verification code:', error);
-    return { success: false, error: 'Failed to send verification code' };
+export async function sendCode(phone: string): Promise<{ ok: boolean; error?: string }> {
+  const e164 = normalizePhone(phone);
+  try {
+    await getClient().verify.v2
+      .services(getServiceSid())
+      .verifications.create({ to: e164, channel: 'sms' });
+    return { ok: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[twilio] sendCode error:', msg);
+    return { ok: false, error: 'Failed to send verification code' };
   }
 }
 
-/**
- * Verify code for phone number
- */
-export async function verifyCode(phoneNumber: string, code: string) {
+export async function checkCode(phone: string, code: string): Promise<{ ok: boolean; error?: string }> {
+  const e164 = normalizePhone(phone);
   try {
-    const e164Phone = toE164(phoneNumber);
-    const verificationCheck = await getTwilioClient().verify.v2
-      .services(getVerifyServiceSid())
-      .verificationChecks.create({ to: e164Phone, code });
-
-    return {
-      success: verificationCheck.status === 'approved',
-      status: verificationCheck.status,
-      valid: verificationCheck.valid,
-      sid: verificationCheck.sid,
-      to: verificationCheck.to,
-      e164Phone,
-      error: verificationCheck.status === 'approved' ? undefined : 'Invalid code'
-    };
-  } catch (error) {
-    console.error('Verification check failed:', error);
-    return { success: false, error: 'Verification failed' };
+    const result = await getClient().verify.v2
+      .services(getServiceSid())
+      .verificationChecks.create({ to: e164, code });
+    if (result.status === 'approved') {
+      return { ok: true };
+    }
+    return { ok: false, error: 'Invalid verification code' };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[twilio] checkCode error:', msg);
+    return { ok: false, error: 'Verification check failed' };
   }
 }

@@ -17,11 +17,11 @@ export default function LoginPage() {
 
     const result = await requestVerificationCode(phoneNumber);
 
-    if (result.success) {
-      // Redirect to verify page with phone number as query param
-      router.push(`/auth/verify?phone=${encodeURIComponent(phoneNumber)}`);
+    if (result.ok) {
+      // Pass the normalized digits-only phone via query param
+      router.push(`/auth/verify?phone=${result.phone}`);
     } else {
-      setError(result.error || 'Failed to send verification code');
+      setError(result.error ?? 'Failed to send verification code');
       setLoading(false);
     }
   };
@@ -34,7 +34,7 @@ export default function LoginPage() {
             Sign in with your phone
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            We'll send you a verification code via SMS
+            We&apos;ll send you a verification code via SMS
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -50,7 +50,7 @@ export default function LoginPage() {
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-              placeholder="+1234567890"
+              placeholder="(414) 555-1234"
             />
           </div>
 
