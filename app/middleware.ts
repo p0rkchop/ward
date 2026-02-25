@@ -1,7 +1,14 @@
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
-import { Role } from '@/app/generated/prisma/enums';
 import { rateLimit, authRateLimiter, apiRateLimiter, globalRateLimiter } from '@/app/lib/rate-limit';
+
+// Inline role constants to avoid importing from Prisma generated code in middleware
+// (middleware runs on Edge Runtime where Prisma imports can be problematic).
+const Role = {
+  ADMIN: 'ADMIN',
+  PROFESSIONAL: 'PROFESSIONAL',
+  CLIENT: 'CLIENT',
+} as const;
 
 // Rate limiting middleware that runs before authentication
 async function applyRateLimiting(req: Request) {

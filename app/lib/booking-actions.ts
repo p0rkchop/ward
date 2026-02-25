@@ -20,10 +20,19 @@ import {
  * @param end End date (exclusive)
  * @returns Array of time slots with available capacity
  */
+// Maximum date range span allowed for timeslot queries (31 days).
+// Prevents unbounded in-memory slot generation that could cause
+// serverless function timeouts or excessive memory usage on Vercel.
+const MAX_TIMESLOT_RANGE_MS = 31 * 24 * 60 * 60 * 1000;
+
 export async function getAvailableTimeslots(start: Date, end: Date) {
   // Validate input
   if (start >= end) {
     throw new Error('Start date must be before end date');
+  }
+
+  if (end.getTime() - start.getTime() > MAX_TIMESLOT_RANGE_MS) {
+    throw new Error('Date range must not exceed 31 days');
   }
 
   // Generate 30-minute time slots in JavaScript

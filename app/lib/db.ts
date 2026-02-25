@@ -1,5 +1,4 @@
 import { PrismaClient } from '@/app/generated/prisma/client'
-import { createClient } from '@libsql/client'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
 
 const globalForPrisma = globalThis as unknown as {
@@ -22,14 +21,13 @@ function getDb(): PrismaClient {
     throw new Error('TURSO_AUTH_TOKEN environment variable is required for Turso database')
   }
 
-  // Use the libSQL adapter for both local file-based SQLite and remote Turso.
-  // @libsql/client supports both "file:./dev.db" and "libsql://..." URLs.
-  const libsql = createClient({
+  // PrismaLibSql accepts a Config object and creates its own libSQL client internally.
+  // Supports both local file-based SQLite ("file:./dev.db") and remote Turso ("libsql://...").
+  const adapter = new PrismaLibSql({
     url,
     ...(isRemote ? { authToken: process.env.TURSO_AUTH_TOKEN } : {}),
   })
 
-  const adapter = new PrismaLibSql(libsql)
   const prisma = new PrismaClient({ adapter })
   globalForPrisma.prisma = prisma
   return prisma

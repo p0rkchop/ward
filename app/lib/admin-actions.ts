@@ -258,6 +258,10 @@ export async function deleteUser(id: string) {
 }
 
 // Admin Tools
+// Maximum records per entity to export. Prevents exceeding Vercel's
+// serverless response body limit (~4.5 MB) and function timeout.
+const EXPORT_LIMIT = 5000;
+
 export async function exportData() {
   await requireAdmin();
   const [users, resources, shifts, bookings] = await Promise.all([
@@ -271,6 +275,8 @@ export async function exportData() {
         createdAt: true,
         updatedAt: true,
       },
+      take: EXPORT_LIMIT,
+      orderBy: { createdAt: 'desc' },
     }),
     db.resource.findMany({
       where: { deletedAt: null },
@@ -282,6 +288,8 @@ export async function exportData() {
         createdAt: true,
         updatedAt: true,
       },
+      take: EXPORT_LIMIT,
+      orderBy: { createdAt: 'desc' },
     }),
     db.shift.findMany({
       where: { deletedAt: null },
@@ -293,6 +301,8 @@ export async function exportData() {
           select: { name: true },
         },
       },
+      take: EXPORT_LIMIT,
+      orderBy: { createdAt: 'desc' },
     }),
     db.booking.findMany({
       where: { deletedAt: null },
@@ -308,6 +318,8 @@ export async function exportData() {
           },
         },
       },
+      take: EXPORT_LIMIT,
+      orderBy: { createdAt: 'desc' },
     }),
   ]);
 

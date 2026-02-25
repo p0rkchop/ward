@@ -1,16 +1,29 @@
 import twilio from 'twilio';
 
-function getTwilioClient() {
+type TwilioClient = ReturnType<typeof twilio>;
+
+const globalForTwilio = globalThis as unknown as {
+  twilioClient: TwilioClient | undefined;
+};
+
+function getTwilioClient(): TwilioClient {
+  if (globalForTwilio.twilioClient) {
+    return globalForTwilio.twilioClient;
+  }
+
   if (!process.env.TWILIO_ACCOUNT_SID) {
     throw new Error('TWILIO_ACCOUNT_SID is not set');
   }
   if (!process.env.TWILIO_AUTH_TOKEN) {
     throw new Error('TWILIO_AUTH_TOKEN is not set');
   }
-  return twilio(
+
+  const client = twilio(
     process.env.TWILIO_ACCOUNT_SID,
     process.env.TWILIO_AUTH_TOKEN
   );
+  globalForTwilio.twilioClient = client;
+  return client;
 }
 
 function getVerifyServiceSid(): string {
