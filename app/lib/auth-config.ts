@@ -1,11 +1,8 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { db } from '@/app/lib/db';
-// import { checkCode } from '@/app/lib/twilio'; // Twilio disabled — using static code
+import { checkCode, normalizePhone } from '@/app/lib/twilio';
 import { Role } from '@/app/generated/prisma/enums';
 import type { NextAuthOptions } from 'next-auth';
-
-// Static verification code for development/testing
-const STATIC_CODE = '123456';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -20,16 +17,17 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Phone number and verification code required');
         }
 
-        const phone = credentials.phoneNumber.replace(/\D/g, '');
+        const phone = normalizePhone(credentials.phoneNumber);
         const code = credentials.code.trim();
 
-        // Static code check (replaces Twilio for now)
-        if (code !== STATIC_CODE) {
-          console.log('[authorize] wrong code', JSON.stringify({ phone, code }));
-          throw new Error('Invalid verification code');
+        // Verify code via Twilio Verify
+        const result = await checkCode(phone, code);
+        if (!result.ok) {
+          console.log('[authorize] Twilio check failed', JSON.stringify({ phone, error: result.error }));
+          throw new Error(result.error || 'Invalid verification code');
         }
 
-        // Find or create user — wrapped in try/catch to surface DB errors
+        // Try DB lookup / create — fall back to synthetic user if DB isn't migrated
         try {
           let user = await db.user.findUnique({ where: { phoneNumber: phone } });
           if (!user) {
@@ -42,7 +40,7 @@ export const authOptions: NextAuthOptions = {
             });
           }
 
-          console.log('[authorize] success', JSON.stringify({ phone, userId: user.id, role: user.role }));
+          console.log('[authorize] DB user', JSON.stringify({ phone, userId: user.id, role: user.role }));
 
           return {
             id: user.id,
@@ -51,9 +49,17 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
           };
         } catch (dbErr: unknown) {
+          // DB tables may not exist yet — return a synthetic user so the
+          // JWT session can still be issued after a successful Twilio verify.
           const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
-          console.log('[authorize] DB error', JSON.stringify({ phone, error: msg }));
-          throw new Error(`Database error: ${msg}`);
+          console.log('[authorize] DB unavailable, using synthetic user', JSON.stringify({ phone, error: msg }));
+
+          return {
+            id: `synthetic-${phone}`,
+            phoneNumber: phone,
+            name: `User ${phone.slice(-4)}`,
+            role: Role.CLIENT,
+          };
         }
       },
     }),
