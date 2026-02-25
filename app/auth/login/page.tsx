@@ -14,14 +14,34 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    // Skip Twilio SMS — go directly to verify page with digits-only phone
     const digits = phoneNumber.replace(/\D/g, '');
     if (digits.length < 10) {
       setError('Please enter a valid phone number');
       setLoading(false);
       return;
     }
-    router.push(`/auth/verify?phone=${digits}`);
+
+    try {
+      const res = await fetch('/api/auth-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: digits }),
+      });
+      const data = await res.json();
+
+      if (!data.ok) {
+        setError(data.error || 'Failed to send verification code');
+        setLoading(false);
+        return;
+      }
+
+      // Navigate with the E.164-normalized phone so verify page and
+      // NextAuth authorize() use the exact same value Twilio sent to.
+      router.push(`/auth/verify?phone=${encodeURIComponent(data.normalized)}`);
+    } catch {
+      setError('Network error. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (

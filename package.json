@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.0",
     "@prisma/adapter-libsql": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "@upstash/ratelimit": "^2.0.8",

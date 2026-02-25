@@ -11,7 +11,7 @@ function VerifyPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // This is already digits-only — it was normalized by the login page
+  // E.164 phone from login page, e.g. "+14148616375"
   const phone = searchParams.get('phone') ?? '';
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,9 +20,7 @@ function VerifyPageContent() {
     setLoading(true);
     setError(null);
 
-    // Pass the digits-only phone to NextAuth. The authorize callback
-    // will strip non-digits again (no-op since it's already digits),
-    // then send that to checkCode which normalizes to E.164.
+    // Pass the E.164 phone to NextAuth — matches exactly what Twilio sent to.
     const result = await signIn('credentials', {
       phoneNumber: phone,
       code,
@@ -37,9 +35,10 @@ function VerifyPageContent() {
     }
   };
 
-  // Format phone for display: (414) 861-6375
-  const displayPhone = phone.length === 10
-    ? `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`
+  // Format for display: +1 (414) 861-6375
+  const digits = phone.replace(/\D/g, '');
+  const displayPhone = digits.length === 11
+    ? `+${digits[0]} (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
     : phone;
 
   return (
@@ -50,7 +49,7 @@ function VerifyPageContent() {
             Enter verification code
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Enter code for {displayPhone} (use 123456)
+            We sent a code to {displayPhone}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

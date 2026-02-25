@@ -1,9 +1,25 @@
 import { redirect } from 'next/navigation';
+import { getServerSession } from '@/app/lib/auth';
 
 /**
- * Root page — redirects to client dashboard.
- * Authentication is currently disabled.
+ * Root page — redirects based on role.
+ * The middleware also handles this, but this is a server-side fallback.
  */
 export default async function Home() {
-  redirect('/client/dashboard');
+  const session = await getServerSession();
+
+  if (!session?.user) {
+    redirect('/auth/login');
+  }
+
+  switch (session.user.role) {
+    case 'ADMIN':
+      redirect('/admin/dashboard');
+    case 'PROFESSIONAL':
+      redirect('/professional/dashboard');
+    case 'CLIENT':
+      redirect('/client/dashboard');
+    default:
+      redirect('/auth/login');
+  }
 }
