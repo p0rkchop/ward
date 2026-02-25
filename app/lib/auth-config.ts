@@ -55,6 +55,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         const phoneNumber = credentials.phoneNumber.replace(/\D/g, '');
+        console.log('[authorize] Raw phoneNumber:', JSON.stringify(credentials.phoneNumber), '→ Stripped:', JSON.stringify(phoneNumber), '| Code:', JSON.stringify(credentials.code));        
 
         const verification = await verifyCode(phoneNumber, credentials.code);
         if (!verification.success) {

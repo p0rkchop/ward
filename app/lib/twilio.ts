@@ -56,10 +56,12 @@ function toE164(phoneNumber: string): string {
 export async function sendVerificationCode(phoneNumber: string) {
   try {
     const e164Phone = toE164(phoneNumber);
+    console.log('[sendVerificationCode] Input phone:', JSON.stringify(phoneNumber), '→ E.164:', JSON.stringify(e164Phone));
     const verification = await getTwilioClient().verify.v2
       .services(getVerifyServiceSid())
       .verifications.create({ to: e164Phone, channel: 'sms' });
 
+    console.log('[sendVerificationCode] Twilio response:', JSON.stringify({ status: verification.status, sid: verification.sid, to: verification.to }));
     return { success: true, sid: verification.sid };
   } catch (error) {
     console.error('Failed to send verification code:', error);
@@ -73,10 +75,12 @@ export async function sendVerificationCode(phoneNumber: string) {
 export async function verifyCode(phoneNumber: string, code: string) {
   try {
     const e164Phone = toE164(phoneNumber);
+    console.log('[verifyCode] Input phone:', JSON.stringify(phoneNumber), '→ E.164:', JSON.stringify(e164Phone), '| Code:', JSON.stringify(code), '| Code length:', code.length);
     const verificationCheck = await getTwilioClient().verify.v2
       .services(getVerifyServiceSid())
       .verificationChecks.create({ to: e164Phone, code });
 
+    console.log('[verifyCode] Twilio response:', JSON.stringify({ status: verificationCheck.status, valid: verificationCheck.valid, sid: verificationCheck.sid, to: verificationCheck.to }));
     return {
       success: verificationCheck.status === 'approved',
       status: verificationCheck.status,

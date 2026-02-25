@@ -10,6 +10,9 @@
         "openssl": true,
         "git add": true,
         "git commit": true,
-        "git push": true
+        "git push": true,
+        "npx next": true,
+        "true": true,
+        "npm uninstall": true
     }
 }
