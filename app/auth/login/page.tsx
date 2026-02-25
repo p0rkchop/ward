@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { requestVerificationCode } from '@/app/lib/auth-actions';
 
 export default function LoginPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -15,15 +14,14 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const result = await requestVerificationCode(phoneNumber);
-
-    if (result.ok) {
-      // Pass the normalized digits-only phone via query param
-      router.push(`/auth/verify?phone=${result.phone}`);
-    } else {
-      setError(result.error ?? 'Failed to send verification code');
+    // Skip Twilio SMS — go directly to verify page with digits-only phone
+    const digits = phoneNumber.replace(/\D/g, '');
+    if (digits.length < 10) {
+      setError('Please enter a valid phone number');
       setLoading(false);
+      return;
     }
+    router.push(`/auth/verify?phone=${digits}`);
   };
 
   return (

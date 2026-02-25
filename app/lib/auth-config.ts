@@ -1,8 +1,11 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { db } from '@/app/lib/db';
-import { checkCode } from '@/app/lib/twilio';
+// import { checkCode } from '@/app/lib/twilio'; // Twilio disabled — using static code
 import { Role } from '@/app/generated/prisma/enums';
 import type { NextAuthOptions } from 'next-auth';
+
+// Static verification code for development/testing
+const STATIC_CODE = '123456';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -17,42 +20,41 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Phone number and verification code required');
         }
 
-        // Strip to digits only — must match what was used to send the code
         const phone = credentials.phoneNumber.replace(/\D/g, '');
         const code = credentials.code.trim();
 
-        // Verify the code with Twilio
-        const result = await checkCode(phone, code);
-
-        // Single log — Vercel only captures one console.log per serverless invocation
-        console.log('[authorize]', JSON.stringify({
-          phone,
-          codeLen: code.length,
-          checkResult: result,
-        }));
-
-        if (!result.ok) {
-          throw new Error(result.error ?? 'Invalid verification code');
+        // Static code check (replaces Twilio for now)
+        if (code !== STATIC_CODE) {
+          console.log('[authorize] wrong code', JSON.stringify({ phone, code }));
+          throw new Error('Invalid verification code');
         }
 
-        // Find or create user
-        let user = await db.user.findUnique({ where: { phoneNumber: phone } });
-        if (!user) {
-          user = await db.user.create({
-            data: {
-              phoneNumber: phone,
-              name: `User ${phone.slice(-4)}`,
-              role: Role.CLIENT,
-            },
-          });
-        }
+        // Find or create user — wrapped in try/catch to surface DB errors
+        try {
+          let user = await db.user.findUnique({ where: { phoneNumber: phone } });
+          if (!user) {
+            user = await db.user.create({
+              data: {
+                phoneNumber: phone,
+                name: `User ${phone.slice(-4)}`,
+                role: Role.CLIENT,
+              },
+            });
+          }
 
-        return {
-          id: user.id,
-          phoneNumber: user.phoneNumber,
-          name: user.name,
-          role: user.role,
-        };
+          console.log('[authorize] success', JSON.stringify({ phone, userId: user.id, role: user.role }));
+
+          return {
+            id: user.id,
+            phoneNumber: user.phoneNumber,
+            name: user.name,
+            role: user.role,
+          };
+        } catch (dbErr: unknown) {
+          const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+          console.log('[authorize] DB error', JSON.stringify({ phone, error: msg }));
+          throw new Error(`Database error: ${msg}`);
+        }
       },
     }),
   ],

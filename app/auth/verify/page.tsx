@@ -3,7 +3,6 @@
 import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { requestVerificationCode } from '@/app/lib/auth-actions';
 
 function VerifyPageContent() {
   const searchParams = useSearchParams();
@@ -11,8 +10,6 @@ function VerifyPageContent() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resendSuccess, setResendSuccess] = useState(false);
-  const [resending, setResending] = useState(false);
 
   // This is already digits-only — it was normalized by the login page
   const phone = searchParams.get('phone') ?? '';
@@ -40,21 +37,6 @@ function VerifyPageContent() {
     }
   };
 
-  const handleResend = async () => {
-    setResending(true);
-    setError(null);
-    setResendSuccess(false);
-
-    const result = await requestVerificationCode(phone);
-    if (result.ok) {
-      setResendSuccess(true);
-      setTimeout(() => setResendSuccess(false), 3000);
-    } else {
-      setError(result.error ?? 'Failed to resend code');
-    }
-    setResending(false);
-  };
-
   // Format phone for display: (414) 861-6375
   const displayPhone = phone.length === 10
     ? `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`
@@ -68,7 +50,7 @@ function VerifyPageContent() {
             Enter verification code
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Code sent to {displayPhone}
+            Enter code for {displayPhone} (use 123456)
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -94,9 +76,6 @@ function VerifyPageContent() {
           {error && (
             <div className="text-red-600 text-sm text-center">{error}</div>
           )}
-          {resendSuccess && (
-            <div className="text-green-600 text-sm text-center">Code resent!</div>
-          )}
 
           <div className="space-y-4">
             <button
@@ -105,15 +84,6 @@ function VerifyPageContent() {
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Verifying...' : 'Verify and sign in'}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={loading || resending}
-              className="w-full text-center text-sm text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
-            >
-              {resending ? 'Resending...' : "Didn't receive a code? Resend"}
             </button>
           </div>
         </form>
