@@ -50,8 +50,7 @@ export async function sendCode(phone: string): Promise<{ ok: boolean; error?: st
     return { ok: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error('[twilio] sendCode error:', msg);
-    return { ok: false, error: 'Failed to send verification code' };
+    return { ok: false, error: `sendCode failed: ${msg}` };
   }
 }
 
@@ -64,10 +63,9 @@ export async function checkCode(phone: string, code: string): Promise<{ ok: bool
     if (result.status === 'approved') {
       return { ok: true };
     }
-    return { ok: false, error: 'Invalid verification code' };
+    return { ok: false, error: `Twilio returned status: ${result.status}` };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error('[twilio] checkCode error:', msg);
-    return { ok: false, error: 'Verification check failed' };
+    return { ok: false, error: `checkCode exception: ${msg}` };
   }
 }

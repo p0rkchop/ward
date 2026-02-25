@@ -21,16 +21,19 @@ export const authOptions: NextAuthOptions = {
         const phone = credentials.phoneNumber.replace(/\D/g, '');
         const code = credentials.code.trim();
 
-        console.log('[authorize]', JSON.stringify({ phone, codeLen: code.length }));
-
         // Verify the code with Twilio
         const result = await checkCode(phone, code);
+
+        // Single log — Vercel only captures one console.log per serverless invocation
+        console.log('[authorize]', JSON.stringify({
+          phone,
+          codeLen: code.length,
+          checkResult: result,
+        }));
+
         if (!result.ok) {
-          console.log('[authorize] verification failed:', result.error);
           throw new Error(result.error ?? 'Invalid verification code');
         }
-
-        console.log('[authorize] code verified, looking up user');
 
         // Find or create user
         let user = await db.user.findUnique({ where: { phoneNumber: phone } });
