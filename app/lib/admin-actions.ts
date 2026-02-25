@@ -233,6 +233,9 @@ export async function getUsers() {
         where: { deletedAt: null },
         select: { id: true },
       },
+      event: {
+        select: { id: true, name: true },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });

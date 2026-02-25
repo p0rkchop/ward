@@ -25,21 +25,52 @@ enum BookingStatus {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  name        String
-  phoneNumber String   @unique
-  email       String?  @unique
-  role        Role
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
+  id            String    @id @default(cuid())
+  name          String
+  phoneNumber   String    @unique
+  email         String?   @unique
+  role          Role
+  setupComplete Boolean   @default(false)
+  eventId       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
   // Relations
+  event                Event?     @relation("EventProfessionals", fields: [eventId], references: [id])
+  adminEvents          Event[]    @relation("EventAdmin")
   shiftsAsProfessional Shift[]    @relation("ProfessionalShifts")
   bookingsAsClient     Booking[]  @relation("ClientBookings")
 
   @@index([role])
   @@index([deletedAt])
+  @@index([eventId])
+  @@index([setupComplete])
+}
+
+model Event {
+  id                   String    @id @default(cuid())
+  name                 String
+  description          String?
+  startDate            DateTime
+  endDate              DateTime
+  professionalPassword String
+  isActive             Boolean   @default(true)
+  deletedAt            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Foreign keys
+  adminId String
+
+  // Relations
+  admin         User   @relation("EventAdmin", fields: [adminId], references: [id])
+  professionals User[] @relation("EventProfessionals")
+
+  @@index([adminId])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@index([startDate, endDate])
 }
 
 model Resource {

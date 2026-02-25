@@ -140,10 +140,13 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
                 Name
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Phone Number
+                Contact
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Role
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                Setup
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Created
@@ -162,8 +165,11 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
                 <td className="whitespace-nowrap px-6 py-4">
                   <div className="text-sm font-medium text-gray-900">{user.name}</div>
                 </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                  {user.phoneNumber}
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-900">{user.phoneNumber}</div>
+                  {user.email && (
+                    <div className="text-xs text-gray-500">{user.email}</div>
+                  )}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   {editingRoleId === user.id ? (
@@ -197,6 +203,20 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
                     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getRoleColor(user.role)}`}>
                       {getRoleDisplay(user.role)}
                     </span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-6 py-4">
+                  <span
+                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      user.setupComplete
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}
+                  >
+                    {user.setupComplete ? 'Complete' : 'Pending'}
+                  </span>
+                  {user.event && (
+                    <div className="text-xs text-gray-500 mt-0.5">{user.event.name}</div>
                   )}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">

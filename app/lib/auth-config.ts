@@ -47,6 +47,7 @@ export const authOptions: NextAuthOptions = {
             phoneNumber: user.phoneNumber,
             name: user.name,
             role: user.role,
+            setupComplete: user.setupComplete,
           };
         } catch (dbErr: unknown) {
           // DB tables may not exist yet — return a synthetic user so the
@@ -59,6 +60,7 @@ export const authOptions: NextAuthOptions = {
             phoneNumber: phone,
             name: `User ${phone.slice(-4)}`,
             role: Role.CLIENT,
+            setupComplete: false,
           };
         }
       },
@@ -69,6 +71,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.phoneNumber = user.phoneNumber;
         token.role = user.role;
+        token.setupComplete = user.setupComplete;
       }
       return token;
     },
@@ -77,6 +80,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.sub!;
         session.user.phoneNumber = token.phoneNumber as string;
         session.user.role = token.role as Role;
+        session.user.setupComplete = token.setupComplete as boolean;
       }
       return session;
     },

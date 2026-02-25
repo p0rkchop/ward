@@ -5,6 +5,7 @@ declare module 'next-auth' {
   interface User {
     phoneNumber: string;
     role: Role;
+    setupComplete: boolean;
   }
 
   interface Session {
@@ -12,6 +13,7 @@ declare module 'next-auth' {
       id: string;
       phoneNumber: string;
       role: Role;
+      setupComplete: boolean;
       name?: string | null;
       email?: string | null;
       image?: string | null;
@@ -23,6 +25,7 @@ declare module 'next-auth/jwt' {
   interface JWT {
     phoneNumber: string;
     role: Role;
+    setupComplete: boolean;
   }
 }
 
@@ -30,6 +33,7 @@ export type SessionUser = {
   id: string;
   phoneNumber: string;
   role: Role;
+  setupComplete: boolean;
   name?: string | null;
   email?: string | null;
   image?: string | null;

@@ -18,6 +18,14 @@ export default withAuth(
       return NextResponse.next();
     }
 
+    // If authenticated but setup not complete, redirect to setup page
+    if (token && !token.setupComplete && pathname !== '/auth/setup') {
+      // Allow API routes to pass through (needed for session updates)
+      if (!pathname.startsWith('/api/')) {
+        return NextResponse.redirect(new URL('/auth/setup', req.url));
+      }
+    }
+
     // Redirect based on role if accessing root
     if (pathname === '/') {
       if (!token) {

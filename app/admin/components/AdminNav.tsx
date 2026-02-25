@@ -17,6 +17,7 @@ export default function AdminNav({ user }: AdminNavProps) {
   const navigation = [
     { name: 'Dashboard', href: '/admin/dashboard' },
     { name: 'Resources', href: '/admin/resources' },
+    { name: 'Events', href: '/admin/events' },
     { name: 'Users', href: '/admin/users' },
     { name: 'Analytics', href: '/admin/analytics' },
     { name: 'Settings', href: '/admin/settings' },
