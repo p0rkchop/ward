@@ -1,21 +1,24 @@
 import twilio from 'twilio';
 
-if (!process.env.TWILIO_ACCOUNT_SID) {
-  throw new Error('TWILIO_ACCOUNT_SID is not set');
-}
-if (!process.env.TWILIO_AUTH_TOKEN) {
-  throw new Error('TWILIO_AUTH_TOKEN is not set');
-}
-if (!process.env.TWILIO_VERIFY_SERVICE_SID) {
-  throw new Error('TWILIO_VERIFY_SERVICE_SID is not set');
+function getTwilioClient() {
+  if (!process.env.TWILIO_ACCOUNT_SID) {
+    throw new Error('TWILIO_ACCOUNT_SID is not set');
+  }
+  if (!process.env.TWILIO_AUTH_TOKEN) {
+    throw new Error('TWILIO_AUTH_TOKEN is not set');
+  }
+  return twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
 }
 
-export const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
-
-export const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+function getVerifyServiceSid(): string {
+  if (!process.env.TWILIO_VERIFY_SERVICE_SID) {
+    throw new Error('TWILIO_VERIFY_SERVICE_SID is not set');
+  }
+  return process.env.TWILIO_VERIFY_SERVICE_SID;
+}
 
 /**
  * Normalize phone number to E.164 format required by Twilio
@@ -40,8 +43,8 @@ function toE164(phoneNumber: string): string {
 export async function sendVerificationCode(phoneNumber: string) {
   try {
     const e164Phone = toE164(phoneNumber);
-    const verification = await twilioClient.verify.v2
-      .services(verifyServiceSid)
+    const verification = await getTwilioClient().verify.v2
+      .services(getVerifyServiceSid())
       .verifications.create({ to: e164Phone, channel: 'sms' });
 
     return { success: true, sid: verification.sid };
@@ -57,8 +60,8 @@ export async function sendVerificationCode(phoneNumber: string) {
 export async function verifyCode(phoneNumber: string, code: string) {
   try {
     const e164Phone = toE164(phoneNumber);
-    const verificationCheck = await twilioClient.verify.v2
-      .services(verifyServiceSid)
+    const verificationCheck = await getTwilioClient().verify.v2
+      .services(getVerifyServiceSid())
       .verificationChecks.create({ to: e164Phone, code });
 
     return {

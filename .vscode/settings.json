@@ -1,0 +1,15 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "npx prisma": true,
+        "npx --yes prisma": true,
+        "npm install": true,
+        "*": true,
+        "npx tsc": true,
+        "npx vercel": true,
+        "vercel": true,
+        "openssl": true,
+        "git add": true,
+        "git commit": true,
+        "git push": true
+    }
+}

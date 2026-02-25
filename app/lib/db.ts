@@ -1,10 +1,12 @@
 import { PrismaClient } from '@/app/generated/prisma/client'
+import { createClient } from '@libsql/client'
+import { PrismaLibSql } from '@prisma/adapter-libsql'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-function getDb() {
+function getDb(): PrismaClient {
   if (globalForPrisma.prisma) {
     return globalForPrisma.prisma
   }
@@ -20,33 +22,28 @@ function getDb() {
     throw new Error('TURSO_AUTH_TOKEN environment variable is required for Turso database')
   }
 
-  try {
-    // Use the libSQL adapter for both local file-based SQLite and remote Turso.
-    // @libsql/client supports both "file:./dev.db" and "libsql://..." URLs.
-    const { createClient } = require('@libsql/client')
-    const { PrismaLibSQL } = require('@prisma/adapter-libsql')
+  // Use the libSQL adapter for both local file-based SQLite and remote Turso.
+  // @libsql/client supports both "file:./dev.db" and "libsql://..." URLs.
+  const libsql = createClient({
+    url,
+    ...(isRemote ? { authToken: process.env.TURSO_AUTH_TOKEN } : {}),
+  })
 
-    const libsql = createClient({
-      url,
-      ...(isRemote ? { authToken: process.env.TURSO_AUTH_TOKEN } : {}),
-    })
-
-    const adapter = new PrismaLibSQL(libsql)
-    const prisma = new PrismaClient({ adapter })
-    globalForPrisma.prisma = prisma
-    return prisma
-  } catch (error) {
-    // Only log full error in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('Failed to initialize libSQL adapter:', error)
-    } else {
-      console.error('Failed to initialize libSQL adapter')
-    }
-    throw new Error(
-      'Failed to initialize database adapter. ' +
-      'Make sure @libsql/client and @prisma/adapter-libsql are installed.'
-    )
-  }
+  const adapter = new PrismaLibSql(libsql)
+  const prisma = new PrismaClient({ adapter })
+  globalForPrisma.prisma = prisma
+  return prisma
 }
 
-export const db = getDb()
+/**
+ * Lazy-initialized database client.
+ * The actual connection is only created when `db` is first accessed at runtime,
+ * not at module-import time. This prevents build-time failures on Vercel where
+ * DATABASE_URL is not available during static page collection.
+ */
+export const db = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getDb()
+    return Reflect.get(client, prop, client)
+  },
+})

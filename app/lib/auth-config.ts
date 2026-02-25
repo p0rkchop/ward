@@ -29,9 +29,14 @@ function validateAuthConfig() {
   }
 }
 
-// Validate on module load (server-side only)
-if (typeof window === 'undefined') {
-  validateAuthConfig();
+// Validate on first request (server-side only), not at module load time
+// to avoid build failures when env vars aren't available.
+let authConfigValidated = false;
+function ensureAuthConfig() {
+  if (!authConfigValidated && typeof window === 'undefined') {
+    validateAuthConfig();
+    authConfigValidated = true;
+  }
 }
 
 export const authOptions: NextAuthOptions = {
@@ -43,6 +48,8 @@ export const authOptions: NextAuthOptions = {
         code: { label: 'Verification Code', type: 'text' },
       },
       async authorize(credentials) {
+        ensureAuthConfig();
+
         if (!credentials?.phoneNumber || !credentials?.code) {
           throw new Error('Phone number and verification code required');
         }
