@@ -69,6 +69,10 @@ export default withAuth(
         ) {
           return true;
         }
+        // Reject if user was invalidated (deleted/disabled) during DB check
+        if (token && token.userValid === false) {
+          return false;
+        }
         return !!token;
       },
     },

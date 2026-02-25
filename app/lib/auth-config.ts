@@ -74,14 +74,39 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        // Initial sign-in — seed from authorize()
         token.phoneNumber = user.phoneNumber;
         token.role = user.role;
         token.setupComplete = user.setupComplete;
         token.isNewUser = user.isNewUser;
+        token.userValid = true;
+      } else if (token.sub) {
+        // Every subsequent request — validate user still exists & is active
+        try {
+          const dbUser = await db.user.findUnique({ where: { id: token.sub } });
+          if (!dbUser || dbUser.deletedAt) {
+            console.log('[jwt] User invalidated', JSON.stringify({ id: token.sub, found: !!dbUser, deleted: !!dbUser?.deletedAt }));
+            token.userValid = false;
+          } else {
+            // Sync latest DB state into token
+            token.role = dbUser.role;
+            token.setupComplete = dbUser.setupComplete;
+            token.phoneNumber = dbUser.phoneNumber;
+            token.userValid = true;
+          }
+        } catch (err) {
+          // Don't invalidate on transient DB errors
+          console.log('[jwt] DB check error, keeping current token', err instanceof Error ? err.message : String(err));
+        }
       }
       return token;
     },
     async session({ session, token }) {
+      // If user has been invalidated, strip session so pages see no user
+      if (token.userValid === false) {
+        session.user = undefined as any;
+        return session;
+      }
       if (session.user) {
         session.user.id = token.sub!;
         session.user.phoneNumber = token.phoneNumber as string;
