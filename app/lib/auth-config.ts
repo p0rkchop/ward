@@ -89,6 +89,7 @@ export const authOptions: NextAuthOptions = {
             token.userValid = false;
           } else {
             // Sync latest DB state into token
+            token.name = dbUser.name;
             token.role = dbUser.role;
             token.setupComplete = dbUser.setupComplete;
             token.phoneNumber = dbUser.phoneNumber;
