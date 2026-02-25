@@ -1,4 +1,22 @@
-import { getServerSession as nextAuthGetServerSession } from 'next-auth';
-import { authOptions } from '@/app/lib/auth-config';
+import type { Session } from 'next-auth';
 
-export const getServerSession = () => nextAuthGetServerSession(authOptions);
+/**
+ * Authentication is currently DISABLED.
+ * Returns a stub session with a fake CLIENT user so every page renders
+ * without hitting the database or NextAuth.
+ */
+const STUB_SESSION: Session = {
+  user: {
+    id: 'stub-user-id',
+    phoneNumber: '+10000000000',
+    role: 'CLIENT' as any,
+    name: 'Guest',
+    email: null,
+    image: null,
+  },
+  expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+};
+
+export const getServerSession = async (): Promise<Session> => {
+  return STUB_SESSION;
+};
