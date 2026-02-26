@@ -60,12 +60,14 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         const pathname = req.nextUrl?.pathname || '';
-        // Allow unauthenticated access to auth pages, auth-test, API auth, and health
+        // Allow unauthenticated access to auth pages, auth-test, API auth, health, and legal pages
         if (
           pathname.startsWith('/auth/') ||
           pathname.startsWith('/auth-test') ||
           pathname.startsWith('/api/auth') ||
-          pathname === '/api/health'
+          pathname === '/api/health' ||
+          pathname === '/privacy' ||
+          pathname === '/terms'
         ) {
           return true;
         }
