@@ -53,6 +53,7 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      timeZone: 'UTC',
     });
   }
 

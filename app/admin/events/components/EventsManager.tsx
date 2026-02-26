@@ -167,6 +167,7 @@ export default function EventsManager({ initialEvents }: Props) {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      timeZone: 'UTC',
     });
   }
 
