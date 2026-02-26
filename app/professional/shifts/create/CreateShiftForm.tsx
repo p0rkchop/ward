@@ -11,15 +11,25 @@ interface Resource {
   id: string;
   name: string;
   description: string | null;
+  location: string | null;
+  quantity: number;
+  professionalsPerUnit: number;
   isActive: boolean;
+}
+
+interface EventDayInfo {
+  date: string; // 'YYYY-MM-DD'
+  startTime: string; // 'HH:MM'
+  endTime: string; // 'HH:MM'
 }
 
 interface CreateShiftFormProps {
   professionalId: string;
   resources: Resource[];
+  eventDays?: EventDayInfo[];
 }
 
-export default function CreateShiftForm({ professionalId, resources }: CreateShiftFormProps) {
+export default function CreateShiftForm({ professionalId, resources, eventDays = [] }: CreateShiftFormProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,16 +37,30 @@ export default function CreateShiftForm({ professionalId, resources }: CreateShi
 
   // Form state
   const [resourceId, setResourceId] = useState(resources.length > 0 ? resources[0].id : '');
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [startTime, setStartTime] = useState('09:00');
+  const [date, setDate] = useState(
+    eventDays.length > 0 ? eventDays[0].date : format(new Date(), 'yyyy-MM-dd')
+  );
+  const [startTime, setStartTime] = useState(
+    eventDays.length > 0 ? eventDays[0].startTime : '09:00'
+  );
   const [duration, setDuration] = useState(30); // minutes
 
   // Available time options (30-minute intervals)
-  const timeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
+  // If event days are provided, filter to event hours for the selected date
+  const selectedEventDay = eventDays.find((d) => d.date === date);
+
+  const allTimeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
     const hour = Math.floor(i / 2);
     const minute = i % 2 === 0 ? 0 : 30;
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   });
+
+  const timeOptions = selectedEventDay
+    ? allTimeOptions.filter((time) => time >= selectedEventDay.startTime && time < selectedEventDay.endTime)
+    : allTimeOptions;
+
+  // Available dates: if event days provided, only those dates
+  const availableDates = eventDays.length > 0 ? eventDays.map((d) => d.date) : [];
 
   // Duration options (30-minute increments up to 8 hours)
   const durationOptions = Array.from({ length: 16 }, (_, i) => (i + 1) * 30); // 30 to 480 minutes
@@ -151,7 +175,7 @@ export default function CreateShiftForm({ professionalId, resources }: CreateShi
             ) : (
               resources.map((resource) => (
                 <option key={resource.id} value={resource.id}>
-                  {resource.name} {resource.description ? `- ${resource.description}` : ''}
+                  {resource.name}{resource.location ? ` (${resource.location})` : ''}{resource.description ? ` - ${resource.description}` : ''}
                 </option>
               ))
             )}
@@ -165,17 +189,47 @@ export default function CreateShiftForm({ professionalId, resources }: CreateShi
           <label htmlFor="date" className="block text-sm font-medium text-gray-700">
             Date *
           </label>
-          <input
-            type="date"
-            id="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            min={format(new Date(), 'yyyy-MM-dd')}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            required
-          />
+          {availableDates.length > 0 ? (
+            <select
+              id="date"
+              value={date}
+              onChange={(e) => {
+                setDate(e.target.value);
+                // Reset start time when date changes (event hours may differ)
+                const newDay = eventDays.find((d) => d.date === e.target.value);
+                if (newDay) {
+                  setStartTime(newDay.startTime);
+                }
+              }}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              required
+            >
+              {availableDates.map((d) => (
+                <option key={d} value={d}>
+                  {new Date(d + 'T00:00:00').toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="date"
+              id="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              min={format(new Date(), 'yyyy-MM-dd')}
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              required
+            />
+          )}
           <p className="mt-1 text-sm text-gray-500">
-            Select the date for your shift.
+            {availableDates.length > 0
+              ? 'Select from the available event dates.'
+              : 'Select the date for your shift.'}
           </p>
         </div>
 
@@ -257,9 +311,12 @@ export default function CreateShiftForm({ professionalId, resources }: CreateShi
           <li>Shifts must be at least 30 minutes long</li>
           <li>Shifts must be in multiples of 30 minutes (30, 60, 90, etc.)</li>
           <li>Start times must be aligned to 30-minute boundaries (e.g., 9:00, 9:30)</li>
-          <li>You cannot create overlapping shifts for the same resource</li>
+          <li>Resource availability depends on its capacity (quantity × professionals per unit)</li>
           <li>You cannot create overlapping shifts for yourself (same time period)</li>
           <li>Shifts can only be created by users with the PROFESSIONAL role</li>
+          {eventDays.length > 0 && (
+            <li>Shifts are restricted to your assigned event&apos;s dates and hours</li>
+          )}
         </ul>
       </div>
     </div>

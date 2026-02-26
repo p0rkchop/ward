@@ -91,7 +91,7 @@ export async function findOverlappingShifts(
   resourceId: string,
   start: Date,
   end: Date
-): Promise<{ professionalOverlap: boolean; resourceOverlap: boolean }> {
+): Promise<{ professionalOverlap: boolean; resourceOverlapCount: number }> {
   const overlappingShifts = await db.shift.findMany({
     where: {
       OR: [
@@ -122,11 +122,11 @@ export async function findOverlappingShifts(
   const professionalOverlap = overlappingShifts.some(
     (shift) => shift.professionalId === professionalId
   );
-  const resourceOverlap = overlappingShifts.some(
+  const resourceOverlapCount = overlappingShifts.filter(
     (shift) => shift.resourceId === resourceId
-  );
+  ).length;
 
-  return { professionalOverlap, resourceOverlap };
+  return { professionalOverlap, resourceOverlapCount };
 }
 
 // Schema validation helper

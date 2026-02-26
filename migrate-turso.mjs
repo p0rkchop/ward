@@ -166,6 +166,27 @@ const statements = [
   // ── EventDayBlackout indexes ──
   `CREATE INDEX IF NOT EXISTS "EventDayBlackout_eventDayId_idx" ON "EventDayBlackout"("eventDayId")`,
   `CREATE INDEX IF NOT EXISTS "EventDayBlackout_deletedAt_idx" ON "EventDayBlackout"("deletedAt")`,
+
+  // ── v1.2.0: EventResource join table ──
+  `CREATE TABLE IF NOT EXISTS "EventResource" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "deletedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    "eventId" TEXT NOT NULL,
+    "resourceId" TEXT NOT NULL,
+    CONSTRAINT "EventResource_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "EventResource_resourceId_fkey" FOREIGN KEY ("resourceId") REFERENCES "Resource" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  )`,
+
+  // ── EventResource indexes ──
+  `CREATE UNIQUE INDEX IF NOT EXISTS "EventResource_eventId_resourceId_key" ON "EventResource"("eventId", "resourceId")`,
+  `CREATE INDEX IF NOT EXISTS "EventResource_eventId_idx" ON "EventResource"("eventId")`,
+  `CREATE INDEX IF NOT EXISTS "EventResource_resourceId_idx" ON "EventResource"("resourceId")`,
+  `CREATE INDEX IF NOT EXISTS "EventResource_deletedAt_idx" ON "EventResource"("deletedAt")`,
+
+  // ── v1.2.0: Drop resource unique constraint on Shift to allow capacity-based booking ──
+  `DROP INDEX IF EXISTS "Shift_resourceId_startTime_endTime_key"`,
 ];
 
 console.log(`Running ${statements.length} statements...`);
@@ -199,5 +220,8 @@ console.log("Resource columns:", resourceCols.rows.map(r => r.name));
 
 const eventDayCols = await client.execute("PRAGMA table_info('EventDay')");
 console.log("EventDay columns:", eventDayCols.rows.map(r => r.name));
+
+const eventResourceCols = await client.execute("PRAGMA table_info('EventResource')");
+console.log("EventResource columns:", eventResourceCols.rows.map(r => r.name));
 
 client.close();

@@ -104,8 +104,15 @@ describe('shift-actions', () => {
       vi.mocked(validateResourceActive).mockResolvedValue(undefined)
       vi.mocked(findOverlappingShifts).mockResolvedValue({
         professionalOverlap: false,
-        resourceOverlap: false,
+        resourceOverlapCount: 0,
       })
+
+      // Mock db.resource.findUnique for capacity check
+      vi.mocked(db.resource.findUnique).mockResolvedValue({
+        id: 'resource-id', name: 'Test', description: null, location: null,
+        quantity: 1, professionalsPerUnit: 1, isActive: true,
+        deletedAt: null, createdAt: new Date(), updatedAt: new Date(),
+      } as any)
 
       // Mock transaction
       const mockShift = {
@@ -126,7 +133,7 @@ describe('shift-actions', () => {
             findUnique: vi.fn().mockResolvedValue({ role: Role.PROFESSIONAL }),
           },
           resource: {
-            findUnique: vi.fn().mockResolvedValue({ isActive: true }),
+            findUnique: vi.fn().mockResolvedValue({ isActive: true, quantity: 1, professionalsPerUnit: 1 }),
           },
           shift: {
             findMany: vi.fn().mockResolvedValue([]),
@@ -212,7 +219,7 @@ describe('shift-actions', () => {
       vi.mocked(validateResourceActive).mockResolvedValue(undefined)
       vi.mocked(findOverlappingShifts).mockResolvedValue({
         professionalOverlap: true,
-        resourceOverlap: false,
+        resourceOverlapCount: 0,
       })
 
       await expect(createShift(mockResourceId, mockStart, mockEnd))
@@ -227,15 +234,22 @@ describe('shift-actions', () => {
       })
       vi.mocked(findOverlappingShifts).mockResolvedValue({
         professionalOverlap: false,
-        resourceOverlap: true,
+        resourceOverlapCount: 1,
       })
       vi.mocked(isValid30MinuteInterval).mockReturnValue(true)
       vi.mocked(isAlignedTo30MinuteBoundary).mockReturnValue(true)
       vi.mocked(validateProfessionalRole).mockResolvedValue(undefined)
       vi.mocked(validateResourceActive).mockResolvedValue(undefined)
 
+      // Mock db.resource.findUnique for capacity check (capacity = 1, overlap = 1 → at capacity)
+      vi.mocked(db.resource.findUnique).mockResolvedValue({
+        id: 'resource-id', name: 'Test', description: null, location: null,
+        quantity: 1, professionalsPerUnit: 1, isActive: true,
+        deletedAt: null, createdAt: new Date(), updatedAt: new Date(),
+      } as any)
+
       await expect(createShift(mockResourceId, mockStart, mockEnd))
-        .rejects.toThrow('Resource already booked for this time period')
+        .rejects.toThrow('Resource is at capacity')
     })
   })
 

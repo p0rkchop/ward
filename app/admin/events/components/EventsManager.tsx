@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createEvent, updateEvent, deleteEvent, type EventData } from '@/app/lib/event-actions';
 import EventDaysEditor from './EventDaysEditor';
+import EventResourcesEditor from './EventResourcesEditor';
 
 interface Props {
   initialEvents: EventData[];
@@ -15,6 +16,7 @@ export default function EventsManager({ initialEvents }: Props) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [manageDaysEventId, setManageDaysEventId] = useState<string | null>(null);
+  const [manageResourcesEventId, setManageResourcesEventId] = useState<string | null>(null);
 
   // Create form state
   const [newName, setNewName] = useState('');
@@ -452,6 +454,12 @@ export default function EventsManager({ initialEvents }: Props) {
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
                       <button
+                        onClick={() => setManageResourcesEventId(event.id)}
+                        className="text-green-600 hover:text-green-800 text-sm font-medium"
+                      >
+                        Resources
+                      </button>
+                      <button
                         onClick={() => setManageDaysEventId(event.id)}
                         className="text-purple-600 hover:text-purple-800 text-sm font-medium"
                       >
@@ -484,6 +492,14 @@ export default function EventsManager({ initialEvents }: Props) {
           eventId={manageDaysEventId}
           eventName={events.find((e) => e.id === manageDaysEventId)?.name ?? ''}
           onClose={() => setManageDaysEventId(null)}
+        />
+      )}
+      {/* Event Resources Editor Modal */}
+      {manageResourcesEventId && (
+        <EventResourcesEditor
+          eventId={manageResourcesEventId}
+          eventName={events.find((e) => e.id === manageResourcesEventId)?.name ?? ''}
+          onClose={() => setManageResourcesEventId(null)}
         />
       )}
     </div>

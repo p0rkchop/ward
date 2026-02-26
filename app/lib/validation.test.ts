@@ -238,7 +238,7 @@ describe('validation', () => {
 
       expect(result).toEqual({
         professionalOverlap: false,
-        resourceOverlap: false,
+        resourceOverlapCount: 0,
       })
     })
 
@@ -265,7 +265,7 @@ describe('validation', () => {
 
       expect(result).toEqual({
         professionalOverlap: true,
-        resourceOverlap: false,
+        resourceOverlapCount: 0,
       })
     })
 
@@ -292,7 +292,7 @@ describe('validation', () => {
 
       expect(result).toEqual({
         professionalOverlap: false,
-        resourceOverlap: true,
+        resourceOverlapCount: 1,
       })
     })
 
@@ -329,7 +329,7 @@ describe('validation', () => {
 
       expect(result).toEqual({
         professionalOverlap: true,
-        resourceOverlap: true,
+        resourceOverlapCount: 1,
       })
     })
   })

@@ -358,3 +358,130 @@ export async function deleteBlackout(id: string): Promise<{ ok: true } | { ok: f
     return { ok: false, error: 'Failed to delete blackout' };
   }
 }
+
+// ── Event Resource Assignment ──
+
+export type EventResourceData = {
+  id: string;
+  resourceId: string;
+  resourceName: string;
+  resourceDescription: string | null;
+  resourceLocation: string | null;
+  resourceQuantity: number;
+  resourceProfessionalsPerUnit: number;
+};
+
+export async function getEventResources(eventId: string): Promise<EventResourceData[]> {
+  await requireAdmin();
+
+  const eventResources = await db.eventResource.findMany({
+    where: { eventId, deletedAt: null },
+    include: {
+      resource: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          location: true,
+          quantity: true,
+          professionalsPerUnit: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  return eventResources.map((er) => ({
+    id: er.id,
+    resourceId: er.resource.id,
+    resourceName: er.resource.name,
+    resourceDescription: er.resource.description,
+    resourceLocation: er.resource.location,
+    resourceQuantity: er.resource.quantity,
+    resourceProfessionalsPerUnit: er.resource.professionalsPerUnit,
+  }));
+}
+
+export async function getUnassignedResources(eventId: string) {
+  await requireAdmin();
+
+  // Get resources already assigned to this event
+  const assigned = await db.eventResource.findMany({
+    where: { eventId, deletedAt: null },
+    select: { resourceId: true },
+  });
+  const assignedIds = assigned.map((a) => a.resourceId);
+
+  // Get active resources not yet assigned
+  return await db.resource.findMany({
+    where: {
+      deletedAt: null,
+      isActive: true,
+      ...(assignedIds.length > 0 && { id: { notIn: assignedIds } }),
+    },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, description: true, location: true, quantity: true, professionalsPerUnit: true },
+  });
+}
+
+export async function assignResourceToEvent(
+  eventId: string,
+  resourceId: string
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  try {
+    // Verify event and resource exist
+    const [event, resource] = await Promise.all([
+      db.event.findUnique({ where: { id: eventId, deletedAt: null } }),
+      db.resource.findUnique({ where: { id: resourceId, deletedAt: null, isActive: true } }),
+    ]);
+    if (!event) return { ok: false, error: 'Event not found' };
+    if (!resource) return { ok: false, error: 'Resource not found or inactive' };
+
+    // Check if already assigned (including soft-deleted — reactivate if so)
+    const existing = await db.eventResource.findUnique({
+      where: { eventId_resourceId: { eventId, resourceId } },
+    });
+
+    if (existing) {
+      if (existing.deletedAt === null) {
+        return { ok: false, error: 'Resource already assigned to this event' };
+      }
+      // Reactivate soft-deleted assignment
+      await db.eventResource.update({
+        where: { id: existing.id },
+        data: { deletedAt: null },
+      });
+      return { ok: true, id: existing.id };
+    }
+
+    const er = await db.eventResource.create({
+      data: { eventId, resourceId },
+    });
+
+    return { ok: true, id: er.id };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[assignResourceToEvent] Error:', msg);
+    return { ok: false, error: 'Failed to assign resource' };
+  }
+}
+
+export async function unassignResourceFromEvent(
+  id: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  try {
+    await db.eventResource.update({
+      where: { id, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+    return { ok: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[unassignResourceFromEvent] Error:', msg);
+    return { ok: false, error: 'Failed to unassign resource' };
+  }
+}

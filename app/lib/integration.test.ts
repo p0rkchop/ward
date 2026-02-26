@@ -120,8 +120,15 @@ describe('Integration Tests - Complete User Flows', () => {
       vi.mocked(validateResourceActive).mockResolvedValue(undefined)
       vi.mocked(findOverlappingShifts).mockResolvedValue({
         professionalOverlap: false,
-        resourceOverlap: false,
+        resourceOverlapCount: 0,
       })
+
+      // Mock db.resource.findUnique for capacity check
+      vi.mocked(db.resource.findUnique).mockResolvedValue({
+        id: 'resource-id', name: 'Test', description: null, location: null,
+        quantity: 1, professionalsPerUnit: 1, isActive: true,
+        deletedAt: null, createdAt: new Date(), updatedAt: new Date(),
+      } as any)
     })
 
     it('creates shift successfully', async () => {
@@ -144,7 +151,7 @@ describe('Integration Tests - Complete User Flows', () => {
             findUnique: vi.fn().mockResolvedValue({ role: Role.PROFESSIONAL }),
           },
           resource: {
-            findUnique: vi.fn().mockResolvedValue({ isActive: true }),
+            findUnique: vi.fn().mockResolvedValue({ isActive: true, quantity: 1, professionalsPerUnit: 1 }),
           },
           shift: {
             findMany: vi.fn().mockResolvedValue([]),

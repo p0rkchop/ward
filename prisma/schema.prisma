@@ -66,9 +66,10 @@ model Event {
   adminId String
 
   // Relations
-  admin         User       @relation("EventAdmin", fields: [adminId], references: [id])
-  professionals User[]     @relation("EventProfessionals")
-  days          EventDay[] @relation("EventDays")
+  admin         User            @relation("EventAdmin", fields: [adminId], references: [id])
+  professionals User[]          @relation("EventProfessionals")
+  days          EventDay[]      @relation("EventDays")
+  eventResources EventResource[] @relation("EventEventResources")
 
   @@index([adminId])
   @@index([isActive])
@@ -131,9 +132,30 @@ model Resource {
   updatedAt           DateTime @updatedAt
 
   // Relations
-  shifts Shift[]
+  shifts         Shift[]
+  eventResources EventResource[] @relation("ResourceEventResources")
 
   @@index([isActive])
+  @@index([deletedAt])
+}
+
+model EventResource {
+  id        String    @id @default(cuid())
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Foreign keys
+  eventId    String
+  resourceId String
+
+  // Relations
+  event    Event    @relation("EventEventResources", fields: [eventId], references: [id])
+  resource Resource @relation("ResourceEventResources", fields: [resourceId], references: [id])
+
+  @@unique([eventId, resourceId])
+  @@index([eventId])
+  @@index([resourceId])
   @@index([deletedAt])
 }
 
@@ -162,7 +184,6 @@ model Shift {
   @@index([professionalId, startTime, deletedAt])
   @@index([resourceId, startTime, deletedAt])
   @@unique([professionalId, startTime, endTime])
-  @@unique([resourceId, startTime, endTime])
 }
 
 model Booking {

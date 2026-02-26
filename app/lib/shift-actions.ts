@@ -61,7 +61,7 @@ export async function createShift(
   await validateResourceActive(input.resourceId);
 
   // Check for overlapping shifts (application-level check)
-  const { professionalOverlap, resourceOverlap } = await findOverlappingShifts(
+  const { professionalOverlap, resourceOverlapCount } = await findOverlappingShifts(
     professionalId,
     input.resourceId,
     input.start,
@@ -72,38 +72,49 @@ export async function createShift(
     throw new ConflictError('Professional already has a shift during this time period');
   }
 
-  if (resourceOverlap) {
-    throw new ConflictError('Resource already booked for this time period');
+  // Get resource capacity for capacity-based check
+  const resourceForCapacity = await db.resource.findUnique({
+    where: { id: input.resourceId },
+    select: { quantity: true, professionalsPerUnit: true },
+  });
+
+  if (resourceForCapacity) {
+    const totalCapacity = resourceForCapacity.quantity * resourceForCapacity.professionalsPerUnit;
+    if (resourceOverlapCount >= totalCapacity) {
+      throw new ConflictError(
+        `Resource is at capacity (${resourceOverlapCount}/${totalCapacity} slots filled) for this time period`
+      );
+    }
   }
 
   // Create shift transactionally with re-checking constraints
   try {
     const shift = await db.$transaction(async (tx) => {
       // Re-check constraints within transaction to prevent race conditions
-      const [professional, resource, overlappingShifts] = await Promise.all([
+      const [professional, resource, professionalOverlapShifts, resourceOverlapShifts] = await Promise.all([
         tx.user.findUnique({
           where: { id: professionalId },
           select: { role: true },
         }),
         tx.resource.findUnique({
           where: { id: input.resourceId, deletedAt: null },
-          select: { isActive: true },
+          select: { isActive: true, quantity: true, professionalsPerUnit: true },
         }),
         tx.shift.findMany({
           where: {
+            professionalId: professionalId,
             deletedAt: null,
-            OR: [
-              {
-                professionalId: professionalId,
-                startTime: { lt: input.end },
-                endTime: { gt: input.start },
-              },
-              {
-                resourceId: input.resourceId,
-                startTime: { lt: input.end },
-                endTime: { gt: input.start },
-              },
-            ],
+            startTime: { lt: input.end },
+            endTime: { gt: input.start },
+          },
+          select: { id: true },
+        }),
+        tx.shift.findMany({
+          where: {
+            resourceId: input.resourceId,
+            deletedAt: null,
+            startTime: { lt: input.end },
+            endTime: { gt: input.start },
           },
           select: { id: true },
         }),
@@ -117,8 +128,16 @@ export async function createShift(
         throw new BusinessRuleError('Resource not found or inactive');
       }
 
-      if (overlappingShifts.length > 0) {
-        throw new ConflictError('Overlapping shift detected (race condition)');
+      if (professionalOverlapShifts.length > 0) {
+        throw new ConflictError('Overlapping shift detected for professional (race condition)');
+      }
+
+      // Capacity-based check within transaction
+      const totalCapacity = resource.quantity * resource.professionalsPerUnit;
+      if (resourceOverlapShifts.length >= totalCapacity) {
+        throw new ConflictError(
+          `Resource at capacity (${resourceOverlapShifts.length}/${totalCapacity} slots filled)`
+        );
       }
 
       // Create the shift
@@ -247,10 +266,31 @@ export async function cancelShift(shiftId: string) {
 }
 
 /**
- * Get active resources available for shift creation
+ * Get active resources available for shift creation.
+ * If eventId is provided, only returns resources assigned to that event.
  * @returns Array of active resources
  */
-export async function getActiveResources() {
+export async function getActiveResources(eventId?: string | null) {
+  if (eventId) {
+    // Return only resources assigned to the given event
+    const eventResources = await db.eventResource.findMany({
+      where: {
+        eventId,
+        deletedAt: null,
+        resource: {
+          isActive: true,
+          deletedAt: null,
+        },
+      },
+      include: {
+        resource: true,
+      },
+      orderBy: { resource: { name: 'asc' } },
+    });
+    return eventResources.map((er) => er.resource);
+  }
+
+  // Fallback: return all active resources
   return await db.resource.findMany({
     where: {
       isActive: true,
