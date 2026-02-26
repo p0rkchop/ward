@@ -35,20 +35,25 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
     throw new Error('Date range must not exceed 31 days');
   }
 
-  // Generate 30-minute time slots in JavaScript
-  // This is simpler than SQLite recursive CTE for MVP
-  const slots = generateTimeSlots(start, end);
-
-  // Batch fetch all relevant shifts and bookings in 2 queries instead of 2*N queries
-  // Fetch all shifts that could potentially cover any slot in the date range
+  // Fetch all shifts that cover the date range
+  // Only include shifts on resources that are assigned to active events
   const allShifts = await db.shift.findMany({
     where: {
       deletedAt: null,
-      startTime: { lt: end }, // shift starts before overall end
-      endTime: { gt: start }, // shift ends after overall start
+      startTime: { lt: end },
+      endTime: { gt: start },
       resource: {
         isActive: true,
         deletedAt: null,
+        eventResources: {
+          some: {
+            deletedAt: null,
+            event: {
+              isActive: true,
+              deletedAt: null,
+            },
+          },
+        },
       },
     },
     select: {
@@ -57,6 +62,31 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
       endTime: true,
     },
   });
+
+  // If no shifts exist, return empty — clients see nothing until professionals book
+  if (allShifts.length === 0) {
+    return { allSlots: [], availableSlots: [] };
+  }
+
+  // Generate 30-minute slots ONLY within shift time windows
+  const slotSet = new Map<number, { start: Date; end: Date }>();
+  for (const shift of allShifts) {
+    // Clamp to query range
+    const shiftStart = shift.startTime < start ? start : shift.startTime;
+    const shiftEnd = shift.endTime > end ? end : shift.endTime;
+    const slots = generateTimeSlots(shiftStart, shiftEnd);
+    for (const slot of slots) {
+      const key = slot.start.getTime();
+      if (!slotSet.has(key)) {
+        slotSet.set(key, slot);
+      }
+    }
+  }
+
+  // Sort slots by time
+  const uniqueSlots = Array.from(slotSet.values()).sort(
+    (a, b) => a.start.getTime() - b.start.getTime()
+  );
 
   // Fetch all confirmed bookings within the date range
   const allBookings = await db.booking.findMany({
@@ -75,7 +105,7 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
   });
 
   // Process each slot using in-memory calculations
-  const slotsWithCapacity = slots.map(slot => {
+  const slotsWithCapacity = uniqueSlots.map(slot => {
     // Count shifts that cover this slot
     const shiftCount = allShifts.filter(shift =>
       shift.startTime < slot.end && shift.endTime > slot.start
@@ -144,6 +174,7 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
     try {
       const booking = await db.$transaction(async (tx) => {
         // Step 1: Find available shifts for the requested timeslot
+        // Only consider shifts on resources assigned to active events
         const availableShifts = await tx.shift.findMany({
           where: {
             deletedAt: null,
@@ -152,6 +183,15 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
             resource: {
               isActive: true,
               deletedAt: null,
+              eventResources: {
+                some: {
+                  deletedAt: null,
+                  event: {
+                    isActive: true,
+                    deletedAt: null,
+                  },
+                },
+              },
             },
           },
           include: {
@@ -351,7 +391,7 @@ export async function getClientBookings(
             select: { id: true, name: true, phoneNumber: true },
           },
           resource: {
-            select: { id: true, name: true, description: true },
+            select: { id: true, name: true, description: true, location: true },
           },
         },
       },

@@ -299,3 +299,142 @@ export async function getActiveResources(eventId?: string | null) {
     orderBy: { name: 'asc' },
   });
 }
+
+/**
+ * Get the count of available 30-min timeslots a professional can still sign up for,
+ * based on their event's resources, event day hours, and remaining capacity.
+ */
+export async function getAvailableSlotCountForProfessional(
+  professionalId: string
+): Promise<number> {
+  // Get professional's event
+  const user = await db.user.findUnique({
+    where: { id: professionalId },
+    select: { eventId: true },
+  });
+  if (!user?.eventId) return 0;
+
+  // Get event days that are today or in the future
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const eventDays = await db.eventDay.findMany({
+    where: {
+      eventId: user.eventId,
+      deletedAt: null,
+      isActive: true,
+      date: { gte: today },
+    },
+    include: {
+      blackouts: {
+        where: { deletedAt: null },
+        select: { startTime: true, endTime: true },
+      },
+    },
+    orderBy: { date: 'asc' },
+  });
+
+  if (eventDays.length === 0) return 0;
+
+  // Get resources assigned to this event
+  const eventResources = await db.eventResource.findMany({
+    where: {
+      eventId: user.eventId,
+      deletedAt: null,
+      resource: { isActive: true, deletedAt: null },
+    },
+    include: {
+      resource: { select: { id: true, quantity: true, professionalsPerUnit: true } },
+    },
+  });
+
+  if (eventResources.length === 0) return 0;
+
+  // For each event day, for each resource, count available 30-min slots
+  // A slot is available if the professional doesn't already have a shift there
+  // and the resource hasn't hit its capacity
+
+  // Get all existing shifts for this professional and for these resources in the date range
+  const firstDay = eventDays[0].date;
+  const lastDay = eventDays[eventDays.length - 1].date;
+  const rangeEnd = new Date(lastDay);
+  rangeEnd.setDate(rangeEnd.getDate() + 1);
+
+  const resourceIds = eventResources.map((er) => er.resource.id);
+
+  const [professionalShifts, resourceShifts] = await Promise.all([
+    db.shift.findMany({
+      where: {
+        professionalId,
+        deletedAt: null,
+        startTime: { gte: firstDay },
+        endTime: { lte: rangeEnd },
+      },
+      select: { startTime: true, endTime: true },
+    }),
+    db.shift.findMany({
+      where: {
+        resourceId: { in: resourceIds },
+        deletedAt: null,
+        startTime: { gte: firstDay },
+        endTime: { lte: rangeEnd },
+      },
+      select: { resourceId: true, startTime: true, endTime: true },
+    }),
+  ]);
+
+  let availableCount = 0;
+
+  for (const day of eventDays) {
+    const dayDate = new Date(day.date);
+    const [startH, startM] = day.startTime.split(':').map(Number);
+    const [endH, endM] = day.endTime.split(':').map(Number);
+
+    const dayStart = new Date(dayDate);
+    dayStart.setHours(startH, startM, 0, 0);
+    const dayEnd = new Date(dayDate);
+    dayEnd.setHours(endH, endM, 0, 0);
+
+    // Generate 30-min slots for this day
+    const current = new Date(dayStart);
+    while (current < dayEnd) {
+      const slotStart = new Date(current);
+      const slotEnd = new Date(current);
+      slotEnd.setMinutes(slotEnd.getMinutes() + 30);
+      if (slotEnd > dayEnd) break;
+
+      // Check if slot is in a blackout period
+      const slotTimeStr = `${slotStart.getHours().toString().padStart(2, '0')}:${slotStart.getMinutes().toString().padStart(2, '0')}`;
+      const slotEndTimeStr = `${slotEnd.getHours().toString().padStart(2, '0')}:${slotEnd.getMinutes().toString().padStart(2, '0')}`;
+      const inBlackout = day.blackouts.some(
+        (b) => slotTimeStr < b.endTime && slotEndTimeStr > b.startTime
+      );
+
+      if (!inBlackout) {
+        // Check if professional already has a shift at this time
+        const proHasShift = professionalShifts.some(
+          (s) => s.startTime < slotEnd && s.endTime > slotStart
+        );
+
+        if (!proHasShift) {
+          // Check if any resource has capacity for this slot
+          const hasCapacity = eventResources.some((er) => {
+            const totalCapacity = er.resource.quantity * er.resource.professionalsPerUnit;
+            const currentShifts = resourceShifts.filter(
+              (s) => s.resourceId === er.resource.id && s.startTime < slotEnd && s.endTime > slotStart
+            ).length;
+            return currentShifts < totalCapacity;
+          });
+
+          if (hasCapacity) {
+            availableCount++;
+          }
+        }
+      }
+
+      current.setMinutes(current.getMinutes() + 30);
+    }
+  }
+
+  return availableCount;
+}
