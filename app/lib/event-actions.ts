@@ -199,19 +199,39 @@ export async function updateEvent(
       data: updateData,
     });
 
-    // If dates changed, regenerate EventDay records
+    // If dates changed, reconcile EventDay records (preserve existing days' custom hours/blackouts)
     if (data.startDate !== undefined || data.endDate !== undefined) {
       const event = await db.event.findUnique({ where: { id } });
       if (event) {
-        // Soft-delete existing days
-        await db.eventDay.updateMany({
-          where: { eventId: id, deletedAt: null },
-          data: { deletedAt: new Date() },
-        });
+        const newDates = generateDateRange(event.startDate, event.endDate);
+        const newDateStrings = new Set(
+          newDates.map((d) => d.toISOString().split('T')[0])
+        );
 
-        // Generate new days
-        const dates = generateDateRange(event.startDate, event.endDate);
-        for (const date of dates) {
+        // Fetch existing non-deleted days
+        const existingDays = await db.eventDay.findMany({
+          where: { eventId: id, deletedAt: null },
+        });
+        const existingDateStrings = new Set(
+          existingDays.map((d) => new Date(d.date).toISOString().split('T')[0])
+        );
+
+        // Soft-delete days that are no longer in the new range
+        const daysToRemove = existingDays.filter(
+          (d) => !newDateStrings.has(new Date(d.date).toISOString().split('T')[0])
+        );
+        for (const day of daysToRemove) {
+          await db.eventDay.update({
+            where: { id: day.id },
+            data: { deletedAt: new Date() },
+          });
+        }
+
+        // Create days that are new (don't already exist)
+        const datesToAdd = newDates.filter(
+          (d) => !existingDateStrings.has(d.toISOString().split('T')[0])
+        );
+        for (const date of datesToAdd) {
           await db.eventDay.create({
             data: {
               eventId: id,
