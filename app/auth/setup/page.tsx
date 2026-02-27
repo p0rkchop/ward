@@ -55,14 +55,14 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+      <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome to Ward</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Welcome to Ward</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             Set up your account to get started
           </p>
           {session?.user?.phoneNumber && (
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Phone: {session.user.phoneNumber}
             </p>
           )}
@@ -75,19 +75,19 @@ export default function SetupPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">Account Set Up!</h2>
-            <p className="text-gray-600 mt-2">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Account Set Up!</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
               Role: <span className="font-medium capitalize">{success.role.toLowerCase()}</span>
               {success.eventName && (
                 <span> &middot; Event: {success.eventName}</span>
               )}
             </p>
-            <p className="text-sm text-gray-500 mt-2">Redirecting...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Redirecting...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Full Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -97,13 +97,13 @@ export default function SetupPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 dark:text-gray-100"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email <span className="text-gray-400">(optional)</span>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Email <span className="text-gray-400 dark:text-gray-500">(optional)</span>
               </label>
               <input
                 id="email"
@@ -111,13 +111,13 @@ export default function SetupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 dark:text-gray-100"
               />
             </div>
 
             <div>
-              <label htmlFor="rolePassword" className="block text-sm font-medium text-gray-700 mb-1">
-                Role Password <span className="text-gray-400">(optional)</span>
+              <label htmlFor="rolePassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Role Password <span className="text-gray-400 dark:text-gray-500">(optional)</span>
               </label>
               <input
                 id="rolePassword"
@@ -125,9 +125,9 @@ export default function SetupPage() {
                 value={rolePassword}
                 onChange={(e) => setRolePassword(e.target.value)}
                 placeholder="Leave blank to register as client"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 dark:text-gray-100"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 If you have a role password from your administrator, enter it here.
               </p>
             </div>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createResource, updateResource, deleteResource } from '@/app/lib/admin-actions';
+import { formatDateShort } from '@/app/lib/format-utils';
 
 interface Resource {
   id: string;
@@ -208,11 +209,11 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
   };
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow">
+    <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Resources</h2>
-          <p className="mt-1 text-sm text-gray-600">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Resources</h2>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Showing {filteredAndSortedResources.length} of {resources.length} resources
           </p>
         </div>
@@ -241,23 +242,23 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
       )}
 
       {showCreateForm && (
-        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-6">
-          <h3 className="mb-4 text-lg font-medium text-gray-900">Create New Resource</h3>
+        <div className="mb-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-6">
+          <h3 className="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">Create New Resource</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Name *
               </label>
               <input
                 type="text"
                 value={newResource.name}
                 onChange={(e) => setNewResource({ ...newResource, name: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                 placeholder="e.g., Massage Table"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Active Status
               </label>
               <div className="mt-2 flex items-center">
@@ -265,13 +266,13 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                   type="checkbox"
                   checked={newResource.isActive}
                   onChange={(e) => setNewResource({ ...newResource, isActive: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">Active</span>
+                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Quantity
               </label>
               <input
@@ -279,12 +280,12 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                 min={1}
                 value={newResource.quantity}
                 onChange={(e) => setNewResource({ ...newResource, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
               />
-              <p className="mt-1 text-xs text-gray-500">How many of this resource do you have?</p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">How many of this resource do you have?</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Professionals Per Unit
               </label>
               <input
@@ -292,32 +293,32 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                 min={1}
                 value={newResource.professionalsPerUnit}
                 onChange={(e) => setNewResource({ ...newResource, professionalsPerUnit: Math.max(1, parseInt(e.target.value) || 1) })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
               />
-              <p className="mt-1 text-xs text-gray-500">How many professionals can be assigned to each unit?</p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">How many professionals can be assigned to each unit?</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Location
               </label>
               <input
                 type="text"
                 value={newResource.location}
                 onChange={(e) => setNewResource({ ...newResource, location: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                 placeholder="e.g., Room 101, Hall A"
               />
-              <p className="mt-1 text-xs text-gray-500">Optional physical location of this resource</p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional physical location of this resource</p>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Description
               </label>
               <textarea
                 value={newResource.description}
                 onChange={(e) => setNewResource({ ...newResource, description: e.target.value })}
                 rows={2}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                 placeholder="Optional description of the resource"
               />
             </div>
@@ -325,7 +326,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
           <div className="mt-6 flex justify-end space-x-3">
             <button
               onClick={() => setShowCreateForm(false)}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Cancel
             </button>
@@ -348,14 +349,14 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
             placeholder="Search by name, description, or location..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
-            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           />
         </div>
         <div>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as 'ALL' | 'active' | 'inactive')}
-            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
             <option value="ALL">All Status</option>
             <option value="active">Active</option>
@@ -365,7 +366,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
         {(filterText || filterStatus !== 'ALL') && (
           <button
             onClick={() => { setFilterText(''); setFilterStatus('ALL'); }}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           >
             Clear filters
           </button>
@@ -373,54 +374,54 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead>
             <tr>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('name')}
               >
                 Name <SortIcon column="name" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Description
               </th>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('location')}
               >
                 Location <SortIcon column="location" />
               </th>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('quantity')}
               >
                 Qty <SortIcon column="quantity" />
               </th>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('prosPerUnit')}
               >
                 Pros/Unit <SortIcon column="prosPerUnit" />
               </th>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('status')}
               >
                 Status <SortIcon column="status" />
               </th>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('created')}
               >
                 Created <SortIcon column="created" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredAndSortedResources.map((resource) => (
               <tr key={resource.id}>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -429,10 +430,10 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                       type="text"
                       value={editedResource?.name || ''}
                       onChange={(e) => setEditedResource({ ...editedResource, name: e.target.value })}
-                      className="block w-full rounded-md border border-gray-300 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                      className="block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                     />
                   ) : (
-                    <div className="text-sm font-medium text-gray-900">{resource.name}</div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{resource.name}</div>
                   )}
                 </td>
                 <td className="px-6 py-4">
@@ -441,10 +442,10 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                       value={editedResource?.description || ''}
                       onChange={(e) => setEditedResource({ ...editedResource, description: e.target.value })}
                       rows={2}
-                      className="block w-full rounded-md border border-gray-300 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                      className="block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                     />
                   ) : (
-                    <div className="text-sm text-gray-500">{resource.description || '-'}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{resource.description || '-'}</div>
                   )}
                 </td>
                 <td className="px-6 py-4">
@@ -453,10 +454,10 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                       type="text"
                       value={editedResource?.location || ''}
                       onChange={(e) => setEditedResource({ ...editedResource, location: e.target.value })}
-                      className="block w-full rounded-md border border-gray-300 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                      className="block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                     />
                   ) : (
-                    <div className="text-sm text-gray-500">{resource.location || '-'}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{resource.location || '-'}</div>
                   )}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -466,10 +467,10 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                       min={1}
                       value={editedResource?.quantity ?? 1}
                       onChange={(e) => setEditedResource({ ...editedResource, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                      className="block w-20 rounded-md border border-gray-300 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                      className="block w-20 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                     />
                   ) : (
-                    <div className="text-sm text-gray-900">{resource.quantity}</div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">{resource.quantity}</div>
                   )}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -479,10 +480,10 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                       min={1}
                       value={editedResource?.professionalsPerUnit ?? 1}
                       onChange={(e) => setEditedResource({ ...editedResource, professionalsPerUnit: Math.max(1, parseInt(e.target.value) || 1) })}
-                      className="block w-20 rounded-md border border-gray-300 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                      className="block w-20 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                     />
                   ) : (
-                    <div className="text-sm text-gray-900">{resource.professionalsPerUnit}</div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">{resource.professionalsPerUnit}</div>
                   )}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -492,9 +493,9 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                         type="checkbox"
                         checked={editedResource?.isActive ?? false}
                         onChange={(e) => setEditedResource({ ...editedResource, isActive: e.target.checked })}
-                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                         {editedResource?.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </div>
@@ -502,14 +503,14 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                       resource.isActive
                         ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
                     }`}>
                       {resource.isActive ? 'Active' : 'Inactive'}
                     </span>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                  {new Date(resource.createdAt).toLocaleDateString()}
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                  {formatDateShort(new Date(resource.createdAt))}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
                   {editingId === resource.id ? (
@@ -523,7 +524,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                       </button>
                       <button
                         onClick={handleCancelEdit}
-                        className="text-gray-600 hover:text-gray-900"
+                        className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                       >
                         Cancel
                       </button>
@@ -554,7 +555,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
       {resources.length === 0 && (
         <div className="py-12 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -566,8 +567,8 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
               d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
             />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">No resources found</h3>
-          <p className="mt-2 text-gray-500">
+          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No resources found</h3>
+          <p className="mt-2 text-gray-500 dark:text-gray-400">
             Get started by creating your first resource.
           </p>
         </div>

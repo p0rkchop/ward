@@ -1,5 +1,5 @@
 import { getProfessionalBookings } from '@/app/lib/booking-actions';
-import { format } from 'date-fns';
+import { formatDateTimeRange, formatDateShort } from '@/app/lib/format-utils';
 
 interface RecentBookingsProps {
   bookings: Awaited<ReturnType<typeof getProfessionalBookings>>;
@@ -13,13 +13,13 @@ export default function RecentBookings({ bookings }: RecentBookingsProps) {
 
   if (recentBookings.length === 0) {
     return (
-      <div className="overflow-hidden rounded-lg bg-white shadow">
+      <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
         <div className="px-4 py-5 sm:px-6">
-          <h3 className="text-lg font-medium leading-6 text-gray-900">Recent Bookings</h3>
-          <p className="mt-1 text-sm text-gray-500">No bookings in the next 7 days</p>
+          <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Recent Bookings</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">No bookings in the next 7 days</p>
         </div>
         <div className="px-4 py-5 sm:p-6">
-          <div className="text-center text-gray-500">
+          <div className="text-center text-gray-500 dark:text-gray-400">
             <p>Bookings will appear here when clients book your shifts</p>
           </div>
         </div>
@@ -28,12 +28,12 @@ export default function RecentBookings({ bookings }: RecentBookingsProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg bg-white shadow">
+    <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
       <div className="px-4 py-5 sm:px-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Recent Bookings</h3>
-            <p className="mt-1 text-sm text-gray-500">Latest bookings on your shifts</p>
+            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Recent Bookings</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Latest bookings on your shifts</p>
           </div>
           <a
             href="/professional/bookings"
@@ -43,8 +43,8 @@ export default function RecentBookings({ bookings }: RecentBookingsProps) {
           </a>
         </div>
       </div>
-      <div className="border-t border-gray-200">
-        <ul className="divide-y divide-gray-200">
+      <div className="border-t border-gray-200 dark:border-gray-700">
+        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           {recentBookings.map((booking) => {
             const startTime = new Date(booking.startTime);
             const endTime = new Date(booking.endTime);
@@ -54,16 +54,16 @@ export default function RecentBookings({ bookings }: RecentBookingsProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center">
-                      <p className="truncate text-sm font-medium text-gray-900">
+                      <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
                         {booking.client.name}
                       </p>
                       <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
                         {booking.status}
                       </span>
                     </div>
-                    <div className="mt-1 text-sm text-gray-500">
+                    <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                       <p>
-                        {format(startTime, 'MMM d, yyyy')} • {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
+                        {formatDateTimeRange(startTime, endTime)}
                       </p>
                       <p className="mt-1">
                         Resource: {booking.shift.resource.name}
@@ -72,8 +72,8 @@ export default function RecentBookings({ bookings }: RecentBookingsProps) {
                     </div>
                   </div>
                   <div className="ml-4 flex-shrink-0">
-                    <div className="text-sm text-gray-500">
-                      {format(new Date(booking.createdAt), 'MMM d')}
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {formatDateShort(new Date(booking.createdAt))}
                     </div>
                   </div>
                 </div>

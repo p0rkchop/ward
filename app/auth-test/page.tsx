@@ -89,7 +89,7 @@ export default function AuthTestPage() {
   };
 
   const logColors: Record<LogEntry['type'], string> = {
-    info: 'text-gray-400',
+    info: 'text-gray-400 dark:text-gray-500',
     success: 'text-green-400',
     error: 'text-red-400',
     request: 'text-blue-400',
@@ -101,7 +101,7 @@ export default function AuthTestPage() {
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white mb-1">Twilio + NextAuth Test</h1>
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             Tests the full auth flow: Twilio Verify SMS → NextAuth signIn → JWT session.
             Not linked from the app.
           </p>
@@ -111,7 +111,7 @@ export default function AuthTestPage() {
         <div className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
           sessionStatus === 'authenticated'
             ? 'border-green-800 bg-green-950 text-green-300'
-            : 'border-gray-800 bg-gray-900 text-gray-500'
+            : 'border-gray-800 bg-gray-900 text-gray-500 dark:text-gray-400'
         }`}>
           <div className="flex items-center justify-between">
             <span>
@@ -123,7 +123,7 @@ export default function AuthTestPage() {
               )}
             </span>
             {session && (
-              <span className="text-xs text-gray-600">
+              <span className="text-xs text-gray-600 dark:text-gray-400">
                 expires {new Date(session.expires).toLocaleString()}
               </span>
             )}
@@ -134,7 +134,7 @@ export default function AuthTestPage() {
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 mb-6">
           {step === 'phone' && (
             <div>
-              <label className="block text-sm text-gray-400 mb-2">
+              <label className="block text-sm text-gray-400 dark:text-gray-500 mb-2">
                 Step 1 — Send SMS code via Twilio Verify
               </label>
               <div className="flex gap-3">
@@ -156,7 +156,7 @@ export default function AuthTestPage() {
                   {loading ? 'Sending…' : 'Send Code'}
                 </button>
               </div>
-              <p className="text-xs text-gray-600 mt-2">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                 Any format works — digits are extracted and normalized to E.164.
               </p>
             </div>
@@ -166,16 +166,16 @@ export default function AuthTestPage() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <label className="block text-sm text-gray-400">
+                  <label className="block text-sm text-gray-400 dark:text-gray-500">
                     Step 2 — Verify code via NextAuth signIn(&apos;credentials&apos;)
                   </label>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     Sent to {normalized} · Code goes through NextAuth → auth-config → Twilio checkCode
                   </p>
                 </div>
                 <button
                   onClick={handleReset}
-                  className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                  className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-300 transition-colors"
                 >
                   ← Start over
                 </button>
@@ -209,12 +209,12 @@ export default function AuthTestPage() {
               <div className="text-green-400 text-lg font-bold mb-2">
                 ✓ Full auth flow succeeded
               </div>
-              <p className="text-gray-500 text-sm mb-4">
+              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
                 Twilio SMS → NextAuth signIn → JWT session issued
               </p>
               <button
                 onClick={handleReset}
-                className="text-sm text-gray-500 hover:text-gray-300 border border-gray-700 px-4 py-2 rounded transition-colors"
+                className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-300 border border-gray-700 px-4 py-2 rounded transition-colors"
               >
                 Test again
               </button>
@@ -223,7 +223,7 @@ export default function AuthTestPage() {
         </div>
 
         {/* Flow Diagram */}
-        <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 mb-6 text-xs text-gray-600">
+        <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 mb-6 text-xs text-gray-600 dark:text-gray-400">
           <span className={step === 'phone' ? 'text-blue-400' : 'text-green-600'}>
             /api/auth-test → sendCode()
           </span>
@@ -244,11 +244,11 @@ export default function AuthTestPage() {
         {/* Log Section */}
         <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800">
-            <span className="text-xs text-gray-500 uppercase tracking-wider">Log</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Log</span>
             {log.length > 0 && (
               <button
                 onClick={() => setLog([])}
-                className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+                className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-400 transition-colors"
               >
                 Clear
               </button>
@@ -256,11 +256,11 @@ export default function AuthTestPage() {
           </div>
           <div className="p-4 max-h-96 overflow-y-auto space-y-1 text-sm">
             {log.length === 0 ? (
-              <p className="text-gray-700 italic">Waiting for action…</p>
+              <p className="text-gray-700 dark:text-gray-300 italic">Waiting for action…</p>
             ) : (
               log.map((entry, i) => (
                 <div key={i} className="flex gap-3">
-                  <span className="text-gray-600 shrink-0">{entry.time}</span>
+                  <span className="text-gray-600 dark:text-gray-400 shrink-0">{entry.time}</span>
                   <span className={logColors[entry.type]}>{entry.message}</span>
                 </div>
               ))

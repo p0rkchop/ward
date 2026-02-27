@@ -49,10 +49,10 @@ export default async function BookAppointmentPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
           Book Appointment
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           Select an available time slot for your appointment.
         </p>
       </div>
@@ -66,8 +66,8 @@ export default async function BookAppointmentPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-lg bg-white p-6 shadow">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">How it works</h3>
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">How it works</h3>
             <div className="mt-4 space-y-4">
               <div className="flex items-start">
                 <div className="flex-shrink-0">
@@ -76,8 +76,8 @@ export default async function BookAppointmentPage() {
                   </div>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-gray-700">Select an available time slot</p>
-                  <p className="text-xs text-gray-500">All slots are 30 minutes long</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">Select an available time slot</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">All slots are 30 minutes long</p>
                 </div>
               </div>
               <div className="flex items-start">
@@ -87,8 +87,8 @@ export default async function BookAppointmentPage() {
                   </div>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-gray-700">Click "Book Appointment"</p>
-                  <p className="text-xs text-gray-500">System will match you with a professional</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">Click "Book Appointment"</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">System will match you with a professional</p>
                 </div>
               </div>
               <div className="flex items-start">
@@ -98,34 +98,34 @@ export default async function BookAppointmentPage() {
                   </div>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-gray-700">Get confirmation</p>
-                  <p className="text-xs text-gray-500">View your appointment in My Appointments</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">Get confirmation</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">View your appointment in My Appointments</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg bg-white p-6 shadow">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Availability Summary</h3>
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Availability Summary</h3>
             <div className="mt-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Available slots</span>
-                <span className="text-sm font-semibold text-gray-900">{availableSlots.length}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Available slots</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{availableSlots.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Total slots</span>
-                <span className="text-sm font-semibold text-gray-900">{allSlots.length}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Total slots</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{allSlots.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Days with availability</span>
-                <span className="text-sm font-semibold text-gray-900">{Object.keys(slotsByDay).length}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Days with availability</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{Object.keys(slotsByDay).length}</span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg bg-white p-6 shadow">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Need help?</h3>
-            <p className="mt-2 text-sm text-gray-600">
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Need help?</h3>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
               If you're having trouble finding a time slot, please try selecting a different day or contact support.
             </p>
             <div className="mt-4">

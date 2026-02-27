@@ -1,7 +1,8 @@
 'use client';
 
 import { getProfessionalShifts, cancelShift } from '@/app/lib/shift-actions';
-import { format } from 'date-fns';
+import { useSession } from 'next-auth/react';
+import { formatDateShort, formatTimeRange, prefsFromSession } from '@/app/lib/format-utils';
 import { useState } from 'react';
 
 interface ShiftsTableProps {
@@ -11,6 +12,7 @@ interface ShiftsTableProps {
 }
 
 export default function ShiftsTable({ shifts, professionalId, isPast = false }: ShiftsTableProps) {
+  const { data: session } = useSession();
   const [cancellingShiftId, setCancellingShiftId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [localShifts, setLocalShifts] = useState(shifts);
@@ -40,7 +42,7 @@ export default function ShiftsTable({ shifts, professionalId, isPast = false }: 
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow">
+    <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow">
       {error && (
         <div className="bg-red-50 p-4">
           <div className="flex">
@@ -54,32 +56,32 @@ export default function ShiftsTable({ shifts, professionalId, isPast = false }: 
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800/50">
             <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Resource
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Date & Time
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Duration
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Bookings
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Status
               </th>
               {!isPast && (
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Actions
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
             {localShifts.map((shift) => {
               const startTime = new Date(shift.startTime);
               const endTime = new Date(shift.endTime);
@@ -92,8 +94,8 @@ export default function ShiftsTable({ shifts, professionalId, isPast = false }: 
                   <td className="whitespace-nowrap px-6 py-4">
                     <div className="flex items-center">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{shift.resource.name}</div>
-                        <div className="text-sm text-gray-500">{shift.resource.description || 'No description'}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{shift.resource.name}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{shift.resource.description || 'No description'}</div>
                       </div>
                       {!shift.resource.isActive && (
                         <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
@@ -103,18 +105,18 @@ export default function ShiftsTable({ shifts, professionalId, isPast = false }: 
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
-                    <div className="text-sm text-gray-900">{format(startTime, 'MMM d, yyyy')}</div>
-                    <div className="text-sm text-gray-500">
-                      {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
+                    <div className="text-sm text-gray-900 dark:text-gray-100">{formatDateShort(startTime, prefsFromSession(session?.user))}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {formatTimeRange(startTime, endTime, prefsFromSession(session?.user))}
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     {durationHours} hour{durationHours !== 1 ? 's' : ''}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
-                    <div className="text-sm text-gray-900">{shift.bookings.length} booking{shift.bookings.length !== 1 ? 's' : ''}</div>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">{shift.bookings.length} booking{shift.bookings.length !== 1 ? 's' : ''}</div>
                     {shift.bookings.length > 0 && (
-                      <div className="text-xs text-gray-500">View details in bookings</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">View details in bookings</div>
                     )}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
@@ -123,7 +125,7 @@ export default function ShiftsTable({ shifts, professionalId, isPast = false }: 
                         Cancelled
                       </span>
                     ) : startTime < new Date() ? (
-                      <span className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-800">
+                      <span className="inline-flex rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-1 text-xs font-semibold text-gray-800 dark:text-gray-200">
                         Completed
                       </span>
                     ) : (
@@ -143,9 +145,9 @@ export default function ShiftsTable({ shifts, professionalId, isPast = false }: 
                           {cancellingShiftId === shift.id ? 'Cancelling...' : 'Cancel'}
                         </button>
                       ) : hasBookings ? (
-                        <span className="text-gray-500">Has bookings</span>
+                        <span className="text-gray-500 dark:text-gray-400">Has bookings</span>
                       ) : (
-                        <span className="text-gray-500">Cannot cancel</span>
+                        <span className="text-gray-500 dark:text-gray-400">Cannot cancel</span>
                       )}
                     </td>
                   )}

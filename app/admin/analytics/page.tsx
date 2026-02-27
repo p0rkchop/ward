@@ -2,6 +2,7 @@ import { getServerSession } from '@/app/lib/auth';
 import { redirect } from 'next/navigation';
 import { Role } from '@/app/generated/prisma/enums';
 import { getAdminStats, type AdminStats } from '@/app/lib/admin-actions';
+import { formatDateTimeShort, prefsFromSession } from '@/app/lib/format-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,10 +27,10 @@ export default async function AnalyticsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
           Analytics
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           System analytics and performance metrics.
         </p>
       </div>
@@ -38,50 +39,50 @@ export default async function AnalyticsPage() {
         <div className="space-y-8">
           {/* Key Metrics */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-lg bg-white p-6 shadow">
-              <div className="text-sm font-medium text-gray-600">User Growth</div>
-              <div className="mt-2 text-3xl font-semibold text-gray-900">
+            <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">User Growth</div>
+              <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-gray-100">
                 +{stats.userCounts.total}
               </div>
-              <div className="mt-2 text-sm text-gray-500">Total registered users</div>
+              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">Total registered users</div>
             </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <div className="text-sm font-medium text-gray-600">Booking Rate</div>
-              <div className="mt-2 text-3xl font-semibold text-gray-900">
+            <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Booking Rate</div>
+              <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-gray-100">
                 {stats.bookingCounts.total}
               </div>
-              <div className="mt-2 text-sm text-gray-500">Total bookings</div>
+              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">Total bookings</div>
             </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <div className="text-sm font-medium text-gray-600">Utilization</div>
-              <div className="mt-2 text-3xl font-semibold text-gray-900">
+            <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Utilization</div>
+              <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-gray-100">
                 {stats.shiftCounts.total > 0
                   ? Math.round((stats.bookingCounts.confirmed / stats.shiftCounts.total) * 100)
                   : 0}%
               </div>
-              <div className="mt-2 text-sm text-gray-500">Shift utilization</div>
+              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">Shift utilization</div>
             </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <div className="text-sm font-medium text-gray-600">Active Resources</div>
-              <div className="mt-2 text-3xl font-semibold text-gray-900">
+            <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Resources</div>
+              <div className="mt-2 text-3xl font-semibold text-gray-900 dark:text-gray-100">
                 {stats.resourceCounts.active}/{stats.resourceCounts.total}
               </div>
-              <div className="mt-2 text-sm text-gray-500">Active vs total</div>
+              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">Active vs total</div>
             </div>
           </div>
 
           {/* Role Distribution */}
-          <div className="rounded-lg bg-white p-6 shadow">
-            <h2 className="text-xl font-semibold text-gray-900">User Role Distribution</h2>
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">User Role Distribution</h2>
             <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Admins</span>
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Admins</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {stats.userCounts.admins}
                   </span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-gray-200">
+                <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                   <div
                     className="h-2 rounded-full bg-purple-600"
                     style={{
@@ -92,12 +93,12 @@ export default async function AnalyticsPage() {
               </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Professionals</span>
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Professionals</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {stats.userCounts.professionals}
                   </span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-gray-200">
+                <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                   <div
                     className="h-2 rounded-full bg-blue-600"
                     style={{
@@ -108,12 +109,12 @@ export default async function AnalyticsPage() {
               </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Clients</span>
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Clients</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {stats.userCounts.clients}
                   </span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-gray-200">
+                <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                   <div
                     className="h-2 rounded-full bg-green-600"
                     style={{
@@ -126,17 +127,17 @@ export default async function AnalyticsPage() {
           </div>
 
           {/* Booking Status */}
-          <div className="rounded-lg bg-white p-6 shadow">
-            <h2 className="text-xl font-semibold text-gray-900">Booking Status</h2>
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Booking Status</h2>
             <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Confirmed</span>
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Confirmed</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {stats.bookingCounts.confirmed}
                   </span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-gray-200">
+                <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                   <div
                     className="h-2 rounded-full bg-green-600"
                     style={{
@@ -147,12 +148,12 @@ export default async function AnalyticsPage() {
               </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Cancelled</span>
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Cancelled</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {stats.bookingCounts.cancelled}
                   </span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-gray-200">
+                <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                   <div
                     className="h-2 rounded-full bg-red-600"
                     style={{
@@ -165,8 +166,8 @@ export default async function AnalyticsPage() {
           </div>
 
           {/* Recent Activity */}
-          <div className="rounded-lg bg-white p-6 shadow">
-            <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Activity</h2>
             <div className="mt-6">
               <div className="flow-root">
                 <ul className="-mb-8">
@@ -175,7 +176,7 @@ export default async function AnalyticsPage() {
                       <div className="relative pb-8">
                         {idx !== stats.recentActivity.length - 1 && (
                           <span
-                            className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200"
+                            className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200 dark:bg-gray-700"
                             aria-hidden="true"
                           />
                         )}
@@ -199,11 +200,11 @@ export default async function AnalyticsPage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div>
-                              <div className="text-sm text-gray-900">
+                              <div className="text-sm text-gray-900 dark:text-gray-100">
                                 {activity.description}
                               </div>
-                              <div className="mt-1 text-xs text-gray-500">
-                                {new Date(activity.timestamp).toLocaleString()}
+                              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                {formatDateTimeShort(new Date(activity.timestamp), prefsFromSession(session.user))}
                               </div>
                             </div>
                           </div>
@@ -217,9 +218,9 @@ export default async function AnalyticsPage() {
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
+        <div className="rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-12 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -231,8 +232,8 @@ export default async function AnalyticsPage() {
               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
             />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Unable to load analytics</h3>
-          <p className="mt-2 text-gray-500">
+          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">Unable to load analytics</h3>
+          <p className="mt-2 text-gray-500 dark:text-gray-400">
             There was an error loading the analytics data.
           </p>
         </div>

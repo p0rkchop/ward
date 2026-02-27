@@ -8,6 +8,7 @@ import {
   deleteBlackout,
   type EventDayWithBlackouts,
 } from '@/app/lib/event-actions';
+import { formatDateWithDay } from '@/app/lib/format-utils';
 
 interface Props {
   eventId: string;
@@ -45,16 +46,6 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
         setError(err.message || 'Failed to load days');
         setLoading(false);
       });
-  }
-
-  function formatDate(d: Date) {
-    return new Date(d).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      timeZone: 'UTC',
-    });
   }
 
   function startEditDay(day: EventDayWithBlackouts) {
@@ -172,16 +163,16 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="relative mx-4 max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-2xl">
+      <div className="relative mx-4 max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white dark:bg-gray-900 shadow-2xl">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white dark:bg-gray-900 px-6 py-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Manage Days</h2>
-            <p className="text-sm text-gray-500">{eventName}</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Manage Days</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{eventName}</p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-lg p-2 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -197,9 +188,9 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
           )}
 
           {loading && days.length === 0 ? (
-            <div className="py-12 text-center text-gray-500">Loading days…</div>
+            <div className="py-12 text-center text-gray-500 dark:text-gray-400">Loading days…</div>
           ) : days.length === 0 ? (
-            <div className="py-12 text-center text-gray-500">
+            <div className="py-12 text-center text-gray-500 dark:text-gray-400">
               No days found for this event.
             </div>
           ) : (
@@ -209,34 +200,34 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
                   key={day.id}
                   className={`rounded-lg border p-4 ${
                     day.isActive
-                      ? 'border-gray-200 bg-white'
-                      : 'border-gray-100 bg-gray-50 opacity-60'
+                      ? 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
+                      : 'border-gray-100 bg-gray-50 dark:bg-gray-800/50 opacity-60'
                   }`}
                 >
                   {/* Day header row */}
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="min-w-[180px] font-medium text-gray-900">
-                      {formatDate(day.date)}
+                    <div className="min-w-[180px] font-medium text-gray-900 dark:text-gray-100">
+                      {formatDateWithDay(new Date(day.date))}
                     </div>
 
                     {editingDayId === day.id ? (
                       <>
                         <div className="flex items-center gap-2">
-                          <label className="text-xs text-gray-500">Start</label>
+                          <label className="text-xs text-gray-500 dark:text-gray-400">Start</label>
                           <input
                             type="time"
                             value={editStart}
                             onChange={(e) => setEditStart(e.target.value)}
-                            className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-900"
+                            className="rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm text-gray-900 dark:text-gray-100"
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <label className="text-xs text-gray-500">End</label>
+                          <label className="text-xs text-gray-500 dark:text-gray-400">End</label>
                           <input
                             type="time"
                             value={editEnd}
                             onChange={(e) => setEditEnd(e.target.value)}
-                            className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-900"
+                            className="rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm text-gray-900 dark:text-gray-100"
                           />
                         </div>
                         <button
@@ -248,21 +239,21 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
                         </button>
                         <button
                           onClick={() => setEditingDayId(null)}
-                          className="rounded-md bg-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-300"
+                          className="rounded-md bg-gray-200 dark:bg-gray-700 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                         >
                           Cancel
                         </button>
                       </>
                     ) : (
                       <>
-                        <span className="rounded-md bg-gray-100 px-2 py-1 text-sm text-gray-700">
+                        <span className="rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-1 text-sm text-gray-700 dark:text-gray-300">
                           {day.startTime} – {day.endTime}
                         </span>
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                             day.isActive
                               ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-600'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                           }`}
                         >
                           {day.isActive ? 'Active' : 'Inactive'}
@@ -304,7 +295,7 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
                   {/* Blackouts section */}
                   {day.blackouts.length > 0 && (
                     <div className="mt-3 space-y-1 border-t pt-2">
-                      <p className="text-xs font-medium uppercase text-gray-400">Blackouts</p>
+                      <p className="text-xs font-medium uppercase text-gray-400 dark:text-gray-500">Blackouts</p>
                       {day.blackouts.map((b) => (
                         <div
                           key={b.id}
@@ -332,31 +323,31 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
                   {addingBlackoutDayId === day.id && (
                     <div className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-purple-200 bg-purple-50 p-3">
                       <div>
-                        <label className="block text-xs text-gray-500">Start</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400">Start</label>
                         <input
                           type="time"
                           value={newBlackoutStart}
                           onChange={(e) => setNewBlackoutStart(e.target.value)}
-                          className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-900"
+                          className="rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm text-gray-900 dark:text-gray-100"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-500">End</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400">End</label>
                         <input
                           type="time"
                           value={newBlackoutEnd}
                           onChange={(e) => setNewBlackoutEnd(e.target.value)}
-                          className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-900"
+                          className="rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm text-gray-900 dark:text-gray-100"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-500">Description</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400">Description</label>
                         <input
                           type="text"
                           value={newBlackoutDesc}
                           onChange={(e) => setNewBlackoutDesc(e.target.value)}
                           placeholder="e.g., Lunch break"
-                          className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-900"
+                          className="rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm text-gray-900 dark:text-gray-100"
                         />
                       </div>
                       <button
@@ -368,7 +359,7 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
                       </button>
                       <button
                         onClick={() => setAddingBlackoutDayId(null)}
-                        className="rounded-md bg-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-300"
+                        className="rounded-md bg-gray-200 dark:bg-gray-700 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                       >
                         Cancel
                       </button>

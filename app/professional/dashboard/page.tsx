@@ -3,7 +3,7 @@ import { getProfessionalShifts, getAvailableSlotCountForProfessional } from '@/a
 import { getProfessionalBookings } from '@/app/lib/booking-actions';
 import { redirect } from 'next/navigation';
 import { Role } from '@/app/generated/prisma/enums';
-import { format } from 'date-fns';
+import { formatDateFull, formatTimeRange, prefsFromSession } from '@/app/lib/format-utils';
 import StatsCard from '../components/StatsCard';
 import Link from 'next/link';
 
@@ -89,10 +89,10 @@ export default async function ProfessionalDashboard() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
           Day at a Glance
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           Welcome back, {session.user.name}. Here&apos;s your schedule.
         </p>
       </div>
@@ -131,27 +131,27 @@ export default async function ProfessionalDashboard() {
 
       {/* Today's Agenda */}
       <div className="mb-8">
-        <h2 className="mb-4 text-xl font-semibold text-gray-900">
-          Today &mdash; {format(today, 'EEEE, MMMM d')}
+        <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
+          Today &mdash; {formatDateFull(today, prefsFromSession(session.user))}
         </h2>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Today's Shifts */}
-          <div className="rounded-lg bg-white p-6 shadow">
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Your Shifts</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Your Shifts</h3>
               <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
                 {todayShifts.length}
               </span>
             </div>
             {todayShifts.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {todayShifts.map((shift) => (
                   <li key={shift.id} className="py-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{shift.resource.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {format(new Date(shift.startTime), 'h:mm a')} &ndash; {format(new Date(shift.endTime), 'h:mm a')}
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{shift.resource.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {formatTimeRange(new Date(shift.startTime), new Date(shift.endTime), prefsFromSession(session.user))}
                         </p>
                       </div>
                       <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
@@ -162,29 +162,29 @@ export default async function ProfessionalDashboard() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500">No shifts scheduled for today.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No shifts scheduled for today.</p>
             )}
           </div>
 
           {/* Today's Client Appointments */}
-          <div className="rounded-lg bg-white p-6 shadow">
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Client Appointments</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Client Appointments</h3>
               <span className="rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-800">
                 {todayBookings.length}
               </span>
             </div>
             {todayBookings.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {todayBookings.map((booking) => (
                   <li key={booking.id} className="py-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{booking.client.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {format(new Date(booking.startTime), 'h:mm a')} &ndash; {format(new Date(booking.endTime), 'h:mm a')}
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{booking.client.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {formatTimeRange(new Date(booking.startTime), new Date(booking.endTime), prefsFromSession(session.user))}
                         </p>
-                        <p className="text-xs text-gray-400">{booking.shift.resource.name}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{booking.shift.resource.name}</p>
                       </div>
                       <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
                         Confirmed
@@ -194,7 +194,7 @@ export default async function ProfessionalDashboard() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500">No client appointments for today.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No client appointments for today.</p>
             )}
           </div>
         </div>
@@ -202,27 +202,27 @@ export default async function ProfessionalDashboard() {
 
       {/* Tomorrow's Agenda */}
       <div className="mb-8">
-        <h2 className="mb-4 text-xl font-semibold text-gray-900">
-          Tomorrow &mdash; {format(tomorrow, 'EEEE, MMMM d')}
+        <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
+          Tomorrow &mdash; {formatDateFull(tomorrow, prefsFromSession(session.user))}
         </h2>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Tomorrow's Shifts */}
-          <div className="rounded-lg bg-white p-6 shadow">
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Your Shifts</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Your Shifts</h3>
               <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
                 {tomorrowShifts.length}
               </span>
             </div>
             {tomorrowShifts.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {tomorrowShifts.map((shift) => (
                   <li key={shift.id} className="py-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{shift.resource.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {format(new Date(shift.startTime), 'h:mm a')} &ndash; {format(new Date(shift.endTime), 'h:mm a')}
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{shift.resource.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {formatTimeRange(new Date(shift.startTime), new Date(shift.endTime), prefsFromSession(session.user))}
                         </p>
                       </div>
                       <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
@@ -233,29 +233,29 @@ export default async function ProfessionalDashboard() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500">No shifts scheduled for tomorrow.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No shifts scheduled for tomorrow.</p>
             )}
           </div>
 
           {/* Tomorrow's Client Appointments */}
-          <div className="rounded-lg bg-white p-6 shadow">
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Client Appointments</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Client Appointments</h3>
               <span className="rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-800">
                 {tomorrowBookings.length}
               </span>
             </div>
             {tomorrowBookings.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {tomorrowBookings.map((booking) => (
                   <li key={booking.id} className="py-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{booking.client.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {format(new Date(booking.startTime), 'h:mm a')} &ndash; {format(new Date(booking.endTime), 'h:mm a')}
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{booking.client.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {formatTimeRange(new Date(booking.startTime), new Date(booking.endTime), prefsFromSession(session.user))}
                         </p>
-                        <p className="text-xs text-gray-400">{booking.shift.resource.name}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{booking.shift.resource.name}</p>
                       </div>
                       <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
                         Confirmed
@@ -265,7 +265,7 @@ export default async function ProfessionalDashboard() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500">No client appointments for tomorrow.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No client appointments for tomorrow.</p>
             )}
           </div>
         </div>
@@ -281,13 +281,13 @@ export default async function ProfessionalDashboard() {
         </Link>
         <Link
           href="/professional/shifts"
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800"
         >
           View All Shifts
         </Link>
         <Link
           href="/professional/calendar"
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800"
         >
           Calendar
         </Link>

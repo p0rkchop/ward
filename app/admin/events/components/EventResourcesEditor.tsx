@@ -112,16 +112,16 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="relative mx-4 max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-2xl">
+      <div className="relative mx-4 max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white dark:bg-gray-900 shadow-2xl">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white dark:bg-gray-900 px-6 py-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Manage Resources</h2>
-            <p className="text-sm text-gray-500">{eventName}</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Manage Resources</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{eventName}</p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-lg p-2 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -137,16 +137,16 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
           )}
 
           {loading && assigned.length === 0 && unassigned.length === 0 ? (
-            <div className="py-12 text-center text-gray-500">Loading resources…</div>
+            <div className="py-12 text-center text-gray-500 dark:text-gray-400">Loading resources…</div>
           ) : (
             <>
               {/* Assigned Resources */}
               <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500">
+                <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500 dark:text-gray-400">
                   Assigned Resources ({assigned.length})
                 </h3>
                 {assigned.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-400">
+                  <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-400 dark:text-gray-500">
                     No resources assigned to this event yet.
                   </div>
                 ) : (
@@ -157,8 +157,8 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
                         className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3"
                       >
                         <div>
-                          <p className="font-medium text-gray-900">{er.resourceName}</p>
-                          <div className="flex gap-3 text-xs text-gray-500">
+                          <p className="font-medium text-gray-900 dark:text-gray-100">{er.resourceName}</p>
+                          <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400">
                             {er.resourceLocation && <span>📍 {er.resourceLocation}</span>}
                             <span>Qty: {er.resourceQuantity}</span>
                             <span>Pros/Unit: {er.resourceProfessionalsPerUnit}</span>
@@ -167,7 +167,7 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
                             </span>
                           </div>
                           {er.resourceDescription && (
-                            <p className="mt-0.5 text-xs text-gray-400">{er.resourceDescription}</p>
+                            <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{er.resourceDescription}</p>
                           )}
                         </div>
                         <button
@@ -185,11 +185,11 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
 
               {/* Available Resources */}
               <div>
-                <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500">
+                <h3 className="mb-3 text-sm font-semibold uppercase text-gray-500 dark:text-gray-400">
                   Available Resources ({unassigned.length})
                 </h3>
                 {unassigned.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-400">
+                  <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-400 dark:text-gray-500">
                     All active resources are assigned to this event.
                   </div>
                 ) : (
@@ -197,17 +197,17 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
                     {unassigned.map((r) => (
                       <div
                         key={r.id}
-                        className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3"
+                        className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3"
                       >
                         <div>
-                          <p className="font-medium text-gray-900">{r.name}</p>
-                          <div className="flex gap-3 text-xs text-gray-500">
+                          <p className="font-medium text-gray-900 dark:text-gray-100">{r.name}</p>
+                          <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400">
                             {r.location && <span>📍 {r.location}</span>}
                             <span>Qty: {r.quantity}</span>
                             <span>Pros/Unit: {r.professionalsPerUnit}</span>
                           </div>
                           {r.description && (
-                            <p className="mt-0.5 text-xs text-gray-400">{r.description}</p>
+                            <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{r.description}</p>
                           )}
                         </div>
                         <button

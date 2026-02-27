@@ -7,6 +7,10 @@ declare module 'next-auth' {
     role: Role;
     setupComplete: boolean;
     isNewUser: boolean;
+    theme: string;
+    timeFormat: string;
+    dateFormat: string;
+    timezone: string;
   }
 
   interface Session {
@@ -16,6 +20,10 @@ declare module 'next-auth' {
       role: Role;
       setupComplete: boolean;
       isNewUser: boolean;
+      theme: string;
+      timeFormat: string;
+      dateFormat: string;
+      timezone: string;
       name?: string | null;
       email?: string | null;
       image?: string | null;
@@ -29,6 +37,10 @@ declare module 'next-auth/jwt' {
     role: Role;
     setupComplete: boolean;
     isNewUser: boolean;
+    theme: string;
+    timeFormat: string;
+    dateFormat: string;
+    timezone: string;
   }
 }
 
@@ -38,6 +50,10 @@ export type SessionUser = {
   role: Role;
   setupComplete: boolean;
   isNewUser: boolean;
+  theme: string;
+  timeFormat: string;
+  dateFormat: string;
+  timezone: string;
   name?: string | null;
   email?: string | null;
   image?: string | null;

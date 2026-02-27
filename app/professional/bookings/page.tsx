@@ -2,7 +2,7 @@ import { getServerSession } from '@/app/lib/auth';
 import { getProfessionalBookings } from '@/app/lib/booking-actions';
 import { redirect } from 'next/navigation';
 import { Role } from '@/app/generated/prisma/enums';
-import { format } from 'date-fns';
+import { formatDateWithDay, formatTimeRange, prefsFromSession } from '@/app/lib/format-utils';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -38,21 +38,23 @@ export default async function ProfessionalBookingsPage() {
     console.error('Error fetching bookings:', error);
   }
 
+  const prefs = prefsFromSession(session.user);
+
   const renderBookingRow = (booking: Awaited<ReturnType<typeof getProfessionalBookings>>[number]) => (
     <tr key={booking.id}>
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-        {format(new Date(booking.startTime), 'EEE, MMM d, yyyy')}
+      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+        {formatDateWithDay(new Date(booking.startTime), prefs)}
       </td>
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-        {format(new Date(booking.startTime), 'h:mm a')} &ndash; {format(new Date(booking.endTime), 'h:mm a')}
+      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+        {formatTimeRange(new Date(booking.startTime), new Date(booking.endTime), prefs)}
       </td>
-      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
         {booking.client.name}
       </td>
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
         {booking.client.phoneNumber}
       </td>
-      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
         {booking.shift.resource.name}
       </td>
       <td className="whitespace-nowrap px-6 py-4">
@@ -66,8 +68,8 @@ export default async function ProfessionalBookingsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">My Bookings</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">My Bookings</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           All client appointments booked on your shifts.
         </p>
       </div>
@@ -79,8 +81,8 @@ export default async function ProfessionalBookingsPage() {
             {upcomingBookings.length} upcoming
           </span>
         </div>
-        <div className="rounded-lg bg-gray-50 px-4 py-3">
-          <span className="text-sm font-medium text-gray-600">
+        <div className="rounded-lg bg-gray-50 dark:bg-gray-800/50 px-4 py-3">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
             {pastBookings.length} past
           </span>
         </div>
@@ -88,30 +90,30 @@ export default async function ProfessionalBookingsPage() {
 
       {/* Upcoming Bookings */}
       <div className="mb-8">
-        <h2 className="mb-4 text-xl font-semibold text-gray-900">Upcoming</h2>
+        <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Upcoming</h2>
         {upcomingBookings.length > 0 ? (
-          <div className="overflow-hidden rounded-lg bg-white shadow">
+          <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Time</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Client</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Phone</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Resource</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Time</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Client</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Phone</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Resource</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {upcomingBookings.map(renderBookingRow)}
                 </tbody>
               </table>
             </div>
           </div>
         ) : (
-          <div className="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
-            <p className="text-sm text-gray-500">No upcoming bookings.</p>
+          <div className="rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-8 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400">No upcoming bookings.</p>
             <Link
               href="/professional/shifts/create"
               className="mt-3 inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
@@ -125,21 +127,21 @@ export default async function ProfessionalBookingsPage() {
       {/* Past Bookings */}
       {pastBookings.length > 0 && (
         <div>
-          <h2 className="mb-4 text-xl font-semibold text-gray-900">Past</h2>
-          <div className="overflow-hidden rounded-lg bg-white shadow">
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Past</h2>
+          <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Time</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Client</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Phone</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Resource</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Time</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Client</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Phone</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Resource</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {pastBookings.map(renderBookingRow)}
                 </tbody>
               </table>
@@ -152,13 +154,13 @@ export default async function ProfessionalBookingsPage() {
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
           href="/professional/shifts"
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800"
         >
           View Shifts
         </Link>
         <Link
           href="/professional/dashboard"
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800"
         >
           Dashboard
         </Link>

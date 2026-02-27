@@ -2,7 +2,7 @@ import { getServerSession } from '@/app/lib/auth';
 import { getClientBookings } from '@/app/lib/booking-actions';
 import { redirect } from 'next/navigation';
 import { Role } from '@/app/generated/prisma/enums';
-import { format } from 'date-fns';
+import { formatTime, formatDateFull, formatDateTimeRange, prefsFromSession } from '@/app/lib/format-utils';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -73,25 +73,27 @@ export default async function ClientDashboard() {
     console.error('Error fetching dashboard data:', error);
   }
 
+  const prefs = prefsFromSession(session.user);
+
   const renderBookingCard = (booking: BookingWithDetails) => (
     <li key={booking.id} className="py-4">
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-gray-900">
-              {format(new Date(booking.startTime), 'h:mm a')} &ndash; {format(new Date(booking.endTime), 'h:mm a')}
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {formatTime(new Date(booking.startTime), prefs)} &ndash; {formatTime(new Date(booking.endTime), prefs)}
             </p>
             <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
               Confirmed
             </span>
           </div>
-          <p className="mt-1 text-sm text-gray-700">
+          <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
             with <span className="font-medium">{booking.shift.professional.name}</span>
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {booking.shift.resource.name}
             {booking.shift.resource.location && (
-              <span className="ml-1 text-gray-400">&bull; {booking.shift.resource.location}</span>
+              <span className="ml-1 text-gray-400 dark:text-gray-500">&bull; {booking.shift.resource.location}</span>
             )}
           </p>
         </div>
@@ -102,17 +104,17 @@ export default async function ClientDashboard() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
           Day at a Glance
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           Welcome back, {session.user.name}. Here are your appointments.
         </p>
       </div>
 
       {/* Stats Grid */}
       <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Link href="/client/appointments" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
+        <Link href="/client/appointments" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="rounded-md bg-green-100 p-3">
@@ -122,14 +124,14 @@ export default async function ClientDashboard() {
               </div>
             </div>
             <div className="ml-5">
-              <div className="text-sm font-medium text-gray-500">Today</div>
-              <div className="mt-1 text-3xl font-semibold text-gray-900">{stats.todayAppointments}</div>
-              <div className="text-sm text-gray-500">appointment{stats.todayAppointments !== 1 ? 's' : ''}</div>
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Today</div>
+              <div className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{stats.todayAppointments}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">appointment{stats.todayAppointments !== 1 ? 's' : ''}</div>
             </div>
           </div>
         </Link>
 
-        <Link href="/client/appointments" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
+        <Link href="/client/appointments" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="rounded-md bg-blue-100 p-3">
@@ -139,14 +141,14 @@ export default async function ClientDashboard() {
               </div>
             </div>
             <div className="ml-5">
-              <div className="text-sm font-medium text-gray-500">Tomorrow</div>
-              <div className="mt-1 text-3xl font-semibold text-gray-900">{stats.tomorrowAppointments}</div>
-              <div className="text-sm text-gray-500">appointment{stats.tomorrowAppointments !== 1 ? 's' : ''}</div>
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Tomorrow</div>
+              <div className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{stats.tomorrowAppointments}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">appointment{stats.tomorrowAppointments !== 1 ? 's' : ''}</div>
             </div>
           </div>
         </Link>
 
-        <Link href="/client/appointments" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
+        <Link href="/client/appointments" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="rounded-md bg-purple-100 p-3">
@@ -156,14 +158,14 @@ export default async function ClientDashboard() {
               </div>
             </div>
             <div className="ml-5">
-              <div className="text-sm font-medium text-gray-500">Upcoming</div>
-              <div className="mt-1 text-3xl font-semibold text-gray-900">{stats.upcomingAppointments}</div>
-              <div className="text-sm text-gray-500">total upcoming</div>
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Upcoming</div>
+              <div className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{stats.upcomingAppointments}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">total upcoming</div>
             </div>
           </div>
         </Link>
 
-        <Link href="/client/book" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
+        <Link href="/client/book" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="rounded-md bg-yellow-100 p-3">
@@ -173,9 +175,9 @@ export default async function ClientDashboard() {
               </div>
             </div>
             <div className="ml-5">
-              <div className="text-sm font-medium text-gray-500">This Week</div>
-              <div className="mt-1 text-3xl font-semibold text-gray-900">{stats.totalThisWeek}</div>
-              <div className="text-sm text-gray-500">total this week</div>
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">This Week</div>
+              <div className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{stats.totalThisWeek}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">total this week</div>
             </div>
           </div>
         </Link>
@@ -184,17 +186,17 @@ export default async function ClientDashboard() {
       <div className="space-y-8">
         {/* Today */}
         <div>
-          <h2 className="mb-4 text-xl font-semibold text-gray-900">
-            Today &mdash; {format(today, 'EEEE, MMMM d')}
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Today &mdash; {formatDateFull(today, prefs)}
           </h2>
-          <div className="rounded-lg bg-white p-6 shadow">
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
             {todayBookings.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {todayBookings.map(renderBookingCard)}
               </ul>
             ) : (
               <div className="text-center py-6">
-                <p className="text-sm text-gray-500">No appointments today.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">No appointments today.</p>
                 <Link
                   href="/client/book"
                   className="mt-3 inline-flex items-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500"
@@ -208,16 +210,16 @@ export default async function ClientDashboard() {
 
         {/* Tomorrow */}
         <div>
-          <h2 className="mb-4 text-xl font-semibold text-gray-900">
-            Tomorrow &mdash; {format(tomorrow, 'EEEE, MMMM d')}
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Tomorrow &mdash; {formatDateFull(tomorrow, prefs)}
           </h2>
-          <div className="rounded-lg bg-white p-6 shadow">
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
             {tomorrowBookings.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {tomorrowBookings.map(renderBookingCard)}
               </ul>
             ) : (
-              <p className="text-center py-6 text-sm text-gray-500">No appointments tomorrow.</p>
+              <p className="text-center py-6 text-sm text-gray-500 dark:text-gray-400">No appointments tomorrow.</p>
             )}
           </div>
         </div>
@@ -225,28 +227,28 @@ export default async function ClientDashboard() {
         {/* Later This Week */}
         {laterBookings.length > 0 && (
           <div>
-            <h2 className="mb-4 text-xl font-semibold text-gray-900">Later This Week</h2>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <ul className="divide-y divide-gray-200">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Later This Week</h2>
+            <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {laterBookings.map((booking) => (
                   <li key={booking.id} className="py-4">
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-gray-900">
-                            {format(new Date(booking.startTime), 'EEE, MMM d')} &bull; {format(new Date(booking.startTime), 'h:mm a')} &ndash; {format(new Date(booking.endTime), 'h:mm a')}
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {formatDateTimeRange(new Date(booking.startTime), new Date(booking.endTime), prefs)}
                           </p>
                           <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
                             Confirmed
                           </span>
                         </div>
-                        <p className="mt-1 text-sm text-gray-700">
+                        <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
                           with <span className="font-medium">{booking.shift.professional.name}</span>
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                           {booking.shift.resource.name}
                           {booking.shift.resource.location && (
-                            <span className="ml-1 text-gray-400">&bull; {booking.shift.resource.location}</span>
+                            <span className="ml-1 text-gray-400 dark:text-gray-500">&bull; {booking.shift.resource.location}</span>
                           )}
                         </p>
                       </div>
@@ -269,7 +271,7 @@ export default async function ClientDashboard() {
         </Link>
         <Link
           href="/client/appointments"
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800"
         >
           All Appointments
         </Link>

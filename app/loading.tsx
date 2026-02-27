@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center p-8">
       <div className="max-w-md w-full text-center">
         <div className="flex flex-col items-center">
           <div className="relative">
@@ -10,14 +10,14 @@ export default function Loading() {
             </div>
           </div>
 
-          <h2 className="mt-8 text-2xl font-bold text-gray-900">Loading Ward Scheduler</h2>
-          <p className="mt-2 text-gray-600">Preparing your scheduling experience...</p>
+          <h2 className="mt-8 text-2xl font-bold text-gray-900 dark:text-gray-100">Loading Ward Scheduler</h2>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">Preparing your scheduling experience...</p>
 
           <div className="mt-8 w-full max-w-xs mx-auto">
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div className="h-full bg-purple-600 rounded-full animate-pulse" style={{ width: '60%' }}></div>
             </div>
-            <p className="mt-2 text-sm text-gray-500">Loading components</p>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading components</p>
           </div>
 
           <div className="mt-12 grid grid-cols-3 gap-4 max-w-xs mx-auto">
@@ -27,7 +27,7 @@ export default function Loading() {
           </div>
         </div>
 
-        <div className="mt-16 text-sm text-gray-500">
+        <div className="mt-16 text-sm text-gray-500 dark:text-gray-400">
           <p>This should only take a moment.</p>
           <p className="mt-1">If loading persists, check your internet connection.</p>
         </div>

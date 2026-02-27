@@ -1,7 +1,8 @@
 'use client';
 
 import { cancelShift, getProfessionalShifts } from '@/app/lib/shift-actions';
-import { format } from 'date-fns';
+import { useSession } from 'next-auth/react';
+import { formatDateTimeRange, prefsFromSession } from '@/app/lib/format-utils';
 import { useState } from 'react';
 
 interface UpcomingShiftsProps {
@@ -10,6 +11,7 @@ interface UpcomingShiftsProps {
 }
 
 export default function UpcomingShifts({ shifts, professionalId }: UpcomingShiftsProps) {
+  const { data: session } = useSession();
   const [cancellingShiftId, setCancellingShiftId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [localShifts, setLocalShifts] = useState(shifts);
@@ -41,7 +43,7 @@ export default function UpcomingShifts({ shifts, professionalId }: UpcomingShift
 
   if (upcomingShifts.length === 0) {
     return (
-      <div className="overflow-hidden rounded-lg bg-white shadow">
+      <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
         {error && (
           <div className="bg-red-50 p-4">
             <div className="flex">
@@ -55,11 +57,11 @@ export default function UpcomingShifts({ shifts, professionalId }: UpcomingShift
           </div>
         )}
         <div className="px-4 py-5 sm:px-6">
-          <h3 className="text-lg font-medium leading-6 text-gray-900">Upcoming Shifts</h3>
-          <p className="mt-1 text-sm text-gray-500">No upcoming shifts in the next 7 days</p>
+          <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Upcoming Shifts</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">No upcoming shifts in the next 7 days</p>
         </div>
         <div className="px-4 py-5 sm:p-6">
-          <div className="text-center text-gray-500">
+          <div className="text-center text-gray-500 dark:text-gray-400">
             <p>Create your first shift to start accepting bookings</p>
             <a
               href="/professional/shifts/create"
@@ -74,7 +76,7 @@ export default function UpcomingShifts({ shifts, professionalId }: UpcomingShift
   }
 
   return (
-    <div className="overflow-hidden rounded-lg bg-white shadow">
+    <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
       {error && (
         <div className="bg-red-50 p-4">
           <div className="flex">
@@ -90,8 +92,8 @@ export default function UpcomingShifts({ shifts, professionalId }: UpcomingShift
       <div className="px-4 py-5 sm:px-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-medium leading-6 text-gray-900">Upcoming Shifts</h3>
-            <p className="mt-1 text-sm text-gray-500">Your next 5 shifts</p>
+            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Upcoming Shifts</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Your next 5 shifts</p>
           </div>
           <a
             href="/professional/shifts"
@@ -101,8 +103,8 @@ export default function UpcomingShifts({ shifts, professionalId }: UpcomingShift
           </a>
         </div>
       </div>
-      <div className="border-t border-gray-200">
-        <ul className="divide-y divide-gray-200">
+      <div className="border-t border-gray-200 dark:border-gray-700">
+        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           {upcomingShifts.map((shift) => {
             const startTime = new Date(shift.startTime);
             const endTime = new Date(shift.endTime);
@@ -114,7 +116,7 @@ export default function UpcomingShifts({ shifts, professionalId }: UpcomingShift
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center">
-                      <p className="truncate text-sm font-medium text-gray-900">
+                      <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
                         {shift.resource.name}
                       </p>
                       {!shift.resource.isActive && (
@@ -123,9 +125,9 @@ export default function UpcomingShifts({ shifts, professionalId }: UpcomingShift
                         </span>
                       )}
                     </div>
-                    <div className="mt-1 text-sm text-gray-500">
+                    <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                       <p>
-                        {format(startTime, 'MMM d, yyyy')} • {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
+                        {formatDateTimeRange(startTime, endTime, prefsFromSession(session?.user))}
                       </p>
                       <p className="mt-1">
                         {durationHours} hour{durationHours !== 1 ? 's' : ''} • {bookingCount} booking{bookingCount !== 1 ? 's' : ''}
@@ -135,7 +137,7 @@ export default function UpcomingShifts({ shifts, professionalId }: UpcomingShift
                   <div className="ml-4 flex-shrink-0">
                     <button
                       type="button"
-                      className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+                      className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm font-medium leading-4 text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
                       onClick={() => handleCancelShift(shift.id)}
                       disabled={bookingCount > 0 || cancellingShiftId === shift.id}
                     >

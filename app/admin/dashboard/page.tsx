@@ -2,7 +2,7 @@ import { getServerSession } from '@/app/lib/auth';
 import { redirect } from 'next/navigation';
 import { Role } from '@/app/generated/prisma/enums';
 import { getAdminStats } from '@/app/lib/admin-actions';
-import { format } from 'date-fns';
+import { formatDateTimeShort, prefsFromSession } from '@/app/lib/format-utils';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -28,10 +28,10 @@ export default async function AdminDashboard() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
           Admin Dashboard
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           Overview of system metrics and recent activity.
         </p>
       </div>
@@ -40,7 +40,7 @@ export default async function AdminDashboard() {
         <>
           {/* Stats Grid */}
           <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <Link href="/admin/users" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
+            <Link href="/admin/users" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
               <div className="flex items-center">
                 <div className="flex-shrink-0 rounded-full bg-purple-100 p-3">
                   <svg
@@ -58,18 +58,18 @@ export default async function AdminDashboard() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Users</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.userCounts.total}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Users</p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.userCounts.total}</p>
                 </div>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                <div className="text-gray-500">Admins: {stats.userCounts.admins}</div>
-                <div className="text-gray-500">Professionals: {stats.userCounts.professionals}</div>
-                <div className="text-gray-500">Clients: {stats.userCounts.clients}</div>
+                <div className="text-gray-500 dark:text-gray-400">Admins: {stats.userCounts.admins}</div>
+                <div className="text-gray-500 dark:text-gray-400">Professionals: {stats.userCounts.professionals}</div>
+                <div className="text-gray-500 dark:text-gray-400">Clients: {stats.userCounts.clients}</div>
               </div>
             </Link>
 
-            <Link href="/admin/resources" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
+            <Link href="/admin/resources" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
               <div className="flex items-center">
                 <div className="flex-shrink-0 rounded-full bg-green-100 p-3">
                   <svg
@@ -87,17 +87,17 @@ export default async function AdminDashboard() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Active Resources</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.resourceCounts.active}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Resources</p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.resourceCounts.active}</p>
                 </div>
               </div>
               <div className="mt-4 text-sm">
-                <div className="text-gray-500">Total Resources: {stats.resourceCounts.total}</div>
-                <div className="text-gray-500">Inactive: {stats.resourceCounts.total - stats.resourceCounts.active}</div>
+                <div className="text-gray-500 dark:text-gray-400">Total Resources: {stats.resourceCounts.total}</div>
+                <div className="text-gray-500 dark:text-gray-400">Inactive: {stats.resourceCounts.total - stats.resourceCounts.active}</div>
               </div>
             </Link>
 
-            <Link href="/admin/analytics" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
+            <Link href="/admin/analytics" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
               <div className="flex items-center">
                 <div className="flex-shrink-0 rounded-full bg-blue-100 p-3">
                   <svg
@@ -115,17 +115,17 @@ export default async function AdminDashboard() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Shifts</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.shiftCounts.total}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Shifts</p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.shiftCounts.total}</p>
                 </div>
               </div>
               <div className="mt-4 text-sm">
-                <div className="text-gray-500">Upcoming: {stats.shiftCounts.upcoming}</div>
-                <div className="text-gray-500">Past: {stats.shiftCounts.total - stats.shiftCounts.upcoming}</div>
+                <div className="text-gray-500 dark:text-gray-400">Upcoming: {stats.shiftCounts.upcoming}</div>
+                <div className="text-gray-500 dark:text-gray-400">Past: {stats.shiftCounts.total - stats.shiftCounts.upcoming}</div>
               </div>
             </Link>
 
-            <Link href="/admin/analytics" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
+            <Link href="/admin/analytics" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
               <div className="flex items-center">
                 <div className="flex-shrink-0 rounded-full bg-yellow-100 p-3">
                   <svg
@@ -143,41 +143,41 @@ export default async function AdminDashboard() {
                   </svg>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.bookingCounts.total}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Bookings</p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{stats.bookingCounts.total}</p>
                 </div>
               </div>
               <div className="mt-4 text-sm">
-                <div className="text-gray-500">Confirmed: {stats.bookingCounts.confirmed}</div>
-                <div className="text-gray-500">Cancelled: {stats.bookingCounts.cancelled}</div>
+                <div className="text-gray-500 dark:text-gray-400">Confirmed: {stats.bookingCounts.confirmed}</div>
+                <div className="text-gray-500 dark:text-gray-400">Cancelled: {stats.bookingCounts.cancelled}</div>
               </div>
             </Link>
           </div>
 
           {/* Recent Activity */}
-          <div className="rounded-lg bg-white p-6 shadow">
-            <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+          <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Activity</h2>
             <div className="mt-4 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead>
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         Time
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         Action
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         Details
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {stats.recentActivity.map((activity) => (
                       <tr key={activity.id}>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                          {format(new Date(activity.timestamp), 'MMM d, h:mm a')}
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                          {formatDateTimeShort(new Date(activity.timestamp), prefsFromSession(session.user))}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4">
                           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
@@ -187,12 +187,12 @@ export default async function AdminDashboard() {
                               ? 'bg-blue-100 text-blue-800'
                               : activity.type === 'USER'
                               ? 'bg-purple-100 text-purple-800'
-                              : 'bg-gray-100 text-gray-800'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
                           }`}>
                             {activity.type}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                           {activity.description}
                         </td>
                       </tr>
@@ -204,9 +204,9 @@ export default async function AdminDashboard() {
           </div>
         </>
       ) : (
-        <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
+        <div className="rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-12 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -218,8 +218,8 @@ export default async function AdminDashboard() {
               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
             />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Unable to load dashboard</h3>
-          <p className="mt-2 text-gray-500">
+          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">Unable to load dashboard</h3>
+          <p className="mt-2 text-gray-500 dark:text-gray-400">
             There was an error loading the dashboard data.
           </p>
         </div>

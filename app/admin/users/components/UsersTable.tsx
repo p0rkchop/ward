@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateUserRole, deleteUser, type UserWithRelations } from '@/app/lib/admin-actions';
+import { formatDateShort } from '@/app/lib/format-utils';
 import { Role } from '@/app/generated/prisma/enums';
 
 type SortColumn = 'name' | 'phone' | 'role' | 'setup' | 'created' | 'shifts' | 'bookings';
@@ -177,7 +178,7 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
       case Role.CLIENT:
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200';
     }
   };
 
@@ -195,10 +196,10 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
   };
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow">
+    <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Users</h2>
-        <p className="mt-1 text-sm text-gray-600">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Users</h2>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Showing {filteredAndSortedUsers.length} of {users.length} users
         </p>
       </div>
@@ -211,14 +212,14 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
             placeholder="Search by name, phone, or email..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
-            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           />
         </div>
         <div>
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value as Role | 'ALL')}
-            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            className="block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
           >
             <option value="ALL">All Roles</option>
             <option value={Role.ADMIN}>Admin</option>
@@ -229,7 +230,7 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
         {(filterText || filterRole !== 'ALL') && (
           <button
             onClick={() => { setFilterText(''); setFilterRole('ALL'); }}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           >
             Clear filters
           </button>
@@ -253,60 +254,60 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
       )}
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead>
             <tr>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('name')}
               >
                 Name <SortIcon column="name" />
               </th>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('phone')}
               >
                 Contact <SortIcon column="phone" />
               </th>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('role')}
               >
                 Role <SortIcon column="role" />
               </th>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('setup')}
               >
                 Setup <SortIcon column="setup" />
               </th>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('created')}
               >
                 Created <SortIcon column="created" />
               </th>
               <th
-                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('shifts')}
               >
                 Activity <SortIcon column="shifts" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredAndSortedUsers.map((user) => (
               <tr key={user.id}>
                 <td className="whitespace-nowrap px-6 py-4">
-                  <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">{user.phoneNumber}</div>
+                  <div className="text-sm text-gray-900 dark:text-gray-100">{user.phoneNumber}</div>
                   {user.email && (
-                    <div className="text-xs text-gray-500">{user.email}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
                   )}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -315,7 +316,7 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
                       <select
                         value={selectedRole || ''}
                         onChange={(e) => setSelectedRole(e.target.value as Role)}
-                        className="block w-full rounded-md border border-gray-300 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
+                        className="block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1 shadow-sm focus:border-green-500 focus:outline-none focus:ring-green-500"
                       >
                         <option value={Role.ADMIN}>Admin</option>
                         <option value={Role.PROFESSIONAL}>Professional</option>
@@ -331,7 +332,7 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
                         </button>
                         <button
                           onClick={handleCancelEdit}
-                          className="text-sm text-gray-600 hover:text-gray-900"
+                          className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                         >
                           Cancel
                         </button>
@@ -354,13 +355,13 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
                     {user.setupComplete ? 'Complete' : 'Pending'}
                   </span>
                   {user.event && (
-                    <div className="text-xs text-gray-500 mt-0.5">{user.event.name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{user.event.name}</div>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                  {new Date(user.createdAt).toLocaleDateString()}
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                  {formatDateShort(new Date(user.createdAt))}
                 </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                   <div>
                     <div>Shifts: {user.shiftsAsProfessional.length}</div>
                     <div>Bookings: {user.bookingsAsClient.length}</div>
@@ -393,7 +394,7 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
       {users.length === 0 && (
         <div className="py-12 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -405,8 +406,8 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
             />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">No users found</h3>
-          <p className="mt-2 text-gray-500">
+          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No users found</h3>
+          <p className="mt-2 text-gray-500 dark:text-gray-400">
             Users will appear here once they sign up.
           </p>
         </div>

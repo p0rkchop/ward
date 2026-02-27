@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { createShift } from '@/app/lib/shift-actions';
 import { roundToNearest30Minutes, isValid30MinuteInterval, isAlignedTo30MinuteBoundary } from '@/app/lib/timeslot-utils';
 import { ValidationError, ConflictError, BusinessRuleError } from '@/app/lib/errors';
+import { useSession } from 'next-auth/react';
 import { format } from 'date-fns';
+import { formatDateWithDay, formatTimeString, prefsFromSession } from '@/app/lib/format-utils';
 
 interface Resource {
   id: string;
@@ -31,6 +33,8 @@ interface CreateShiftFormProps {
 
 export default function CreateShiftForm({ professionalId, resources, eventDays = [] }: CreateShiftFormProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const prefs = prefsFromSession(session?.user);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -138,8 +142,8 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Create New Shift</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Create New Shift</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
           Create a shift to make yourself available for client bookings.
         </p>
       </div>
@@ -157,16 +161,16 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-sm">
         <div>
-          <label htmlFor="resource" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="resource" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Resource *
           </label>
           <select
             id="resource"
             value={resourceId}
             onChange={(e) => setResourceId(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             required
             disabled={resources.length === 0}
           >
@@ -180,13 +184,13 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
               ))
             )}
           </select>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Select the resource you will be using for this shift.
           </p>
         </div>
 
         <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Date *
           </label>
           {availableDates.length > 0 ? (
@@ -201,17 +205,12 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
                   setStartTime(newDay.startTime);
                 }
               }}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               required
             >
               {availableDates.map((d) => (
                 <option key={d} value={d}>
-                  {new Date(d + 'T00:00:00').toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {formatDateWithDay(new Date(d + 'T00:00:00'), prefs)}
                 </option>
               ))}
             </select>
@@ -222,11 +221,11 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
               value={date}
               onChange={(e) => setDate(e.target.value)}
               min={format(new Date(), 'yyyy-MM-dd')}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               required
             />
           )}
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {availableDates.length > 0
               ? 'Select from the available event dates.'
               : 'Select the date for your shift.'}
@@ -234,40 +233,36 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
         </div>
 
         <div>
-          <label htmlFor="startTime" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Start Time *
           </label>
           <select
             id="startTime"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             required
           >
             {timeOptions.map((time) => (
               <option key={time} value={time}>
-                {new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                })}
+                {formatTimeString(time, prefs)}
               </option>
             ))}
           </select>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Start time must be on the hour or half-hour (e.g., 9:00, 9:30).
           </p>
         </div>
 
         <div>
-          <label htmlFor="duration" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Duration *
           </label>
           <select
             id="duration"
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             required
           >
             {durationOptions.map((minutes) => {
@@ -279,17 +274,17 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
               );
             })}
           </select>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Shift duration must be a multiple of 30 minutes.
           </p>
         </div>
 
-        <div className="border-t border-gray-200 pt-6">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
           <div className="flex justify-end space-x-3">
             <button
               type="button"
               onClick={() => router.back()}
-              className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               disabled={submitting}
             >
               Cancel

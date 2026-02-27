@@ -32,6 +32,10 @@ model User {
   role          Role
   setupComplete Boolean   @default(false)
   eventId       String?
+  theme         String    @default("system")
+  timeFormat    String    @default("12h")
+  dateFormat    String    @default("MM/DD/YYYY")
+  timezone      String    @default("America/Chicago")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
@@ -56,6 +60,7 @@ model Event {
   endDate              DateTime
   defaultStartTime     String    @default("09:00")
   defaultEndTime       String    @default("17:00")
+  timezone             String    @default("America/Chicago")
   professionalPassword String
   isActive             Boolean   @default(true)
   deletedAt            DateTime?

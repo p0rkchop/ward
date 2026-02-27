@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
+import { useSession } from 'next-auth/react';
+import { formatDateFull, formatTime, formatTimeRange, formatDateWithDay, prefsFromSession } from '@/app/lib/format-utils';
 import { bookTimeslot } from '@/app/lib/booking-actions';
 
 interface TimeSlot {
@@ -21,6 +22,8 @@ interface BookAppointmentFormProps {
 
 export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppointmentFormProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const prefs = prefsFromSession(session?.user);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,18 +76,18 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
   }
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow">
+    <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Available Time Slots</h2>
-        <p className="mt-1 text-sm text-gray-600">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Available Time Slots</h2>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Select a 30-minute time slot for your appointment.
         </p>
       </div>
 
       {days.length === 0 ? (
-        <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
+        <div className="rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-12 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -96,8 +99,8 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">No available time slots</h3>
-          <p className="mt-2 text-gray-500">
+          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">No available time slots</h3>
+          <p className="mt-2 text-gray-500 dark:text-gray-400">
             There are no available appointments in the next 7 days. Please check back later.
           </p>
         </div>
@@ -109,14 +112,14 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
               const daySlots = slotsByDay[dayStr];
 
               return (
-                <div key={dayStr} className="border-b border-gray-200 pb-6 last:border-0">
-                  <h3 className="mb-4 text-lg font-medium text-gray-900">
-                    {format(day, 'EEEE, MMMM d')}
+                <div key={dayStr} className="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-0">
+                  <h3 className="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">
+                    {formatDateFull(day, prefs)}
                   </h3>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                     {daySlots.map((slot) => {
                       const isSelected = selectedSlot?.start.getTime() === slot.start.getTime();
-                      const timeStr = format(slot.start, 'h:mm a');
+                      const timeStr = formatTime(slot.start, prefs);
 
                       return (
                         <button
@@ -126,11 +129,11 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
                           className={`rounded-lg border p-4 text-center transition-colors ${
                             isSelected
                               ? 'border-green-500 bg-green-50 ring-2 ring-green-500 ring-offset-2'
-                              : 'border-gray-300 bg-white hover:border-green-300 hover:bg-green-50'
+                              : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 hover:border-green-300 hover:bg-green-50'
                           }`}
                         >
-                          <div className="text-sm font-medium text-gray-900">{timeStr}</div>
-                          <div className="mt-1 text-xs text-gray-500">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{timeStr}</div>
+                          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             {slot.availableCapacity} available
                           </div>
                         </button>
@@ -144,27 +147,27 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
 
           {selectedSlot && (
             <div className="mt-8 rounded-lg bg-blue-50 p-6">
-              <h3 className="text-lg font-medium text-gray-900">Selected Appointment</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Selected Appointment</h3>
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <div className="text-sm font-medium text-gray-500">Date</div>
-                  <div className="mt-1 text-lg font-semibold text-gray-900">
-                    {format(selectedSlot.start, 'EEEE, MMMM d, yyyy')}
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Date</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {formatDateWithDay(selectedSlot.start, prefs)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-gray-500">Time</div>
-                  <div className="mt-1 text-lg font-semibold text-gray-900">
-                    {format(selectedSlot.start, 'h:mm a')} - {format(selectedSlot.end, 'h:mm a')}
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Time</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {formatTimeRange(selectedSlot.start, selectedSlot.end, prefs)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-gray-500">Duration</div>
-                  <div className="mt-1 text-lg font-semibold text-gray-900">30 minutes</div>
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Duration</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">30 minutes</div>
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-gray-500">Availability</div>
-                  <div className="mt-1 text-lg font-semibold text-gray-900">
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Availability</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {selectedSlot.availableCapacity} slot{selectedSlot.availableCapacity !== 1 ? 's' : ''} left
                   </div>
                 </div>

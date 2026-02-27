@@ -52,6 +52,10 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
             setupComplete: user.setupComplete,
             isNewUser,
+            theme: user.theme,
+            timeFormat: user.timeFormat,
+            dateFormat: user.dateFormat,
+            timezone: user.timezone,
           };
         } catch (dbErr: unknown) {
           // DB tables may not exist yet — return a synthetic user so the
@@ -66,6 +70,10 @@ export const authOptions: NextAuthOptions = {
             role: Role.CLIENT,
             setupComplete: false,
             isNewUser: true,
+            theme: 'system',
+            timeFormat: '12h',
+            dateFormat: 'MM/DD/YYYY',
+            timezone: 'America/Chicago',
           };
         }
       },
@@ -79,6 +87,10 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.setupComplete = user.setupComplete;
         token.isNewUser = user.isNewUser;
+        token.theme = user.theme;
+        token.timeFormat = user.timeFormat;
+        token.dateFormat = user.dateFormat;
+        token.timezone = user.timezone;
         token.userValid = true;
       } else if (token.sub) {
         // Every subsequent request — validate user still exists & is active
@@ -93,6 +105,10 @@ export const authOptions: NextAuthOptions = {
             token.role = dbUser.role;
             token.setupComplete = dbUser.setupComplete;
             token.phoneNumber = dbUser.phoneNumber;
+            token.theme = dbUser.theme;
+            token.timeFormat = dbUser.timeFormat;
+            token.dateFormat = dbUser.dateFormat;
+            token.timezone = dbUser.timezone;
             token.userValid = true;
           }
         } catch (err) {
@@ -114,6 +130,10 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as Role;
         session.user.setupComplete = token.setupComplete as boolean;
         session.user.isNewUser = token.isNewUser as boolean;
+        session.user.theme = (token.theme as string) || 'system';
+        session.user.timeFormat = (token.timeFormat as string) || '12h';
+        session.user.dateFormat = (token.dateFormat as string) || 'MM/DD/YYYY';
+        session.user.timezone = (token.timezone as string) || 'America/Chicago';
       }
       return session;
     },

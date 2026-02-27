@@ -19,6 +19,7 @@ export type EventData = {
   endDate: Date;
   defaultStartTime: string;
   defaultEndTime: string;
+  timezone: string;
   professionalPassword: string;
   isActive: boolean;
   adminId: string;
@@ -105,6 +106,7 @@ export async function createEvent(data: {
   endDate: string; // ISO string
   defaultStartTime: string; // e.g. "09:00"
   defaultEndTime: string; // e.g. "17:00"
+  timezone: string; // IANA timezone e.g. "America/Chicago"
   professionalPassword: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const admin = await requireAdmin();
@@ -130,6 +132,7 @@ export async function createEvent(data: {
 
   const defaultStartTime = data.defaultStartTime || '09:00';
   const defaultEndTime = data.defaultEndTime || '17:00';
+  const timezone = data.timezone || 'America/Chicago';
 
   try {
     const event = await db.event.create({
@@ -140,6 +143,7 @@ export async function createEvent(data: {
         endDate,
         defaultStartTime,
         defaultEndTime,
+        timezone,
         professionalPassword: data.professionalPassword.trim(),
         adminId: admin.id,
       },
@@ -176,6 +180,7 @@ export async function updateEvent(
     endDate?: string;
     defaultStartTime?: string;
     defaultEndTime?: string;
+    timezone?: string;
     professionalPassword?: string;
     isActive?: boolean;
   }
@@ -190,6 +195,7 @@ export async function updateEvent(
   if (data.endDate !== undefined) updateData.endDate = new Date(data.endDate);
   if (data.defaultStartTime !== undefined) updateData.defaultStartTime = data.defaultStartTime;
   if (data.defaultEndTime !== undefined) updateData.defaultEndTime = data.defaultEndTime;
+  if (data.timezone !== undefined) updateData.timezone = data.timezone;
   if (data.professionalPassword !== undefined) updateData.professionalPassword = data.professionalPassword.trim();
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
 

@@ -35,27 +35,27 @@ const iconMap: Record<StatsCardProps['icon'], ReactNode> = {
 export default function StatsCard({ title, value, description, icon, href }: StatsCardProps) {
   const content = (
     <div className="flex items-center">
-      <div className="flex-shrink-0 rounded-md bg-gray-50 p-3">
+      <div className="flex-shrink-0 rounded-md bg-gray-50 dark:bg-gray-800/50 p-3">
         {iconMap[icon]}
       </div>
       <div className="ml-5 w-0 flex-1">
-        <dt className="truncate text-sm font-medium text-gray-500">{title}</dt>
-        <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{value}</dd>
-        <dd className="mt-1 text-sm text-gray-500">{description}</dd>
+        <dt className="truncate text-sm font-medium text-gray-500 dark:text-gray-400">{title}</dt>
+        <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{value}</dd>
+        <dd className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</dd>
       </div>
     </div>
   );
 
   if (href) {
     return (
-      <Link href={href} className="block overflow-hidden rounded-lg bg-white px-4 py-5 shadow transition-shadow hover:shadow-md sm:p-6">
+      <Link href={href} className="block overflow-hidden rounded-lg bg-white dark:bg-gray-900 px-4 py-5 shadow transition-shadow hover:shadow-md sm:p-6">
         {content}
       </Link>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+    <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 px-4 py-5 shadow sm:p-6">
       {content}
     </div>
   );
