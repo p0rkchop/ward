@@ -379,3 +379,322 @@ export async function clearTestData() {
     bookings: bookings.count,
   };
 }
+
+// ── Admin Booking Management ──
+
+export type EventBookingData = {
+  id: string;
+  startTime: Date;
+  endTime: Date;
+  status: string;
+  clientId: string;
+  clientName: string;
+  clientPhone: string;
+  professionalId: string;
+  professionalName: string;
+  resourceName: string;
+  resourceLocation: string | null;
+  shiftId: string;
+};
+
+/**
+ * Get all bookings for an event (across all resources assigned to the event)
+ */
+export async function getEventBookings(eventId: string): Promise<EventBookingData[]> {
+  await requireAdmin();
+
+  // Get resource IDs assigned to this event
+  const eventResources = await db.eventResource.findMany({
+    where: { eventId, deletedAt: null },
+    select: { resourceId: true },
+  });
+  const resourceIds = eventResources.map((er) => er.resourceId);
+
+  if (resourceIds.length === 0) return [];
+
+  // Get all bookings on shifts for those resources
+  const bookings = await db.booking.findMany({
+    where: {
+      deletedAt: null,
+      status: BookingStatus.CONFIRMED,
+      shift: {
+        deletedAt: null,
+        resourceId: { in: resourceIds },
+      },
+    },
+    include: {
+      client: {
+        select: { id: true, name: true, phoneNumber: true },
+      },
+      shift: {
+        include: {
+          professional: {
+            select: { id: true, name: true },
+          },
+          resource: {
+            select: { name: true, location: true },
+          },
+        },
+      },
+    },
+    orderBy: { startTime: 'asc' },
+  });
+
+  return bookings.map((b) => ({
+    id: b.id,
+    startTime: b.startTime,
+    endTime: b.endTime,
+    status: b.status,
+    clientId: b.client.id,
+    clientName: b.client.name,
+    clientPhone: b.client.phoneNumber,
+    professionalId: b.shift.professional.id,
+    professionalName: b.shift.professional.name,
+    resourceName: b.shift.resource.name,
+    resourceLocation: b.shift.resource.location,
+    shiftId: b.shiftId,
+  }));
+}
+
+/**
+ * Get available shifts for an event that a booking could be reassigned to.
+ * Returns shifts with capacity (no existing confirmed booking for the same timeslot).
+ */
+export async function getEventAvailableShifts(eventId: string, start: Date, end: Date) {
+  await requireAdmin();
+
+  const eventResources = await db.eventResource.findMany({
+    where: { eventId, deletedAt: null },
+    select: { resourceId: true },
+  });
+  const resourceIds = eventResources.map((er) => er.resourceId);
+
+  if (resourceIds.length === 0) return [];
+
+  // Find shifts covering the requested timeslot
+  const shifts = await db.shift.findMany({
+    where: {
+      deletedAt: null,
+      resourceId: { in: resourceIds },
+      startTime: { lte: start },
+      endTime: { gte: end },
+    },
+    include: {
+      professional: {
+        select: { id: true, name: true },
+      },
+      resource: {
+        select: { id: true, name: true, location: true },
+      },
+      bookings: {
+        where: {
+          deletedAt: null,
+          status: BookingStatus.CONFIRMED,
+          startTime: start,
+          endTime: end,
+        },
+        select: { id: true },
+      },
+    },
+  });
+
+  // Only return shifts with available capacity
+  return shifts
+    .filter((s) => s.bookings.length === 0)
+    .map((s) => ({
+      id: s.id,
+      professionalId: s.professional.id,
+      professionalName: s.professional.name,
+      resourceName: s.resource.name,
+      resourceLocation: s.resource.location,
+      startTime: s.startTime,
+      endTime: s.endTime,
+    }));
+}
+
+/**
+ * Reassign a booking to a different shift (different professional and/or timeslot)
+ */
+export async function reassignBooking(
+  bookingId: string,
+  newShiftId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  try {
+    const booking = await db.booking.findUnique({
+      where: { id: bookingId, deletedAt: null },
+    });
+    if (!booking) return { ok: false, error: 'Booking not found' };
+
+    // Verify target shift exists and has capacity
+    const existingBooking = await db.booking.findFirst({
+      where: {
+        shiftId: newShiftId,
+        deletedAt: null,
+        status: BookingStatus.CONFIRMED,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+      },
+    });
+    if (existingBooking) {
+      return { ok: false, error: 'Target shift already has a booking for this timeslot' };
+    }
+
+    await db.booking.update({
+      where: { id: bookingId },
+      data: { shiftId: newShiftId },
+    });
+
+    return { ok: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[reassignBooking] Error:', msg);
+    return { ok: false, error: 'Failed to reassign booking' };
+  }
+}
+
+/**
+ * Admin-remove a booking (soft-delete + cancel status)
+ */
+export async function adminRemoveBooking(
+  bookingId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  try {
+    const booking = await db.booking.findUnique({
+      where: { id: bookingId, deletedAt: null },
+    });
+    if (!booking) return { ok: false, error: 'Booking not found' };
+
+    await db.booking.update({
+      where: { id: bookingId },
+      data: { status: BookingStatus.CANCELLED, deletedAt: new Date() },
+    });
+
+    return { ok: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[adminRemoveBooking] Error:', msg);
+    return { ok: false, error: 'Failed to remove booking' };
+  }
+}
+
+// ── Event Agenda ──
+
+export type AgendaDayData = {
+  date: string; // ISO date string e.g. "2026-03-01"
+  dayId: string;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+  shifts: AgendaShiftData[];
+};
+
+export type AgendaShiftData = {
+  id: string;
+  startTime: Date;
+  endTime: Date;
+  professionalName: string;
+  resourceName: string;
+  resourceLocation: string | null;
+  bookings: AgendaBookingData[];
+};
+
+export type AgendaBookingData = {
+  id: string;
+  startTime: Date;
+  endTime: Date;
+  clientName: string;
+  clientPhone: string;
+  status: string;
+};
+
+/**
+ * Get a full agenda for an event: days → shifts → bookings
+ */
+export async function getEventAgenda(eventId: string): Promise<AgendaDayData[]> {
+  await requireAdmin();
+
+  // Get event days
+  const days = await db.eventDay.findMany({
+    where: { eventId, deletedAt: null },
+    orderBy: { date: 'asc' },
+  });
+
+  // Get resource IDs for this event
+  const eventResources = await db.eventResource.findMany({
+    where: { eventId, deletedAt: null },
+    select: { resourceId: true },
+  });
+  const resourceIds = eventResources.map((er) => er.resourceId);
+
+  if (resourceIds.length === 0) {
+    return days.map((d) => ({
+      date: new Date(d.date).toISOString().split('T')[0],
+      dayId: d.id,
+      startTime: d.startTime,
+      endTime: d.endTime,
+      isActive: d.isActive,
+      shifts: [],
+    }));
+  }
+
+  // Get all shifts + bookings across the event's date range for event resources
+  const allShifts = await db.shift.findMany({
+    where: {
+      deletedAt: null,
+      resourceId: { in: resourceIds },
+    },
+    include: {
+      professional: { select: { name: true } },
+      resource: { select: { name: true, location: true } },
+      bookings: {
+        where: { deletedAt: null },
+        include: {
+          client: { select: { name: true, phoneNumber: true } },
+        },
+        orderBy: { startTime: 'asc' },
+      },
+    },
+    orderBy: { startTime: 'asc' },
+  });
+
+  // Group shifts by date
+  const shiftsByDate = new Map<string, typeof allShifts>();
+  for (const shift of allShifts) {
+    const dateStr = new Date(shift.startTime).toISOString().split('T')[0];
+    if (!shiftsByDate.has(dateStr)) shiftsByDate.set(dateStr, []);
+    shiftsByDate.get(dateStr)!.push(shift);
+  }
+
+  return days.map((d) => {
+    const dateStr = new Date(d.date).toISOString().split('T')[0];
+    const dayShifts = shiftsByDate.get(dateStr) || [];
+
+    return {
+      date: dateStr,
+      dayId: d.id,
+      startTime: d.startTime,
+      endTime: d.endTime,
+      isActive: d.isActive,
+      shifts: dayShifts.map((s) => ({
+        id: s.id,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        professionalName: s.professional.name,
+        resourceName: s.resource.name,
+        resourceLocation: s.resource.location,
+        bookings: s.bookings.map((b) => ({
+          id: b.id,
+          startTime: b.startTime,
+          endTime: b.endTime,
+          clientName: b.client.name,
+          clientPhone: b.client.phoneNumber,
+          status: b.status,
+        })),
+      })),
+    };
+  });
+}

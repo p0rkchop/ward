@@ -109,9 +109,31 @@ export default function EventsManager({ initialEvents }: Props) {
     setError('');
   }
 
+  const [successMessage, setSuccessMessage] = useState('');
+
   async function handleUpdate(id: string) {
     setError('');
+    setSuccessMessage('');
     setLoading(true);
+
+    // Check if dates are being narrowed — warn the admin about cascade
+    const currentEvent = events.find((ev) => ev.id === id);
+    if (currentEvent) {
+      const oldStart = new Date(currentEvent.startDate).getTime();
+      const oldEnd = new Date(currentEvent.endDate).getTime();
+      const newStart = new Date(editStartDate).getTime();
+      const newEnd = new Date(editEndDate).getTime();
+      const isNarrowing = newStart > oldStart || newEnd < oldEnd;
+      if (isNarrowing) {
+        const confirmed = confirm(
+          'You are narrowing the event date range. Any shifts and client bookings on removed dates will be automatically cancelled. Continue?'
+        );
+        if (!confirmed) {
+          setLoading(false);
+          return;
+        }
+      }
+    }
 
     const result = await updateEvent(id, {
       name: editName,
@@ -129,6 +151,15 @@ export default function EventsManager({ initialEvents }: Props) {
       setError(result.error);
       setLoading(false);
       return;
+    }
+
+    // Show cascade summary if anything was removed
+    if (result.ok && (result.cascadedShifts || result.cascadedBookings)) {
+      const parts: string[] = [];
+      if (result.cascadedShifts) parts.push(`${result.cascadedShifts} shift(s)`);
+      if (result.cascadedBookings) parts.push(`${result.cascadedBookings} booking(s)`);
+      setSuccessMessage(`Event updated. Cancelled ${parts.join(' and ')} on removed dates.`);
+      setTimeout(() => setSuccessMessage(''), 8000);
     }
 
     const dayCount = Math.max(1, Math.ceil((new Date(editEndDate).getTime() - new Date(editStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1);
@@ -176,6 +207,12 @@ export default function EventsManager({ initialEvents }: Props) {
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg text-green-700 dark:text-green-300 text-sm">
+          {successMessage}
         </div>
       )}
 
@@ -490,6 +527,18 @@ export default function EventsManager({ initialEvents }: Props) {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
+                      <a
+                        href={`/admin/events/${event.id}/agenda`}
+                        className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium"
+                      >
+                        Agenda
+                      </a>
+                      <a
+                        href={`/admin/events/${event.id}/bookings`}
+                        className="text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300 text-sm font-medium"
+                      >
+                        Bookings
+                      </a>
                       <button
                         onClick={() => setManageResourcesEventId(event.id)}
                         className="text-green-600 hover:text-green-800 text-sm font-medium"

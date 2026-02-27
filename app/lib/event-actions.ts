@@ -184,7 +184,7 @@ export async function updateEvent(
     professionalPassword?: string;
     isActive?: boolean;
   }
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; cascadedShifts?: number; cascadedBookings?: number } | { ok: false; error: string }> {
   await requireAdmin();
 
   const updateData: Record<string, unknown> = {};
@@ -204,6 +204,9 @@ export async function updateEvent(
       where: { id },
       data: updateData,
     });
+
+    let cascadedShifts = 0;
+    let cascadedBookings = 0;
 
     // If dates changed, reconcile EventDay records (preserve existing days' custom hours/blackouts)
     if (data.startDate !== undefined || data.endDate !== undefined) {
@@ -233,6 +236,62 @@ export async function updateEvent(
           });
         }
 
+        // Cascade: cancel shifts and bookings on removed dates
+        if (daysToRemove.length > 0) {
+          // Get resources assigned to this event
+          const eventResources = await db.eventResource.findMany({
+            where: { eventId: id, deletedAt: null },
+            select: { resourceId: true },
+          });
+          const resourceIds = eventResources.map((er) => er.resourceId);
+
+          if (resourceIds.length > 0) {
+            // Build date ranges for each removed day (midnight to midnight)
+            for (const day of daysToRemove) {
+              const dayDate = new Date(day.date);
+              const dayStart = new Date(dayDate);
+              dayStart.setHours(0, 0, 0, 0);
+              const dayEnd = new Date(dayDate);
+              dayEnd.setHours(23, 59, 59, 999);
+
+              // Find shifts on event resources that fall on this removed day
+              const shiftsToCancel = await db.shift.findMany({
+                where: {
+                  deletedAt: null,
+                  resourceId: { in: resourceIds },
+                  startTime: { gte: dayStart },
+                  endTime: { lte: dayEnd },
+                },
+                select: { id: true },
+              });
+
+              if (shiftsToCancel.length > 0) {
+                const shiftIds = shiftsToCancel.map((s) => s.id);
+
+                // Soft-delete bookings on those shifts
+                const cancelledBookings = await db.booking.updateMany({
+                  where: {
+                    shiftId: { in: shiftIds },
+                    deletedAt: null,
+                  },
+                  data: { status: 'CANCELLED', deletedAt: new Date() },
+                });
+                cascadedBookings += cancelledBookings.count;
+
+                // Soft-delete the shifts
+                const cancelledShifts = await db.shift.updateMany({
+                  where: {
+                    id: { in: shiftIds },
+                    deletedAt: null,
+                  },
+                  data: { deletedAt: new Date() },
+                });
+                cascadedShifts += cancelledShifts.count;
+              }
+            }
+          }
+        }
+
         // Create days that are new (don't already exist)
         const datesToAdd = newDates.filter(
           (d) => !existingDateStrings.has(d.toISOString().split('T')[0])
@@ -251,7 +310,7 @@ export async function updateEvent(
       }
     }
 
-    return { ok: true };
+    return { ok: true, cascadedShifts, cascadedBookings };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[updateEvent] Error:', msg);

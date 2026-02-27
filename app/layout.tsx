@@ -17,6 +17,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Ward - Capacity Scheduler",
   description: "Capacity-first auto-matching scheduler for professionals and clients",
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/apple-icon',
+  },
 };
 
 export default function RootLayout({

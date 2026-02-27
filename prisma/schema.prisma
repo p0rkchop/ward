@@ -218,3 +218,10 @@ model Booking {
   @@index([clientId, startTime, deletedAt])
   @@unique([shiftId, startTime, endTime])
 }
+
+model AppSettings {
+  id               String  @id @default("singleton")
+  brandingImageUrl String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
