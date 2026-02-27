@@ -17,7 +17,6 @@ interface Booking {
     };
     professional: {
       name: string;
-      phoneNumber: string;
     };
   };
 }
@@ -108,7 +107,6 @@ export default function AppointmentsTable({ bookings, clientId, isPast = false }
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <div className="text-sm font-medium text-gray-900">{booking.shift.professional.name}</div>
-                    <div className="text-sm text-gray-500">{booking.shift.professional.phoneNumber}</div>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <div className="text-sm text-gray-900">

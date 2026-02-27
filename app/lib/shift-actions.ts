@@ -192,6 +192,18 @@ export async function getProfessionalShifts(
   start?: Date,
   end?: Date
 ) {
+  // Enforce that the caller is the professional themselves or an admin
+  const session = await getServerSession();
+  if (!session?.user) {
+    throw new BusinessRuleError('Authentication required');
+  }
+  if (session.user.role === 'PROFESSIONAL' && session.user.id !== professionalId) {
+    throw new BusinessRuleError('You can only view your own shifts');
+  }
+  if (session.user.role === 'CLIENT') {
+    throw new BusinessRuleError('Clients cannot access professional shifts');
+  }
+
   const where: any = {
     professionalId,
     deletedAt: null,
@@ -271,6 +283,15 @@ export async function cancelShift(shiftId: string) {
  * @returns Array of active resources
  */
 export async function getActiveResources(eventId?: string | null) {
+  // Require authentication — only professionals and admins need resource lists
+  const session = await getServerSession();
+  if (!session?.user) {
+    throw new BusinessRuleError('Authentication required');
+  }
+  if (session.user.role === 'CLIENT') {
+    throw new BusinessRuleError('Clients cannot access resource lists');
+  }
+
   if (eventId) {
     // Return only resources assigned to the given event
     const eventResources = await db.eventResource.findMany({
@@ -307,6 +328,18 @@ export async function getActiveResources(eventId?: string | null) {
 export async function getAvailableSlotCountForProfessional(
   professionalId: string
 ): Promise<number> {
+  // Enforce that the caller is the professional themselves or an admin
+  const session = await getServerSession();
+  if (!session?.user) {
+    throw new BusinessRuleError('Authentication required');
+  }
+  if (session.user.role === 'PROFESSIONAL' && session.user.id !== professionalId) {
+    throw new BusinessRuleError('You can only view your own availability');
+  }
+  if (session.user.role === 'CLIENT') {
+    throw new BusinessRuleError('Clients cannot access professional availability');
+  }
+
   // Get professional's event
   const user = await db.user.findUnique({
     where: { id: professionalId },

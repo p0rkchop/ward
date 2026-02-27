@@ -26,6 +26,12 @@ import {
 const MAX_TIMESLOT_RANGE_MS = 31 * 24 * 60 * 60 * 1000;
 
 export async function getAvailableTimeslots(start: Date, end: Date) {
+  // Require authentication — only clients and admins should query available timeslots
+  const session = await getServerSession();
+  if (!session?.user) {
+    throw new Error('Authentication required');
+  }
+
   // Validate input
   if (start >= end) {
     throw new Error('Start date must be before end date');
@@ -321,6 +327,18 @@ export async function getProfessionalBookings(
   start?: Date,
   end?: Date
 ) {
+  // Enforce that the caller is the professional themselves or an admin
+  const session = await getServerSession();
+  if (!session?.user) {
+    throw new Error('Authentication required');
+  }
+  if (session.user.role === 'PROFESSIONAL' && session.user.id !== professionalId) {
+    throw new BusinessRuleError('You can only view your own bookings');
+  }
+  if (session.user.role === 'CLIENT') {
+    throw new BusinessRuleError('Clients cannot access professional bookings');
+  }
+
   const where: any = {
     shift: {
       professionalId,
@@ -368,6 +386,18 @@ export async function getClientBookings(
   start?: Date,
   end?: Date
 ) {
+  // Enforce that the caller is the client themselves or an admin
+  const session = await getServerSession();
+  if (!session?.user) {
+    throw new Error('Authentication required');
+  }
+  if (session.user.role === 'CLIENT' && session.user.id !== clientId) {
+    throw new BusinessRuleError('You can only view your own bookings');
+  }
+  if (session.user.role === 'PROFESSIONAL') {
+    throw new BusinessRuleError('Professionals cannot access client booking lists');
+  }
+
   const where: any = {
     clientId,
     deletedAt: null,
@@ -388,7 +418,7 @@ export async function getClientBookings(
       shift: {
         include: {
           professional: {
-            select: { id: true, name: true, phoneNumber: true },
+            select: { id: true, name: true },
           },
           resource: {
             select: { id: true, name: true, description: true, location: true },
@@ -453,7 +483,7 @@ export async function cancelBooking(bookingId: string, _clientId?: string) {
       shift: {
         include: {
           professional: {
-            select: { id: true, name: true, phoneNumber: true },
+            select: { id: true, name: true },
           },
           resource: {
             select: { id: true, name: true, description: true },

@@ -39,6 +39,10 @@ vi.mock('./timeslot-utils', () => ({
   isAlignedTo30MinuteBoundary: vi.fn(),
 }))
 
+vi.mock('./auth', () => ({
+  getServerSession: vi.fn(),
+}))
+
 vi.mock('./validation', () => ({
   ValidationError: class ValidationError extends Error {
     code = 'VALIDATION_ERROR'
@@ -60,12 +64,18 @@ vi.mock('./validation', () => ({
 }))
 
 import { db } from './db'
+import { getServerSession } from './auth'
 import { generateTimeSlots, isAlignedTo30MinuteBoundary } from './timeslot-utils'
 import { validateSchema, validateClientRole, validate30MinuteInterval } from './validation'
 
 describe('booking-actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Default: authenticated client session
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: 'client-1', role: 'CLIENT', name: 'Test Client' },
+      expires: '2099-01-01',
+    } as any)
   })
 
   describe('getAvailableTimeslots', () => {
@@ -369,6 +379,14 @@ describe('booking-actions', () => {
   })
 
   describe('getProfessionalBookings', () => {
+    beforeEach(() => {
+      // Override default session to professional for these tests
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: 'professional-id', role: 'PROFESSIONAL', name: 'Test Professional' },
+        expires: '2099-01-01',
+      } as any)
+    })
+
     it('returns bookings for professional with date filters', async () => {
       const mockBookings = [
         {
@@ -429,6 +447,14 @@ describe('booking-actions', () => {
   })
 
   describe('getClientBookings', () => {
+    beforeEach(() => {
+      // Ensure client session matches the clientId used in tests
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: 'client-id', role: 'CLIENT', name: 'Test Client' },
+        expires: '2099-01-01',
+      } as any)
+    })
+
     it('returns bookings for client with date filters', async () => {
       const mockBookings = [
         {
@@ -466,15 +492,26 @@ describe('booking-actions', () => {
   })
 
   describe('cancelBooking', () => {
+    beforeEach(() => {
+      // cancelBooking derives clientId from session; match the booking's clientId
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: 'client-id', role: 'CLIENT', name: 'Test Client' },
+        expires: '2099-01-01',
+      } as any)
+    })
+
     it('cancels booking successfully', async () => {
+      // Use a date far in the future so the booking is never "in the past"
+      const futureStart = new Date('2099-06-15T10:00:00Z')
+      const futureEnd = new Date('2099-06-15T10:30:00Z')
       const mockBooking = {
         id: 'booking-id',
         clientId: 'client-id',
-        startTime: new Date('2026-02-24T10:00:00Z'),
+        startTime: futureStart,
         deletedAt: null,
         shift: {
-          startTime: new Date('2026-02-24T10:00:00Z'),
-          endTime: new Date('2026-02-24T10:30:00Z'),
+          startTime: futureStart,
+          endTime: futureEnd,
         },
       } as any
 
@@ -483,7 +520,7 @@ describe('booking-actions', () => {
         ...mockBooking,
         deletedAt: new Date(),
         shift: {
-          professional: { id: 'professional-id', name: 'Test Professional', phoneNumber: '+1234567890' },
+          professional: { id: 'professional-id', name: 'Test Professional' },
           resource: { id: 'resource-id', name: 'Test Resource', description: 'Test Description' },
         },
       } as any)
@@ -501,7 +538,7 @@ describe('booking-actions', () => {
       })
       expect(db.booking.update).toHaveBeenCalledWith({
         where: { id: 'booking-id' },
-        data: { deletedAt: expect.any(Date) },
+        data: { status: 'CANCELLED', deletedAt: expect.any(Date) },
         include: expect.any(Object),
       })
     })

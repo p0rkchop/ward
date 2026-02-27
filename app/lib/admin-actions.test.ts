@@ -45,11 +45,28 @@ vi.mock('./db', () => {
   };
 })
 
+vi.mock('./auth', () => ({
+  getServerSession: vi.fn(),
+}))
+
 import { db } from './db'
+import { getServerSession } from './auth'
 
 describe('admin-actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Default: authenticated admin session
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: {
+        id: 'admin-id',
+        role: Role.ADMIN,
+        name: 'Test Admin',
+        phoneNumber: '+1234567890',
+        setupComplete: true,
+        isNewUser: false,
+      },
+      expires: new Date().toISOString(),
+    })
   })
 
   describe('getAdminStats', () => {

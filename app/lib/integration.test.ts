@@ -195,6 +195,19 @@ describe('Integration Tests - Complete User Flows', () => {
     const mockShiftId = 'shift-id'
 
     beforeEach(() => {
+      // Mock client session for booking flow
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: {
+          id: mockClientId,
+          role: Role.CLIENT,
+          name: 'Test Client',
+          phoneNumber: '+1234567890',
+          setupComplete: true,
+          isNewUser: false,
+        },
+        expires: new Date().toISOString(),
+      })
+
       // Mock validation for booking
       vi.mocked(validateSchema).mockReturnValue({
         clientId: mockClientId,
@@ -278,20 +291,23 @@ describe('Integration Tests - Complete User Flows', () => {
 
     it('handles booking cancellation flow', async () => {
       const mockBookingId = 'booking-id'
+      // Use far-future dates so the booking is never "in the past"
+      const futureStart = new Date('2099-06-15T10:00:00Z')
+      const futureEnd = new Date('2099-06-15T10:30:00Z')
       const mockBooking = {
         id: mockBookingId,
         clientId: mockClientId,
         shiftId: mockShiftId,
-        startTime: new Date('2026-02-24T10:00:00Z'), // Future date
-        endTime: new Date('2026-02-24T10:30:00Z'),
+        startTime: futureStart,
+        endTime: futureEnd,
         status: BookingStatus.CONFIRMED,
         notes: null,
         createdAt: new Date('2026-02-24T09:00:00Z'),
         updatedAt: new Date('2026-02-24T09:00:00Z'),
         deletedAt: null,
         shift: {
-          startTime: new Date('2026-02-24T10:00:00Z'),
-          endTime: new Date('2026-02-24T10:30:00Z'),
+          startTime: futureStart,
+          endTime: futureEnd,
         },
       }
 
@@ -300,7 +316,7 @@ describe('Integration Tests - Complete User Flows', () => {
         ...mockBooking,
         deletedAt: new Date('2026-02-22T11:00:00Z'),
         shift: {
-          professional: { id: mockProfessionalId, name: 'Test Professional', phoneNumber: '+1234567890' },
+          professional: { id: mockProfessionalId, name: 'Test Professional' },
           resource: { id: mockResourceId, name: 'Test Resource', description: 'Test Description' },
         },
       } as any)
@@ -321,6 +337,19 @@ describe('Integration Tests - Complete User Flows', () => {
 
   describe('Admin Management Flow', () => {
     it('provides admin statistics', async () => {
+      // Mock admin session
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: {
+          id: 'admin-id',
+          role: Role.ADMIN,
+          name: 'Test Admin',
+          phoneNumber: '+1234567890',
+          setupComplete: true,
+          isNewUser: false,
+        },
+        expires: new Date().toISOString(),
+      })
+
       // Mock user counts
       vi.mocked(db.user.groupBy).mockResolvedValue([
         { role: Role.ADMIN, _count: 2 },
