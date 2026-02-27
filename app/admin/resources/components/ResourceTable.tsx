@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createResource, updateResource, deleteResource } from '@/app/lib/admin-actions';
 
@@ -16,6 +16,9 @@ interface Resource {
   updatedAt: Date;
 }
 
+type SortColumn = 'name' | 'location' | 'quantity' | 'prosPerUnit' | 'status' | 'created';
+type SortDirection = 'asc' | 'desc';
+
 interface ResourceTableProps {
   initialResources: Resource[];
 }
@@ -29,6 +32,89 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
   const [newResource, setNewResource] = useState({ name: '', description: '', location: '', quantity: 1, professionalsPerUnit: 1, isActive: true });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sort & filter state
+  const [filterText, setFilterText] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'active' | 'inactive'>('ALL');
+  const [sortColumn, setSortColumn] = useState<SortColumn>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) {
+      return (
+        <svg className="ml-1 inline h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+    return sortDirection === 'asc' ? (
+      <svg className="ml-1 inline h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    ) : (
+      <svg className="ml-1 inline h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    );
+  };
+
+  const filteredAndSortedResources = useMemo(() => {
+    let result = [...resources];
+
+    // Text filter
+    if (filterText.trim()) {
+      const lower = filterText.toLowerCase();
+      result = result.filter(r =>
+        r.name.toLowerCase().includes(lower) ||
+        (r.description && r.description.toLowerCase().includes(lower)) ||
+        (r.location && r.location.toLowerCase().includes(lower))
+      );
+    }
+
+    // Status filter
+    if (filterStatus === 'active') {
+      result = result.filter(r => r.isActive);
+    } else if (filterStatus === 'inactive') {
+      result = result.filter(r => !r.isActive);
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let cmp = 0;
+      switch (sortColumn) {
+        case 'name':
+          cmp = a.name.localeCompare(b.name);
+          break;
+        case 'location':
+          cmp = (a.location || '').localeCompare(b.location || '');
+          break;
+        case 'quantity':
+          cmp = a.quantity - b.quantity;
+          break;
+        case 'prosPerUnit':
+          cmp = a.professionalsPerUnit - b.professionalsPerUnit;
+          break;
+        case 'status':
+          cmp = Number(a.isActive) - Number(b.isActive);
+          break;
+        case 'created':
+          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+      }
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+
+    return result;
+  }, [resources, filterText, filterStatus, sortColumn, sortDirection]);
 
   const handleEdit = (resource: Resource) => {
     setEditingId(resource.id);
@@ -124,7 +210,12 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
   return (
     <div className="rounded-lg bg-white p-6 shadow">
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">Resources</h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Resources</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Showing {filteredAndSortedResources.length} of {resources.length} resources
+          </p>
+        </div>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
           className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500"
@@ -249,30 +340,80 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
         </div>
       )}
 
+      {/* Filter Controls */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="Search by name, description, or location..."
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as 'ALL' | 'active' | 'inactive')}
+            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          >
+            <option value="ALL">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+        {(filterText || filterStatus !== 'ALL') && (
+          <button
+            onClick={() => { setFilterText(''); setFilterStatus('ALL'); }}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Name
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('name')}
+              >
+                Name <SortIcon column="name" />
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Description
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Location
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('location')}
+              >
+                Location <SortIcon column="location" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Qty
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('quantity')}
+              >
+                Qty <SortIcon column="quantity" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Pros/Unit
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('prosPerUnit')}
+              >
+                Pros/Unit <SortIcon column="prosPerUnit" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Status
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('status')}
+              >
+                Status <SortIcon column="status" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Created
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('created')}
+              >
+                Created <SortIcon column="created" />
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Actions
@@ -280,7 +421,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {resources.map((resource) => (
+            {filteredAndSortedResources.map((resource) => (
               <tr key={resource.id}>
                 <td className="whitespace-nowrap px-6 py-4">
                   {editingId === resource.id ? (

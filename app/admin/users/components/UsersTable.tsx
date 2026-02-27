@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateUserRole, deleteUser, type UserWithRelations } from '@/app/lib/admin-actions';
 import { Role } from '@/app/generated/prisma/enums';
+
+type SortColumn = 'name' | 'phone' | 'role' | 'setup' | 'created' | 'shifts' | 'bookings';
+type SortDirection = 'asc' | 'desc';
 
 interface UsersTableProps {
   initialUsers: UserWithRelations[];
@@ -16,6 +19,90 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sort & filter state
+  const [filterText, setFilterText] = useState('');
+  const [filterRole, setFilterRole] = useState<Role | 'ALL'>('ALL');
+  const [sortColumn, setSortColumn] = useState<SortColumn>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) {
+      return (
+        <svg className="ml-1 inline h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+    return sortDirection === 'asc' ? (
+      <svg className="ml-1 inline h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    ) : (
+      <svg className="ml-1 inline h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    );
+  };
+
+  const filteredAndSortedUsers = useMemo(() => {
+    let result = [...users];
+
+    // Text filter
+    if (filterText.trim()) {
+      const lower = filterText.toLowerCase();
+      result = result.filter(u =>
+        u.name.toLowerCase().includes(lower) ||
+        u.phoneNumber.toLowerCase().includes(lower) ||
+        (u.email && u.email.toLowerCase().includes(lower))
+      );
+    }
+
+    // Role filter
+    if (filterRole !== 'ALL') {
+      result = result.filter(u => u.role === filterRole);
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let cmp = 0;
+      switch (sortColumn) {
+        case 'name':
+          cmp = a.name.localeCompare(b.name);
+          break;
+        case 'phone':
+          cmp = a.phoneNumber.localeCompare(b.phoneNumber);
+          break;
+        case 'role':
+          cmp = a.role.localeCompare(b.role);
+          break;
+        case 'setup':
+          cmp = Number(a.setupComplete) - Number(b.setupComplete);
+          break;
+        case 'created':
+          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+        case 'shifts':
+          cmp = a.shiftsAsProfessional.length - b.shiftsAsProfessional.length;
+          break;
+        case 'bookings':
+          cmp = a.bookingsAsClient.length - b.bookingsAsClient.length;
+          break;
+      }
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+
+    return result;
+  }, [users, filterText, filterRole, sortColumn, sortDirection]);
 
   const handleEditRole = (user: UserWithRelations) => {
     setEditingRoleId(user.id);
@@ -112,8 +199,41 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Users</h2>
         <p className="mt-1 text-sm text-gray-600">
-          Total: {users.length} users
+          Showing {filteredAndSortedUsers.length} of {users.length} users
         </p>
+      </div>
+
+      {/* Filter Controls */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="Search by name, phone, or email..."
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <select
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value as Role | 'ALL')}
+            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          >
+            <option value="ALL">All Roles</option>
+            <option value={Role.ADMIN}>Admin</option>
+            <option value={Role.PROFESSIONAL}>Professional</option>
+            <option value={Role.CLIENT}>Client</option>
+          </select>
+        </div>
+        {(filterText || filterRole !== 'ALL') && (
+          <button
+            onClick={() => { setFilterText(''); setFilterRole('ALL'); }}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {error && (
@@ -136,23 +256,41 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Name
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('name')}
+              >
+                Name <SortIcon column="name" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Contact
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('phone')}
+              >
+                Contact <SortIcon column="phone" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Role
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('role')}
+              >
+                Role <SortIcon column="role" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Setup
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('setup')}
+              >
+                Setup <SortIcon column="setup" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Created
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('created')}
+              >
+                Created <SortIcon column="created" />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Activity
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                onClick={() => handleSort('shifts')}
+              >
+                Activity <SortIcon column="shifts" />
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Actions
@@ -160,7 +298,7 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {users.map((user) => (
+            {filteredAndSortedUsers.map((user) => (
               <tr key={user.id}>
                 <td className="whitespace-nowrap px-6 py-4">
                   <div className="text-sm font-medium text-gray-900">{user.name}</div>
@@ -264,7 +402,7 @@ export default function UsersTable({ initialUsers }: UsersTableProps) {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={1.5}
-              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0c-.9 0-1.7.2-2.5.6V19h5v-1a6 6 0 00-2.5-5.4z"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
             />
           </svg>
           <h3 className="mt-4 text-lg font-medium text-gray-900">No users found</h3>

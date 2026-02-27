@@ -1,10 +1,12 @@
 import { ReactNode } from 'react';
+import Link from 'next/link';
 
 interface StatsCardProps {
   title: string;
   value: string;
   description: string;
   icon: 'calendar' | 'clock' | 'users' | 'check-circle';
+  href?: string;
 }
 
 const iconMap: Record<StatsCardProps['icon'], ReactNode> = {
@@ -20,7 +22,7 @@ const iconMap: Record<StatsCardProps['icon'], ReactNode> = {
   ),
   users: (
     <svg className="h-6 w-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0c-.281.022-.562.043-.844.062A15.99 15.99 0 019.844 7H17a5 5 0 015 5v6h-2.5z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
   ),
   'check-circle': (
@@ -30,19 +32,31 @@ const iconMap: Record<StatsCardProps['icon'], ReactNode> = {
   ),
 };
 
-export default function StatsCard({ title, value, description, icon }: StatsCardProps) {
+export default function StatsCard({ title, value, description, icon, href }: StatsCardProps) {
+  const content = (
+    <div className="flex items-center">
+      <div className="flex-shrink-0 rounded-md bg-gray-50 p-3">
+        {iconMap[icon]}
+      </div>
+      <div className="ml-5 w-0 flex-1">
+        <dt className="truncate text-sm font-medium text-gray-500">{title}</dt>
+        <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{value}</dd>
+        <dd className="mt-1 text-sm text-gray-500">{description}</dd>
+      </div>
+    </div>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className="block overflow-hidden rounded-lg bg-white px-4 py-5 shadow transition-shadow hover:shadow-md sm:p-6">
+        {content}
+      </Link>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-      <div className="flex items-center">
-        <div className="flex-shrink-0 rounded-md bg-gray-50 p-3">
-          {iconMap[icon]}
-        </div>
-        <div className="ml-5 w-0 flex-1">
-          <dt className="truncate text-sm font-medium text-gray-500">{title}</dt>
-          <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{value}</dd>
-          <dd className="mt-1 text-sm text-gray-500">{description}</dd>
-        </div>
-      </div>
+      {content}
     </div>
   );
 }

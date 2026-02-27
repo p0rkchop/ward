@@ -104,24 +104,28 @@ export default async function ProfessionalDashboard() {
           value={stats.availableSlots.toString()}
           description="You can sign up for"
           icon="calendar"
+          href="/professional/shifts/create"
         />
         <StatsCard
           title="Today&apos;s Shifts"
           value={stats.todayShifts.toString()}
           description="Shifts today"
           icon="clock"
+          href="/professional/shifts"
         />
         <StatsCard
           title="Today&apos;s Bookings"
           value={stats.todayBookings.toString()}
           description="Client appointments today"
           icon="users"
+          href="/professional/bookings"
         />
         <StatsCard
           title="Tomorrow&apos;s Bookings"
           value={stats.tomorrowBookings.toString()}
           description="Client appointments tomorrow"
           icon="check-circle"
+          href="/professional/bookings"
         />
       </div>
 

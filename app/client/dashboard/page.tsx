@@ -112,7 +112,7 @@ export default async function ClientDashboard() {
 
       {/* Stats Grid */}
       <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg bg-white p-6 shadow">
+        <Link href="/client/appointments" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="rounded-md bg-green-100 p-3">
@@ -127,9 +127,9 @@ export default async function ClientDashboard() {
               <div className="text-sm text-gray-500">appointment{stats.todayAppointments !== 1 ? 's' : ''}</div>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="rounded-lg bg-white p-6 shadow">
+        <Link href="/client/appointments" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="rounded-md bg-blue-100 p-3">
@@ -144,9 +144,9 @@ export default async function ClientDashboard() {
               <div className="text-sm text-gray-500">appointment{stats.tomorrowAppointments !== 1 ? 's' : ''}</div>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="rounded-lg bg-white p-6 shadow">
+        <Link href="/client/appointments" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="rounded-md bg-purple-100 p-3">
@@ -161,9 +161,9 @@ export default async function ClientDashboard() {
               <div className="text-sm text-gray-500">total upcoming</div>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="rounded-lg bg-white p-6 shadow">
+        <Link href="/client/book" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="rounded-md bg-yellow-100 p-3">
@@ -178,7 +178,7 @@ export default async function ClientDashboard() {
               <div className="text-sm text-gray-500">total this week</div>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
 
       <div className="space-y-8">

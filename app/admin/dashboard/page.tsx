@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Role } from '@/app/generated/prisma/enums';
 import { getAdminStats } from '@/app/lib/admin-actions';
 import { format } from 'date-fns';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,7 @@ export default async function AdminDashboard() {
         <>
           {/* Stats Grid */}
           <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-lg bg-white p-6 shadow">
+            <Link href="/admin/users" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
               <div className="flex items-center">
                 <div className="flex-shrink-0 rounded-full bg-purple-100 p-3">
                   <svg
@@ -52,7 +53,7 @@ export default async function AdminDashboard() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0c-.9 0-1.7.2-2.5.6V19h5v-1a6 6 0 00-2.5-5.4z"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                     />
                   </svg>
                 </div>
@@ -66,9 +67,9 @@ export default async function AdminDashboard() {
                 <div className="text-gray-500">Professionals: {stats.userCounts.professionals}</div>
                 <div className="text-gray-500">Clients: {stats.userCounts.clients}</div>
               </div>
-            </div>
+            </Link>
 
-            <div className="rounded-lg bg-white p-6 shadow">
+            <Link href="/admin/resources" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
               <div className="flex items-center">
                 <div className="flex-shrink-0 rounded-full bg-green-100 p-3">
                   <svg
@@ -94,9 +95,9 @@ export default async function AdminDashboard() {
                 <div className="text-gray-500">Total Resources: {stats.resourceCounts.total}</div>
                 <div className="text-gray-500">Inactive: {stats.resourceCounts.total - stats.resourceCounts.active}</div>
               </div>
-            </div>
+            </Link>
 
-            <div className="rounded-lg bg-white p-6 shadow">
+            <Link href="/admin/analytics" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
               <div className="flex items-center">
                 <div className="flex-shrink-0 rounded-full bg-blue-100 p-3">
                   <svg
@@ -122,9 +123,9 @@ export default async function AdminDashboard() {
                 <div className="text-gray-500">Upcoming: {stats.shiftCounts.upcoming}</div>
                 <div className="text-gray-500">Past: {stats.shiftCounts.total - stats.shiftCounts.upcoming}</div>
               </div>
-            </div>
+            </Link>
 
-            <div className="rounded-lg bg-white p-6 shadow">
+            <Link href="/admin/analytics" className="rounded-lg bg-white p-6 shadow transition-shadow hover:shadow-md">
               <div className="flex items-center">
                 <div className="flex-shrink-0 rounded-full bg-yellow-100 p-3">
                   <svg
@@ -150,7 +151,7 @@ export default async function AdminDashboard() {
                 <div className="text-gray-500">Confirmed: {stats.bookingCounts.confirmed}</div>
                 <div className="text-gray-500">Cancelled: {stats.bookingCounts.cancelled}</div>
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* Recent Activity */}
