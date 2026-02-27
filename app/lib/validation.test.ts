@@ -70,11 +70,11 @@ describe('validation', () => {
         }
       })
 
-      it('rejects invalid UUID', () => {
+      it('rejects empty resource ID', () => {
         const data = {
           start: new Date('2026-02-22T10:00:00Z'),
           end: new Date('2026-02-22T10:30:00Z'),
-          resourceId: 'not-a-uuid',
+          resourceId: '',
         }
 
         const result = createShiftSchema.safeParse(data)

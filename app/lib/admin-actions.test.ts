@@ -350,6 +350,9 @@ describe('admin-actions', () => {
               where: { deletedAt: null },
               select: { id: true },
             },
+            event: {
+              select: { id: true, name: true },
+            },
           },
           orderBy: { createdAt: 'desc' },
         })
@@ -450,6 +453,8 @@ describe('admin-actions', () => {
             createdAt: true,
             updatedAt: true,
           },
+          take: 5000,
+          orderBy: { createdAt: 'desc' },
         })
       })
     })
