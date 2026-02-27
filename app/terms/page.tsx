@@ -138,6 +138,10 @@ export default function TermsPage() {
           Privacy Policy
         </Link>
         <span className="mx-2 text-gray-300">|</span>
+        <Link href="/communications" className="text-blue-600 hover:underline text-sm">
+          Communications Policy
+        </Link>
+        <span className="mx-2 text-gray-300">|</span>
         <Link href="/" className="text-blue-600 hover:underline text-sm">
           Home
         </Link>

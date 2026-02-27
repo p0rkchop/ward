@@ -67,7 +67,8 @@ export default withAuth(
           pathname.startsWith('/api/auth') ||
           pathname === '/api/health' ||
           pathname === '/privacy' ||
-          pathname === '/terms'
+          pathname === '/terms' ||
+          pathname === '/communications'
         ) {
           return true;
         }
