@@ -186,6 +186,35 @@ Phase 1 → Phase 2 → Phase 3 → (Phase 4, Phase 5, Phase 6) → Phase 7
 - Phases 4-6 can proceed in parallel after Phase 3
 - Phase 7 requires all previous phases
 
+## Release & Deployment Procedure
+
+Every release must follow this checklist. Do not consider a release complete until the Vercel deployment is verified healthy.
+
+### Pre-Release
+1. Run `npx vitest run` — all tests must pass
+2. Run `npx tsc --noEmit` — confirm no errors in changed files (pre-existing test mock types are acceptable)
+3. Confirm `git status` is clean (no untracked/modified files beyond what's intended)
+
+### Commit & Tag
+4. Stage changes: `git add -A`
+5. Write commit message to `.commit-msg.txt`, commit with `git commit -F .commit-msg.txt`
+6. Tag: `git tag v<MAJOR>.<MINOR>.<PATCH>`
+7. Push: `git push origin main --tags`
+
+### GitHub Release
+8. Write release notes to `.release-notes.md`
+9. Create release: `gh release create v<X.Y.Z> --title "<title>" --notes-file .release-notes.md`
+10. Clean up temp files: `rm .commit-msg.txt .release-notes.md`
+
+### Post-Deploy Verification (MANDATORY)
+11. Wait ~90 seconds for Vercel to build and deploy
+12. Check deployment status: `vercel ls 2>&1 | head -10` — newest deployment must show **● Ready**
+13. If status is **● Error**, inspect with: `vercel inspect <deployment-url> 2>&1`
+14. Hit health endpoint: `curl -s https://career-ward.app/api/health` — must return `{"status":"healthy"}`
+15. If deployment failed, diagnose the error, fix, commit as a patch release (e.g., v1.10.1), and re-verify
+
+> **Lesson learned (v1.9.0–v1.10.0):** The `twilio` package was accidentally removed from `package.json`, causing Vercel builds to silently fail for two releases. The app continued serving the last successful deployment, masking the problem. Always verify deployment status after every push.
+
 ## Context Management Strategy
 
 ### Phase-Specific Context Loading
