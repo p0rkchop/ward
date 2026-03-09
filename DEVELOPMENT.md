@@ -143,7 +143,7 @@
   - [x] 4. Create system overview and analytics
   - [x] 5. Implement admin tools (data exports, system settings) UI
 - [x] Phase 7: Testing & Polish
-  - [x] 1. Write unit tests for core logic (95 tests across 5 files)
+  - [x] 1. Write unit tests for core logic (100 tests across 6 files)
   - [x] 2. Add integration tests for user flows (5 tests in integration.test.ts)
   - [x] 3. Implement error boundaries and loading states (global-error.tsx, loading.tsx, dashboard error/loading pages)
   - [x] 4. Add responsive design improvements
@@ -156,6 +156,30 @@
   - [x] 7. Create deployment documentation
 
 ### Completed: Phase 7 - Testing & Polish
+
+### Post-Phase 7: Feature Releases
+
+After the initial 7-phase build, development continued with feature releases:
+
+- [x] **v1.9.0 — Email Notifications via Resend** (2026-03-08)
+  - Integrated Resend SDK for transactional email
+  - Created `app/lib/email.ts` with shared HTML layout and fire-and-forget send helper
+  - Implemented 4 notification templates: booking confirmed, booking cancelled, admin cancellation, booking reassignment
+  - Integrated into booking-actions.ts and admin-actions.ts
+  - Updated test mocks
+
+- [x] **v1.10.0 — Expanded Notifications, Cron, Admin Email Test** (2026-03-09)
+  - Added 7 more notification templates (welcome, role change, account deleted, professional new booking, professional booking cancelled, shift cancelled, appointment reminder)
+  - Created daily appointment reminder cron (`/api/cron/reminders`) with `CRON_SECRET` auth
+  - Added Vercel Cron schedule in `vercel.json` (8 AM Central daily)
+  - Built admin Email Connectivity Test panel (Admin → Settings) with step-by-step validation
+  - Total: 11 notification types
+
+- [x] **v1.10.1 — Deployment Fix & Process Improvement** (2026-03-09)
+  - Fixed missing `twilio` dependency in package.json (caused silent Vercel build failures since v1.9.0)
+  - Removed obsolete SMS Notifications toggle from admin settings
+  - Added mandatory Release & Deployment Procedure to this document
+  - Established post-deploy health check verification as standard practice
 
 ### Key Decisions Log
 | Date | Decision | Rationale | Affected Files |
@@ -174,6 +198,27 @@
 | 2026-02-22 | Client appointment cancellation with validation | Ensures clients can only cancel their own future bookings | /app/lib/booking-actions.ts (cancelBooking) |
 | 2026-02-22 | Client dashboard with appointment stats | Provides overview of upcoming and past appointments | /app/client/dashboard/page.tsx |
 | 2026-02-22 | Admin interface with role-based access | Complete admin dashboard, resource/user management, analytics | /app/admin/** |
+| 2026-03-08 | Resend for transactional email | Reliable email delivery with domain verification and simple API | /app/lib/email.ts |
+| 2026-03-08 | Fire-and-forget email pattern | Email failures must never block or roll back the triggering operation | /app/lib/email.ts |
+| 2026-03-09 | Vercel Cron for daily reminders | Serverless cron avoids need for external scheduler; `CRON_SECRET` for auth | /api/cron/reminders, vercel.json |
+| 2026-03-09 | Admin email connectivity test | Step-by-step validation helps admins self-diagnose Resend config issues | /app/admin/settings/** |
+
+## Release History
+
+| Version | Date | Summary |
+|---------|------|---------|
+| v1.1.0 | 2026-02-22 | Auth system, database schema, core server actions |
+| v1.2.0 | 2026-02-22 | Professional & client interfaces |
+| v1.3.0 | 2026-02-22 | Event-filtered timeslots, role dashboards |
+| v1.4.0 | 2026-02-22 | Role-based data access controls |
+| v1.5.0 | 2026-02-22 | UX improvements, sort/filter tables |
+| v1.6.0 | 2026-02-23 | Vercel Web Analytics |
+| v1.7.0 | 2026-02-23 | User preferences, dark mode, timezone support |
+| v1.8.0 | 2026-02-23 | Event cascade, admin booking management, agenda view, branding, favicon |
+| v1.8.1 | 2026-02-23 | Test alignment fixes |
+| v1.9.0 | 2026-03-08 | Email notifications via Resend (4 templates) |
+| v1.10.0 | 2026-03-09 | Expanded notifications (11 types), appointment reminder cron, admin email test |
+| v1.10.1 | 2026-03-09 | Twilio dependency fix, deployment procedure, SMS toggle removal |
 
 ## Task Dependencies
 

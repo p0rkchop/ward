@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a capacity-first auto-matching scheduler application built with Next.js 14 App Router, Prisma ORM, SQLite (Turso), and NextAuth with Twilio phone verification. The application enables professionals to create shifts and clients to book available timeslots with automatic matching to available professionals.
+This is a capacity-first auto-matching scheduler application built with Next.js 16 App Router, Prisma ORM, SQLite (Turso), NextAuth with Twilio phone verification, and Resend for transactional email notifications. The application enables professionals to create shifts and clients to book available timeslots with automatic matching to available professionals.
 
 ## Table of Contents
 
@@ -12,11 +12,13 @@ This is a capacity-first auto-matching scheduler application built with Next.js 
 4. [Vercel Deployment](#vercel-deployment)
 5. [Database Management](#database-management)
 6. [Authentication Setup](#authentication-setup)
-7. [Security Considerations](#security-considerations)
-8. [Performance Optimization](#performance-optimization)
-9. [Monitoring & Logging](#monitoring--logging)
-10. [Troubleshooting](#troubleshooting)
-11. [Post-Deployment Verification](#post-deployment-verification)
+7. [Email Notifications (Resend)](#email-notifications-resend)
+8. [Vercel Cron Jobs](#vercel-cron-jobs)
+9. [Security Considerations](#security-considerations)
+10. [Performance Optimization](#performance-optimization)
+11. [Monitoring & Logging](#monitoring--logging)
+12. [Troubleshooting](#troubleshooting)
+13. [Post-Deployment Verification](#post-deployment-verification)
 
 ## Prerequisites
 
@@ -28,6 +30,7 @@ This is a capacity-first auto-matching scheduler application built with Next.js 
 ### 2. External Services
 - **[Turso Account](https://turso.tech)**: Serverless SQLite database for production
 - **[Twilio Account](https://twilio.com)**: Phone verification service
+- **[Resend Account](https://resend.com)**: Transactional email notifications
 - **[Vercel Account](https://vercel.com)** (optional but recommended): Deployment platform
 - **GitHub Account** (optional): Code repository hosting
 
@@ -50,6 +53,13 @@ This is a capacity-first auto-matching scheduler application built with Next.js 
    turso db tokens create ward-database
    ```
 6. Note the **Database URL** (starts with `libsql://`) and **Auth Token**
+
+### 5. Resend Email Setup
+1. Sign up at [resend.com](https://resend.com)
+2. Add your domain (e.g., `career-ward.app`) and configure DNS records (TXT, SPF, DKIM)
+3. Wait for domain verification to complete
+4. Generate an API key in the Resend dashboard
+5. Emails will be sent from `noreply@<your-domain>` (configured in `app/lib/email.ts`)
 
 ## Environment Setup
 
@@ -83,6 +93,13 @@ NEXTAUTH_URL="http://localhost:3000"
 TWILIO_ACCOUNT_SID="your-twilio-account-sid"
 TWILIO_AUTH_TOKEN="your-twilio-auth-token"
 TWILIO_VERIFY_SERVICE_SID="your-twilio-verify-service-sid"
+
+# Resend Configuration (required for email notifications)
+RESEND_API_KEY="re_xxxxxxxxxxxx"
+
+# Cron Job Authentication (required in production for Vercel Cron)
+# Generate with: openssl rand -base64 32
+CRON_SECRET="your-cron-secret"
 
 # Optional: Prisma Accelerate for production performance
 # PRISMA_ACCELERATE_URL="https://accelerate.prisma-data.net"
@@ -231,6 +248,8 @@ In Vercel project settings (**Settings** → **Environment Variables**), add:
 | `TWILIO_ACCOUNT_SID` | Your Twilio Account SID | From Twilio dashboard |
 | `TWILIO_AUTH_TOKEN` | Your Twilio Auth Token | From Twilio dashboard |
 | `TWILIO_VERIFY_SERVICE_SID` | Your Twilio Verify Service SID | Starts with `VA...` |
+| `RESEND_API_KEY` | Your Resend API key | Required for email notifications |
+| `CRON_SECRET` | Secure random string | Authenticates Vercel Cron requests to `/api/cron/reminders`. Generate with `openssl rand -base64 32`. |
 | `PRISMA_ACCELERATE_URL` | Optional Prisma Accelerate URL | For production performance |
 | `NODE_ENV` | `production` | Set environment to production |
 
@@ -242,17 +261,20 @@ The project includes `vercel.json` with optimized settings:
 
 ```json
 {
-  "build": {
-    "env": { /* environment variable definitions */ },
-    "installCommand": "npm install",
-    "buildCommand": "npx prisma generate && npm run build",
-    "outputDirectory": ".next"
-  },
+  "crons": [
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "0 13 * * *"
+    }
+  ],
   "functions": {
     "app/api/**/*": {
       "maxDuration": 10
     }
   },
+  "installCommand": "npm install",
+  "buildCommand": "npx prisma generate && npm run build",
+  "outputDirectory": ".next",
   "framework": "nextjs",
   "regions": ["iad1"]
 }
@@ -263,6 +285,7 @@ The project includes `vercel.json` with optimized settings:
 2. Generates Prisma client with `npx prisma generate`
 3. Builds Next.js application with `npm run build`
 4. Deploys with optimal serverless function settings
+5. Registers Vercel Cron schedule for daily appointment reminders
 
 ### 5. Deployment
 
@@ -276,6 +299,7 @@ The project includes `vercel.json` with optimized settings:
 1. Go to **Settings** → **Domains**
 2. Add your custom domain
 3. Follow DNS configuration instructions
+4. If using Resend for email, ensure your domain's DNS records (TXT, SPF, DKIM) are also configured in Resend
 
 ## Database Management
 
@@ -388,6 +412,79 @@ session management. Here's how the pieces fit:
 - **Storage**: HTTP-only cookies
 - **User Data**: Phone number, role, user ID stored in session
 
+## Email Notifications (Resend)
+
+The application sends transactional email notifications via [Resend](https://resend.com). All emails are **fire-and-forget** — failures are logged but never block or roll back the underlying operation.
+
+### Configuration
+
+- **Environment variable**: `RESEND_API_KEY` (required)
+- **Sending address**: `Career Ward <noreply@career-ward.app>` (configured in `app/lib/email.ts`)
+- **Domain verification**: DNS records (TXT, SPF, DKIM) must be configured in Resend for your domain
+
+### Notification Types
+
+| # | Trigger | Recipient |
+|---|---------|-------|
+| 1 | Booking confirmed | Client |
+| 2 | Booking self-cancelled | Client |
+| 3 | Admin cancels booking | Client |
+| 4 | Admin reassigns booking | Client |
+| 5 | Account setup complete | New user |
+| 6 | Role changed by admin | Affected user |
+| 7 | Account deleted by admin | Affected user |
+| 8 | New booking on shift | Professional |
+| 9 | Booking cancelled on shift | Professional |
+| 10 | Appointment reminder (daily cron) | Client + Professional |
+
+### Admin Email Test
+
+Admins can validate Resend configuration from **Admin → Settings → Email Connectivity Test**. This sends a test email and reports step-by-step results (API key validation, domain verification, delivery).
+
+### Troubleshooting Email
+
+- **Emails not sending**: Verify `RESEND_API_KEY` is set in Vercel environment variables
+- **Emails going to spam**: Ensure DNS records (SPF, DKIM) are correctly configured in Resend
+- **Domain not verified**: Check Resend dashboard → Domains for verification status
+- **No errors visible**: Email failures are silent by design; check Resend dashboard logs for delivery status
+
+## Vercel Cron Jobs
+
+The application uses Vercel Cron to run scheduled tasks.
+
+### Daily Appointment Reminders
+
+- **Endpoint**: `GET /api/cron/reminders`
+- **Schedule**: `0 13 * * *` (1:00 PM UTC / 8:00 AM Central)
+- **Authentication**: Bearer token via `CRON_SECRET` environment variable
+- **Behavior**: Finds all confirmed bookings starting in the next 24 hours and sends reminder emails to both the client and the assigned professional
+- **Response**: Returns JSON with count of bookings found and reminders sent
+
+### Configuration
+
+Cron jobs are defined in `vercel.json`:
+```json
+"crons": [
+  {
+    "path": "/api/cron/reminders",
+    "schedule": "0 13 * * *"
+  }
+]
+```
+
+**Requirements**:
+- `CRON_SECRET` must be set in Vercel environment variables
+- Vercel Pro plan or higher is required for Cron (free tier does not include Cron)
+- The cron endpoint validates the `Authorization: Bearer <CRON_SECRET>` header
+
+### Monitoring Cron Jobs
+
+- Check execution history in **Vercel Dashboard → Cron Jobs**
+- The endpoint returns structured JSON for debugging:
+  ```json
+  { "ok": true, "bookings": 5, "remindersSent": 8, "checkedAt": "2026-03-09T13:00:00.000Z" }
+  ```
+
 ## Security Considerations
 
 ### Implemented Security Features
@@ -422,9 +519,12 @@ session management. Here's how the pieces fit:
 
 - [ ] Use strong `NEXTAUTH_SECRET` (32+ random bytes)
 - [ ] Set `NEXTAUTH_URL` to production domain
+- [ ] Set `CRON_SECRET` (32+ random bytes) for cron job authentication
+- [ ] Set `RESEND_API_KEY` for email notifications
 - [ ] Enable HTTPS (automatic on Vercel)
 - [ ] Monitor rate limit logs
 - [ ] Regularly rotate Turso auth tokens
+- [ ] Verify Resend domain DNS records (SPF, DKIM)
 - [ ] Review Twilio usage for suspicious activity
 - [ ] Keep dependencies updated (`npm audit`)
 - [ ] Implement WAF if needed (Vercel Enterprise)
@@ -542,6 +642,17 @@ if (process.env.NODE_ENV !== 'production') {
    - Set up alerts for failed verifications
    - Monitor for unusual patterns (potential abuse)
 
+### Resend Monitoring
+
+1. **Dashboard Logs**: View all sent emails, delivery status, bounces, and complaints at [resend.com/emails](https://resend.com/emails)
+2. **Domain Health**: Check domain verification and DNS record status
+3. **Admin Test**: Use the in-app Email Connectivity Test (Admin → Settings) to validate configuration
+
+### Cron Job Monitoring
+
+1. **Vercel Cron Dashboard**: View execution history, success/failure, and timing
+2. **Endpoint Response**: The `/api/cron/reminders` endpoint returns structured JSON with counts for debugging
+
 ## Troubleshooting
 
 ### Common Issues
@@ -640,9 +751,12 @@ The application includes built-in health checks:
 After deployment, verify:
 
 1. **Application Loads**: Visit `https://your-app.vercel.app`
-2. **Authentication Works**: Test phone verification flow
-3. **Database Connectivity**: Create test shift/booking
-4. **Role-Based Access**: Verify admin/professional/client permissions
+2. **Health Check**: `GET /api/health` returns `{"status":"healthy","database":"connected","environment":"production"}`
+3. **Authentication Works**: Test phone verification flow
+4. **Database Connectivity**: Create test shift/booking
+5. **Email Notifications**: Use Admin → Settings → Email Connectivity Test to send a test email
+6. **Role-Based Access**: Verify admin/professional/client permissions
+7. **Cron Jobs**: Check Vercel Dashboard → Cron Jobs to confirm the reminder schedule is registered
 
 ### 2. Performance Testing
 
@@ -723,7 +837,7 @@ After deployment, verify:
 - [NextAuth Documentation](https://next-auth.js.org)
 
 ### Community Support
-- [GitHub Issues](https://github.com/your-repo/ward/issues)
+- [GitHub Issues](https://github.com/p0rkchop/ward/issues)
 - [Vercel Community](https://vercel.com/community)
 - [Prisma Slack](https://slack.prisma.io)
 
@@ -731,9 +845,10 @@ After deployment, verify:
 - **Vercel Support**: support@vercel.com
 - **Turso Support**: support@turso.tech
 - **Twilio Support**: help@twilio.com
+- **Resend Support**: support@resend.com
 
 ---
 
-*Last Updated: 2026-02-23*
-*Application Version: 0.1.0*
-*Deployment Guide Version: 1.0.0*
+*Last Updated: 2026-03-09*
+*Application Version: 1.10.1*
+*Deployment Guide Version: 2.0.0*
