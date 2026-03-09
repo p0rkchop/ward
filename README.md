@@ -347,4 +347,4 @@ This project is proprietary. All rights reserved.
 
 ### 💥 Diss Track:
 - Eat 💩, Twilio SMS service and taking my 20 bucks but not verifying me
-- Github Copilot. Look bro, I want to like you, but you're dumb. Wise up, up your game. Stop releasing such jank-ass tools. Up your game. 
+- Github Copilot. Look bro, I want to like you, but you're dumb. Wise up, up your game. Stop releasing such jank-ass tools.

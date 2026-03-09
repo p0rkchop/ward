@@ -1,7 +1,9 @@
 import { getServerSession } from '@/app/lib/auth';
 import { redirect } from 'next/navigation';
 import { Role } from '@/app/generated/prisma/enums';
+import { getGeneralSettings } from '@/app/lib/branding-actions';
 import AdminNav from './components/AdminNav';
+import pkg from '../../package.json';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,9 +22,11 @@ export default async function AdminLayout({
     redirect('/auth/unauthorized');
   }
 
+  const { siteName } = await getGeneralSettings();
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-800/50">
-      <AdminNav user={session.user} />
+      <AdminNav user={session.user} siteName={siteName} version={pkg.version} />
       <main className="py-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {children}

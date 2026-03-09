@@ -8,9 +8,11 @@ import { useState } from 'react';
 
 interface ProfessionalNavProps {
   user: SessionUser;
+  siteName: string;
+  version: string;
 }
 
-export default function ProfessionalNav({ user }: ProfessionalNavProps) {
+export default function ProfessionalNav({ user, siteName, version }: ProfessionalNavProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -28,7 +30,10 @@ export default function ProfessionalNav({ user }: ProfessionalNavProps) {
         <div className="flex h-16 justify-between">
           <div className="flex">
             <div className="flex flex-shrink-0 items-center">
-              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">Ward</span>
+              <div className="flex flex-col leading-tight">
+                <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{siteName}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">v{version}</span>
+              </div>
               <span className="ml-2 rounded bg-blue-100 dark:bg-blue-900 px-2 py-1 text-xs font-semibold text-blue-800 dark:text-blue-200">
                 Professional
               </span>

@@ -8,9 +8,11 @@ import { useState } from 'react';
 
 interface ClientNavProps {
   user: SessionUser;
+  siteName: string;
+  version: string;
 }
 
-export default function ClientNav({ user }: ClientNavProps) {
+export default function ClientNav({ user, siteName, version }: ClientNavProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -26,7 +28,10 @@ export default function ClientNav({ user }: ClientNavProps) {
         <div className="flex h-16 justify-between">
           <div className="flex">
             <div className="flex flex-shrink-0 items-center">
-              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">Ward</span>
+              <div className="flex flex-col leading-tight">
+                <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{siteName}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">v{version}</span>
+              </div>
               <span className="ml-2 rounded bg-green-100 dark:bg-green-900 px-2 py-1 text-xs font-semibold text-green-800 dark:text-green-200">
                 Client
               </span>

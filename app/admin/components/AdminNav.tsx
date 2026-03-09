@@ -8,9 +8,11 @@ import { useState } from 'react';
 
 interface AdminNavProps {
   user: SessionUser;
+  siteName: string;
+  version: string;
 }
 
-export default function AdminNav({ user }: AdminNavProps) {
+export default function AdminNav({ user, siteName, version }: AdminNavProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -29,7 +31,10 @@ export default function AdminNav({ user }: AdminNavProps) {
         <div className="flex h-16 justify-between">
           <div className="flex">
             <div className="flex flex-shrink-0 items-center">
-              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">Ward</span>
+              <div className="flex flex-col leading-tight">
+                <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{siteName}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">v{version}</span>
+              </div>
               <span className="ml-2 rounded bg-purple-100 dark:bg-purple-900 px-2 py-1 text-xs font-semibold text-purple-800 dark:text-purple-200">
                 Admin
               </span>
