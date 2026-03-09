@@ -14,6 +14,8 @@ A two-sided scheduling application where professional availability is strictly c
 
 Ward solves a critical problem in service scheduling: **physical capacity constraints**. Traditional schedulers are "person-centric" and ignore facility limits. Ward is "timeslot-centric" and "resource-constrained," ensuring that booking availability reflects actual physical capacity.
 
+**End user Documentation:** [Github Pages](https://p0rkchop.github.io/ward/)
+
 ### Key Differentiator
 
 **Two-step availability loop:**
