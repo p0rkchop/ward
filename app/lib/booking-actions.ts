@@ -13,7 +13,7 @@ import {
   validateClientRole,
   validate30MinuteInterval,
 } from '@/app/lib/validation';
-import { sendBookingConfirmation, sendBookingCancellation } from '@/app/lib/email';
+import { sendBookingConfirmation, sendBookingCancellation, sendProfessionalNewBooking, sendProfessionalBookingCancelled } from '@/app/lib/email';
 
 /**
  * Get available time slots with capacity count for a given date range
@@ -270,7 +270,7 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
             shift: {
               include: {
                 professional: {
-                  select: { id: true, name: true, phoneNumber: true },
+                  select: { id: true, name: true, phoneNumber: true, email: true },
                 },
                 resource: {
                   select: { id: true, name: true, description: true, location: true },
@@ -281,15 +281,26 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
         });
       });
 
+      const emailData = {
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        professionalName: booking.shift.professional.name ?? 'TBD',
+        resourceName: booking.shift.resource.name,
+        resourceLocation: booking.shift.resource.location,
+      };
+
       // Fire-and-forget: send confirmation email if client has an email on file
       if (booking.client.email) {
-        sendBookingConfirmation(booking.client.email, {
-          startTime: booking.startTime,
-          endTime: booking.endTime,
-          professionalName: booking.shift.professional.name ?? 'TBD',
-          resourceName: booking.shift.resource.name,
-          resourceLocation: booking.shift.resource.location,
-        }).catch(() => {});
+        sendBookingConfirmation(booking.client.email, emailData).catch(() => {});
+      }
+
+      // Fire-and-forget: notify professional of new booking
+      if (booking.shift.professional.email) {
+        sendProfessionalNewBooking(
+          booking.shift.professional.email,
+          booking.client.name ?? 'Client',
+          emailData,
+        ).catch(() => {});
       }
 
       return booking;
@@ -493,12 +504,12 @@ export async function cancelBooking(bookingId: string, _clientId?: string) {
     },
     include: {
       client: {
-        select: { email: true },
+        select: { name: true, email: true },
       },
       shift: {
         include: {
           professional: {
-            select: { id: true, name: true },
+            select: { id: true, name: true, email: true },
           },
           resource: {
             select: { id: true, name: true, description: true, location: true },
@@ -508,15 +519,27 @@ export async function cancelBooking(bookingId: string, _clientId?: string) {
     },
   });
 
+  const cancelEmailData = {
+    startTime: updatedBooking.startTime,
+    endTime: updatedBooking.endTime,
+    professionalName: updatedBooking.shift.professional.name ?? 'TBD',
+    resourceName: updatedBooking.shift.resource.name,
+    resourceLocation: updatedBooking.shift.resource.location,
+  };
+
   // Fire-and-forget: send cancellation email if client has an email on file
   if (updatedBooking.client?.email) {
-    sendBookingCancellation(updatedBooking.client.email, {
-      startTime: updatedBooking.startTime,
-      endTime: updatedBooking.endTime,
-      professionalName: updatedBooking.shift.professional.name ?? 'TBD',
-      resourceName: updatedBooking.shift.resource.name,
-      resourceLocation: updatedBooking.shift.resource.location,
-    }).catch(() => {});
+    sendBookingCancellation(updatedBooking.client.email, cancelEmailData).catch(() => {});
+  }
+
+  // Fire-and-forget: notify professional that a slot freed up
+  if (updatedBooking.shift.professional.email) {
+    sendProfessionalBookingCancelled(
+      updatedBooking.shift.professional.email,
+      updatedBooking.client?.name ?? 'Client',
+      cancelEmailData,
+      'client',
+    ).catch(() => {});
   }
 
   return updatedBooking;

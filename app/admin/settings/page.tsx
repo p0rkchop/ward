@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Role } from '@/app/generated/prisma/enums';
 import { getBrandingImage } from '@/app/lib/branding-actions';
 import BrandingUpload from './components/BrandingUpload';
+import EmailTestPanel from './components/EmailTestPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,6 +137,8 @@ export default async function SettingsPage() {
             </div>
           </div>
         </div>
+
+        <EmailTestPanel />
 
         <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
           <h2 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Danger Zone</h2>

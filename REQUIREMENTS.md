@@ -142,7 +142,32 @@
   - If two Clients select the same timeslot simultaneously and only one `Shift` remains, ensure only one Booking succeeds
   - The other Client receives an "unavailable" error and should refresh available timeslots
 
-## 7. Development Rules & Instructions for Claude
+## 7. Email Notifications
+
+The application sends one-way transactional email notifications via **Resend** from `noreply@career-ward.app`. Emails are fire-and-forget — failures are logged but never block or roll back the triggering operation. Notifications are only sent when the recipient has an email address on file.
+
+### Implemented (v1.9.0)
+
+| # | Trigger | Recipient | Description |
+|---|---------|-----------|-------------|
+| 1 | Booking confirmed | Client | Sent after `bookTimeslot` transaction commits. Includes date, time, professional, resource, and location. |
+| 2 | Booking cancelled by client | Client | Sent after `cancelBooking` soft-deletes the booking. |
+| 3 | Booking cancelled by admin | Client | Sent when `adminRemoveBooking` cancels a client's booking. |
+| 4 | Booking reassigned by admin | Client | Sent when `reassignBooking` moves a booking to a different professional/timeslot. Includes both old and new details. |
+
+### Planned
+
+| # | Trigger | Recipient | Description |
+|---|---------|-----------|-------------|
+| 5 | Welcome / account created | Client, Professional | Sent when a new user completes account setup (`completeSetup`). Welcomes the user and confirms their role. |
+| 6 | Shift cancelled (with bookings) | Affected clients | If the business rule blocking shift cancellation with active bookings is relaxed or an admin force-cancels a shift, all clients booked on that shift must be notified. |
+| 7 | User role changed by admin | The user | Sent when `updateUserRole` changes a user's role (e.g., CLIENT → PROFESSIONAL). Informs the user of their new access level. |
+| 8 | User account deleted by admin | The user | Sent when `deleteUser` soft-deletes a user account. Notifies the user that their account has been removed. |
+| 9 | Booking confirmation to professional | Professional | Sent when `bookTimeslot` creates a booking, notifying the assigned professional that a client has been booked into their shift. |
+| 10 | Booking cancellation to professional | Professional | Sent when a client cancels or an admin removes a booking, notifying the professional that a slot has freed up. |
+| 11 | Upcoming appointment reminder | Client and/or Professional | A scheduled reminder (e.g., 24 hours before) for upcoming appointments. Requires a cron job or scheduled function, not an action trigger. |
+
+## 8. Development Rules & Instructions for Claude
 1. **Zero-Assumption Policy:** If a requirement or edge case is ambiguous, stop and ask me for clarification before writing code.
 2. **Acknowledge Architecture:** Read the schema and flows carefully. Confirm you understand the difference between a `Shift` (booking a Resource) and a `Booking` (client appointment) before writing code.
 3. **Database First:** Begin by writing the Prisma/Drizzle schema for the entities listed in Section 5. Show me the schema for approval before building the frontend or server actions.

@@ -381,6 +381,7 @@ describe('admin-actions', () => {
         expect(db.user.update).toHaveBeenCalledWith({
           where: { id: userId, deletedAt: null },
           data: { role: newRole },
+          select: { email: true, name: true },
         })
       })
     })
@@ -406,6 +407,7 @@ describe('admin-actions', () => {
         expect(db.user.update).toHaveBeenCalledWith({
           where: { id: userId, deletedAt: null },
           data: { deletedAt: expect.any(Date) },
+          select: { email: true, name: true, deletedAt: true },
         })
       })
     })

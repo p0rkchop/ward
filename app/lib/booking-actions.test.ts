@@ -239,12 +239,10 @@ describe('booking-actions', () => {
               createdAt: new Date('2026-02-24T10:00:00Z'),
               updatedAt: new Date('2026-02-24T10:00:00Z'),
               deletedAt: null,
-              client: { id: mockClientId, name: 'Test Client', phoneNumber: '+1234567890' },
+              client: { id: mockClientId, name: 'Test Client', phoneNumber: '+1234567890', email: null },
               shift: {
-                include: {
-                  professional: { id: 'professional-id', name: 'Test Professional', phoneNumber: '+1234567890' },
-                  resource: { id: 'resource-id', name: 'Test Resource', description: 'Test Description' },
-                },
+                professional: { id: 'professional-id', name: 'Test Professional', phoneNumber: '+1234567890', email: null },
+                resource: { id: 'resource-id', name: 'Test Resource', description: 'Test Description', location: null },
               },
             }),
           } as any,
@@ -349,12 +347,10 @@ describe('booking-actions', () => {
                 clientId: mockClientId,
                 shiftId: mockShift.id,
                 status: 'CONFIRMED',
-                client: { id: mockClientId, name: 'Test Client', phoneNumber: '+1234567890' },
+                client: { id: mockClientId, name: 'Test Client', phoneNumber: '+1234567890', email: null },
                 shift: {
-                  include: {
-                    professional: { id: 'professional-id-2', name: 'Test Professional 2', phoneNumber: '+1234567891' },
-                    resource: { id: 'resource-id-2', name: 'Test Resource 2', description: 'Test Description' },
-                  },
+                  professional: { id: 'professional-id-2', name: 'Test Professional 2', phoneNumber: '+1234567891', email: null },
+                  resource: { id: 'resource-id-2', name: 'Test Resource 2', description: 'Test Description', location: null },
                 },
               }),
             } as any,

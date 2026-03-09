@@ -3,7 +3,8 @@
 import { db } from './db';
 import { getServerSession } from './auth';
 import { Role, BookingStatus } from '@/app/generated/prisma/enums';
-import { sendAdminCancellation, sendBookingReassignment } from '@/app/lib/email';
+import { sendAdminCancellation, sendBookingReassignment, sendRoleChanged, sendAccountDeleted, sendProfessionalBookingCancelled, sendTestEmail } from '@/app/lib/email';
+import type { EmailTestResult } from '@/app/lib/email';
 
 /**
  * Verify that the current user is an ADMIN.
@@ -249,19 +250,35 @@ export type UserWithRelations = Awaited<ReturnType<typeof getUsers>>[number];
 
 export async function updateUserRole(id: string, role: Role) {
   await requireAdmin();
-  return await db.user.update({
+  const user = await db.user.update({
     where: { id, deletedAt: null },
     data: { role },
+    select: { email: true, name: true },
   });
+
+  // Fire-and-forget: notify user of role change
+  if (user.email) {
+    sendRoleChanged(user.email, user.name ?? 'User', role).catch(() => {});
+  }
+
+  return user;
 }
 
 export async function deleteUser(id: string) {
   await requireAdmin();
   // Soft delete
-  return await db.user.update({
+  const user = await db.user.update({
     where: { id, deletedAt: null },
     data: { deletedAt: new Date() },
+    select: { email: true, name: true, deletedAt: true },
   });
+
+  // Fire-and-forget: notify user of account removal
+  if (user.email) {
+    sendAccountDeleted(user.email, user.name ?? 'User').catch(() => {});
+  }
+
+  return user;
 }
 
 // Admin Tools
@@ -605,10 +622,10 @@ export async function adminRemoveBooking(
     const booking = await db.booking.findUnique({
       where: { id: bookingId, deletedAt: null },
       include: {
-        client: { select: { email: true } },
+        client: { select: { name: true, email: true } },
         shift: {
           include: {
-            professional: { select: { name: true } },
+            professional: { select: { name: true, email: true } },
             resource: { select: { name: true, location: true } },
           },
         },
@@ -621,15 +638,27 @@ export async function adminRemoveBooking(
       data: { status: BookingStatus.CANCELLED, deletedAt: new Date() },
     });
 
+    const emailData = {
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      professionalName: booking.shift.professional.name ?? 'TBD',
+      resourceName: booking.shift.resource.name,
+      resourceLocation: booking.shift.resource.location,
+    };
+
     // Fire-and-forget: notify client if email on file
     if (booking.client.email) {
-      sendAdminCancellation(booking.client.email, {
-        startTime: booking.startTime,
-        endTime: booking.endTime,
-        professionalName: booking.shift.professional.name ?? 'TBD',
-        resourceName: booking.shift.resource.name,
-        resourceLocation: booking.shift.resource.location,
-      }).catch(() => {});
+      sendAdminCancellation(booking.client.email, emailData).catch(() => {});
+    }
+
+    // Fire-and-forget: notify professional that a slot freed up
+    if (booking.shift.professional.email) {
+      sendProfessionalBookingCancelled(
+        booking.shift.professional.email,
+        booking.client.name ?? 'Client',
+        emailData,
+        'admin',
+      ).catch(() => {});
     }
 
     return { ok: true };
@@ -756,4 +785,17 @@ export async function getEventAgenda(eventId: string): Promise<AgendaDayData[]> 
       })),
     };
   });
+}
+
+export async function testEmailConnectivity(email: string): Promise<EmailTestResult> {
+  await requireAdmin();
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return {
+      success: false,
+      steps: [{ label: 'Valid email address', ok: false, detail: 'Please enter a valid email address' }],
+    };
+  }
+
+  return sendTestEmail(email);
 }

@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "0 13 * * *"
+    }
+  ],
   "functions": {
     "app/api/**/*": {
       "maxDuration": 10

@@ -3,6 +3,7 @@
 import { db } from '@/app/lib/db';
 import { getServerSession } from '@/app/lib/auth';
 import { Role } from '@/app/generated/prisma/enums';
+import { sendWelcome } from '@/app/lib/email';
 
 const ADMIN_SETUP_PASSWORD = 'Admin123$%^';
 
@@ -76,6 +77,11 @@ export async function completeSetup(
         ...(eventId ? { eventId } : {}),
       },
     });
+
+    // Fire-and-forget: send welcome email if user provided an email
+    if (trimmedEmail) {
+      sendWelcome(trimmedEmail, trimmedName, role).catch(() => {});
+    }
 
     return { ok: true, role, eventName };
   } catch (err: unknown) {
