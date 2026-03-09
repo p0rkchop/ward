@@ -116,18 +116,7 @@ export default async function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Notifications</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Send email notifications for new bookings</p>
-              </div>
-              <input
-                type="checkbox"
-                defaultChecked
-                className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">SMS Notifications</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Send SMS notifications for appointment reminders</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Send email notifications for bookings, cancellations, and reminders</p>
               </div>
               <input
                 type="checkbox"
