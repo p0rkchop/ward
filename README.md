@@ -343,7 +343,7 @@ This project is proprietary. All rights reserved.
 **Built with ❤️ using [Next.js](https://nextjs.org/), [Prisma](https://www.prisma.io/), [Turso](https://turso.tech/), [Resend](https://resend.com/), [Twilio Auth](https://www.twilio.com/en-us/user-authentication-identity)**
 
 ### 🎉 Shoutouts:
-[Claude Code](https://code.claude.com/docs/en/overview) - you mah boy, my daily driver, but you're cripped with those token limits, thankfully there's [Deepseek](https://deepseek.com/) all your cheap token goodneess, fuckin rad cash-money caching layer, and OpenAI/Anthropic compatible API endpoints. Rigging you to Claude code was next level shit.
+[Claude Code](https://code.claude.com/docs/en/overview) - you mah boy, my daily driver, but you're cripped with those token limits, thankfully there's [Deepseek](https://deepseek.com/) all your cheap token goodneess, fuckin rad cash-money caching layer, and OpenAI/Anthropic compatible API endpoints. Rigging you to Claude code was next level shit. Keep on stealin that American IP, all their shit is stolen anyways.
 
 ### 💥 Diss Track:
 - Eat 💩, Twilio SMS service and taking my 20 bucks but not verifying me
