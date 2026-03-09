@@ -337,10 +337,7 @@ This project is proprietary. All rights reserved.
 - **GitHub Issues**: [Report bugs or request features](https://github.com/p0rkchop/ward/issues)
 - **Documentation**: See the documentation links above
 - **Emergency Contacts**:
-  - Vercel Support: `support@vercel.com`
-  - Turso Support: `support@turso.tech`
-  - Twilio Support: `help@twilio.com`
 
 ---
 
-**Built with ❤️ using Next.js, Prisma, and Turso**
+**Vibe Coded like a baller by Chris Merkel, Built with ❤️ using [https://nextjs.org/](Next.js), [https://www.prisma.io/](Prisma), [https://turso.tech/](Turso), [https://resend.com/](Resend) [https://www.twilio.com/en-us/user-authentication-identity](Twilio Auth) (eat shit, Twilio SMS service and taking my 20 bucks but not verifying me)**
