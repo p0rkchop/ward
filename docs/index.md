@@ -46,6 +46,7 @@ Ward enables organizations to manage events, resources, and appointments with ro
 | [User Settings](settings) | Theme, timezone, date & time format preferences |
 | [Notifications](notifications) | Email and SMS notification reference |
 | [FAQ](faq) | Common questions and troubleshooting |
+| [User Acceptance Testing](uat) | UAT checklists and sign-off process |
 
 ---
 
