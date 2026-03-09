@@ -1,0 +1,14 @@
+feat: implement General Settings and Danger Zone on admin settings page
+
+- General Settings panel: site name and timeslot duration now persisted in
+  AppSettings table (was previously static placeholder UI)
+- Danger Zone: Reset All Data action hard-deletes all bookings, shifts, events,
+  event days, blackouts, event resources, resources, and all users except the
+  calling admin; resets AppSettings to defaults
+- DangerZone component requires typing "I AM NOT AN IDIOT" before the reset
+  button becomes active
+- Fix branding upload: reset file input value after upload/remove so re-selecting
+  the same image always fires onChange
+- Schema: added siteName (default 'Ward') and timeslotDuration (default 30) to
+  AppSettings
+- Migration: 20260309000000_add_general_settings + migrate-turso.mjs updated

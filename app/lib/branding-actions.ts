@@ -12,6 +12,52 @@ async function requireAdmin() {
   return session.user;
 }
 
+// ─── General Settings ──────────────────────────────────────────────────────────
+
+export interface GeneralSettings {
+  siteName: string;
+  timeslotDuration: number;
+}
+
+export async function getGeneralSettings(): Promise<GeneralSettings> {
+  const settings = await db.appSettings.findUnique({
+    where: { id: 'singleton' },
+    select: { siteName: true, timeslotDuration: true },
+  });
+  return {
+    siteName: settings?.siteName ?? 'Ward',
+    timeslotDuration: settings?.timeslotDuration ?? 30,
+  };
+}
+
+export async function updateGeneralSettings(
+  data: GeneralSettings
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  const siteName = data.siteName?.trim();
+  if (!siteName) {
+    return { ok: false, error: 'Site name cannot be empty' };
+  }
+  const validDurations = [15, 30, 45, 60];
+  if (!validDurations.includes(data.timeslotDuration)) {
+    return { ok: false, error: 'Invalid timeslot duration' };
+  }
+
+  try {
+    await db.appSettings.upsert({
+      where: { id: 'singleton' },
+      create: { id: 'singleton', siteName, timeslotDuration: data.timeslotDuration },
+      update: { siteName, timeslotDuration: data.timeslotDuration },
+    });
+    return { ok: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[updateGeneralSettings] Error:', msg);
+    return { ok: false, error: 'Failed to save settings' };
+  }
+}
+
 /**
  * Get the branding image URL (data URL or null)
  */

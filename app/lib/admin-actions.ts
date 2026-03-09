@@ -799,3 +799,48 @@ export async function testEmailConnectivity(email: string): Promise<EmailTestRes
 
   return sendTestEmail(email);
 }
+
+/**
+ * DANGER: Permanently hard-deletes all scheduling data.
+ * Preserves only the calling admin user account.
+ * Cannot be undone.
+ */
+export async function resetAllData(): Promise<{ ok: true; summary: string } | { ok: false; error: string }> {
+  const admin = await requireAdmin();
+
+  try {
+    // Delete in dependency order to respect foreign keys
+    const [bookings, eventDayBlackouts, eventDays, eventResources, shifts, events, resources, users] =
+      await db.$transaction([
+        db.booking.deleteMany({}),
+        db.eventDayBlackout.deleteMany({}),
+        db.eventDay.deleteMany({}),
+        db.eventResource.deleteMany({}),
+        db.shift.deleteMany({}),
+        db.event.deleteMany({}),
+        db.resource.deleteMany({}),
+        // Delete all users except the calling admin
+        db.user.deleteMany({ where: { id: { not: admin.id } } }),
+      ]);
+
+    // Reset AppSettings (clear branding, restore defaults)
+    await db.appSettings.upsert({
+      where: { id: 'singleton' },
+      create: { id: 'singleton', brandingImageUrl: null, siteName: 'Ward', timeslotDuration: 30 },
+      update: { brandingImageUrl: null, siteName: 'Ward', timeslotDuration: 30 },
+    });
+
+    const summary =
+      `Deleted: ${bookings.count} bookings, ${shifts.count} shifts, ` +
+      `${events.count} events, ${eventDays.count} event days, ` +
+      `${eventDayBlackouts.count} blackouts, ${eventResources.count} event resources, ` +
+      `${resources.count} resources, ${users.count} users (admin preserved).`;
+
+    console.log(`[resetAllData] Complete by admin ${admin.id}. ${summary}`);
+    return { ok: true, summary };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[resetAllData] Error:', msg);
+    return { ok: false, error: 'Reset failed: ' + msg };
+  }
+}

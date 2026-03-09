@@ -220,8 +220,10 @@ model Booking {
 }
 
 model AppSettings {
-  id               String  @id @default("singleton")
-  brandingImageUrl String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                String   @id @default("singleton")
+  brandingImageUrl  String?
+  siteName          String   @default("Ward")
+  timeslotDuration  Int      @default(30)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

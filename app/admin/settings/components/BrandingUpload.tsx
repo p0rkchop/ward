@@ -18,6 +18,9 @@ export default function BrandingUpload({ initialImageUrl }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset so the same file can be re-selected later
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
     setError('');
     setSuccess('');
 
@@ -83,6 +86,7 @@ export default function BrandingUpload({ initialImageUrl }: Props) {
       setError(result.error);
     } else {
       setImageUrl(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setSuccess('Branding image removed');
       setTimeout(() => setSuccess(''), 5000);
     }

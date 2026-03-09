@@ -187,6 +187,20 @@ const statements = [
 
   // ── v1.2.0: Drop resource unique constraint on Shift to allow capacity-based booking ──
   `DROP INDEX IF EXISTS "Shift_resourceId_startTime_endTime_key"`,
+
+  // ── v1.8.0: AppSettings table ──
+  `CREATE TABLE IF NOT EXISTS "AppSettings" (
+    "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'singleton',
+    "brandingImageUrl" TEXT,
+    "siteName" TEXT NOT NULL DEFAULT 'Ward',
+    "timeslotDuration" INTEGER NOT NULL DEFAULT 30,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+  )`,
+
+  // ── v1.11.0: Add siteName and timeslotDuration to existing AppSettings rows ──
+  `ALTER TABLE "AppSettings" ADD COLUMN "siteName" TEXT NOT NULL DEFAULT 'Ward'`,
+  `ALTER TABLE "AppSettings" ADD COLUMN "timeslotDuration" INTEGER NOT NULL DEFAULT 30`,
 ];
 
 console.log(`Running ${statements.length} statements...`);
@@ -223,5 +237,8 @@ console.log("EventDay columns:", eventDayCols.rows.map(r => r.name));
 
 const eventResourceCols = await client.execute("PRAGMA table_info('EventResource')");
 console.log("EventResource columns:", eventResourceCols.rows.map(r => r.name));
+
+const appSettingsCols = await client.execute("PRAGMA table_info('AppSettings')");
+console.log("AppSettings columns:", appSettingsCols.rows.map(r => r.name));
 
 client.close();
