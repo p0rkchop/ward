@@ -342,9 +342,9 @@ This project is proprietary. All rights reserved.
 
 **Built with ❤️ using [Next.js](https://nextjs.org/), [Prisma](https://www.prisma.io/), [Turso](https://turso.tech/), [Resend](https://resend.com/), [Twilio Auth](https://www.twilio.com/en-us/user-authentication-identity)**
 
-### Shoutouts:
+### 🎉 Shoutouts:
 [Claude Code](https://code.claude.com/docs/en/overview) - you mah boy, my daily driver, but you're cripped with those token limits, thankfully there's [Deepseek](https://deepseek.com/) all your cheap token goodneess, fuckin rad cash-money caching layer, and OpenAI/Anthropic compatible API endpoints. Rigging you to Claude code was next level shit.
 
-### Diss Track:
-- (eat shit, Twilio SMS service and taking my 20 bucks but not verifying me)
+### 💥 Diss Track:
+- Eat 💩, Twilio SMS service and taking my 20 bucks but not verifying me
 - Github Copilot. Look bro, I want to like you, but you're dumb. Wise up, up your game. Stop releasing such jank-ass tools. Up your game. 
