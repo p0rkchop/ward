@@ -8,8 +8,6 @@
 [![Resend](https://img.shields.io/badge/Resend-Email-purple?style=for-the-badge)](https://resend.com)
 [![Vercel](https://img.shields.io/badge/Deploy%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
 
-**Live at [career-ward.app](https://career-ward.app)**
-
 A two-sided scheduling application where professional availability is strictly constrained by physical resource capacity, and clients are auto-matched to professionals based on timeslot selection.
 
 ## 🚀 Overview
@@ -340,4 +338,4 @@ This project is proprietary. All rights reserved.
 
 ---
 
-**Vibe Coded like a baller by Chris Merkel, Built with ❤️ using [https://nextjs.org/](Next.js), [https://www.prisma.io/](Prisma), [https://turso.tech/](Turso), [https://resend.com/](Resend) [https://www.twilio.com/en-us/user-authentication-identity](Twilio Auth) (eat shit, Twilio SMS service and taking my 20 bucks but not verifying me)**
+**Vibe Coded like a ADHD multi-tasking agent herding baller by Chris Merkel, Built with ❤️ using [Next.js](https://nextjs.org/), [Prisma](https://www.prisma.io/), [Turso](https://turso.tech/), [Resend](https://resend.com/), [Twilio Auth](https://www.twilio.com/en-us/user-authentication-identity) (eat shit, Twilio SMS service and taking my 20 bucks but not verifying me)**
