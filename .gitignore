@@ -47,3 +47,7 @@ next-env.d.ts
 .env*.local
 FEATURELIST.md
 KNOWLEDGE-*.md
+
+# editor/tool configs
+.vscode/
+.claude/
