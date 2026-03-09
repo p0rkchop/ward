@@ -315,9 +315,10 @@ describe('Integration Tests - Complete User Flows', () => {
       vi.mocked(db.booking.update).mockResolvedValue({
         ...mockBooking,
         deletedAt: new Date('2026-02-22T11:00:00Z'),
+        client: { email: null },
         shift: {
           professional: { id: mockProfessionalId, name: 'Test Professional' },
-          resource: { id: mockResourceId, name: 'Test Resource', description: 'Test Description' },
+          resource: { id: mockResourceId, name: 'Test Resource', description: 'Test Description', location: null },
         },
       } as any)
 

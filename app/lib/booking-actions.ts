@@ -13,6 +13,7 @@ import {
   validateClientRole,
   validate30MinuteInterval,
 } from '@/app/lib/validation';
+import { sendBookingConfirmation, sendBookingCancellation } from '@/app/lib/email';
 
 /**
  * Get available time slots with capacity count for a given date range
@@ -264,7 +265,7 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
           },
           include: {
             client: {
-              select: { id: true, name: true, phoneNumber: true },
+              select: { id: true, name: true, phoneNumber: true, email: true },
             },
             shift: {
               include: {
@@ -272,13 +273,24 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
                   select: { id: true, name: true, phoneNumber: true },
                 },
                 resource: {
-                  select: { id: true, name: true, description: true },
+                  select: { id: true, name: true, description: true, location: true },
                 },
               },
             },
           },
         });
       });
+
+      // Fire-and-forget: send confirmation email if client has an email on file
+      if (booking.client.email) {
+        sendBookingConfirmation(booking.client.email, {
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          professionalName: booking.shift.professional.name ?? 'TBD',
+          resourceName: booking.shift.resource.name,
+          resourceLocation: booking.shift.resource.location,
+        }).catch(() => {});
+      }
 
       return booking;
     } catch (error) {
@@ -480,18 +492,32 @@ export async function cancelBooking(bookingId: string, _clientId?: string) {
       deletedAt: new Date(),
     },
     include: {
+      client: {
+        select: { email: true },
+      },
       shift: {
         include: {
           professional: {
             select: { id: true, name: true },
           },
           resource: {
-            select: { id: true, name: true, description: true },
+            select: { id: true, name: true, description: true, location: true },
           },
         },
       },
     },
   });
+
+  // Fire-and-forget: send cancellation email if client has an email on file
+  if (updatedBooking.client?.email) {
+    sendBookingCancellation(updatedBooking.client.email, {
+      startTime: updatedBooking.startTime,
+      endTime: updatedBooking.endTime,
+      professionalName: updatedBooking.shift.professional.name ?? 'TBD',
+      resourceName: updatedBooking.shift.resource.name,
+      resourceLocation: updatedBooking.shift.resource.location,
+    }).catch(() => {});
+  }
 
   return updatedBooking;
 }

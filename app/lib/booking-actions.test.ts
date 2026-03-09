@@ -519,9 +519,10 @@ describe('booking-actions', () => {
       vi.mocked(db.booking.update).mockResolvedValue({
         ...mockBooking,
         deletedAt: new Date(),
+        client: { email: null },
         shift: {
           professional: { id: 'professional-id', name: 'Test Professional' },
-          resource: { id: 'resource-id', name: 'Test Resource', description: 'Test Description' },
+          resource: { id: 'resource-id', name: 'Test Resource', description: 'Test Description', location: null },
         },
       } as any)
 

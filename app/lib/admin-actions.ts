@@ -3,6 +3,7 @@
 import { db } from './db';
 import { getServerSession } from './auth';
 import { Role, BookingStatus } from '@/app/generated/prisma/enums';
+import { sendAdminCancellation, sendBookingReassignment } from '@/app/lib/email';
 
 /**
  * Verify that the current user is an ADMIN.
@@ -524,6 +525,15 @@ export async function reassignBooking(
   try {
     const booking = await db.booking.findUnique({
       where: { id: bookingId, deletedAt: null },
+      include: {
+        client: { select: { email: true } },
+        shift: {
+          include: {
+            professional: { select: { name: true } },
+            resource: { select: { name: true, location: true } },
+          },
+        },
+      },
     });
     if (!booking) return { ok: false, error: 'Booking not found' };
 
@@ -546,6 +556,35 @@ export async function reassignBooking(
       data: { shiftId: newShiftId },
     });
 
+    // Fire-and-forget: notify client of reassignment if email on file
+    if (booking.client.email) {
+      // Fetch new shift details for the reassignment email
+      const newShift = await db.shift.findUnique({
+        where: { id: newShiftId },
+        include: {
+          professional: { select: { name: true } },
+          resource: { select: { name: true, location: true } },
+        },
+      });
+      if (newShift) {
+        const oldData = {
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          professionalName: booking.shift.professional.name ?? 'TBD',
+          resourceName: booking.shift.resource.name,
+          resourceLocation: booking.shift.resource.location,
+        };
+        const newData = {
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          professionalName: newShift.professional.name ?? 'TBD',
+          resourceName: newShift.resource.name,
+          resourceLocation: newShift.resource.location,
+        };
+        sendBookingReassignment(booking.client.email, oldData, newData).catch(() => {});
+      }
+    }
+
     return { ok: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -565,6 +604,15 @@ export async function adminRemoveBooking(
   try {
     const booking = await db.booking.findUnique({
       where: { id: bookingId, deletedAt: null },
+      include: {
+        client: { select: { email: true } },
+        shift: {
+          include: {
+            professional: { select: { name: true } },
+            resource: { select: { name: true, location: true } },
+          },
+        },
+      },
     });
     if (!booking) return { ok: false, error: 'Booking not found' };
 
@@ -572,6 +620,17 @@ export async function adminRemoveBooking(
       where: { id: bookingId },
       data: { status: BookingStatus.CANCELLED, deletedAt: new Date() },
     });
+
+    // Fire-and-forget: notify client if email on file
+    if (booking.client.email) {
+      sendAdminCancellation(booking.client.email, {
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        professionalName: booking.shift.professional.name ?? 'TBD',
+        resourceName: booking.shift.resource.name,
+        resourceLocation: booking.shift.resource.location,
+      }).catch(() => {});
+    }
 
     return { ok: true };
   } catch (err: unknown) {

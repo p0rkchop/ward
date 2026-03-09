@@ -113,6 +113,9 @@ export default function SetupPage() {
                 placeholder="you@example.com"
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 dark:text-gray-100"
               />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Add your email to receive booking notifications (confirmations, cancellations, and changes).
+              </p>
             </div>
 
             <div>
