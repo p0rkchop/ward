@@ -337,6 +337,9 @@ Configuration is handled in `app/lib/db.ts`:
    export DATABASE_URL="libsql://..."
    export TURSO_AUTH_TOKEN="..."
 
+   # Run Turso migration script (reads from env or .env.local)
+   node migrate-turso.mjs
+
    # Push schema to production
    npx prisma db push
 

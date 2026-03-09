@@ -1,18 +1,30 @@
 import { createClient } from "@libsql/client";
 import { readFileSync } from "fs";
 
-// Read token from .env.local, stripping quotes
+// Read DATABASE_URL and TURSO_AUTH_TOKEN from env, falling back to .env.local
+let dbUrl = process.env.DATABASE_URL;
 let authToken = process.env.TURSO_AUTH_TOKEN;
-if (!authToken) {
+if (!dbUrl || !authToken) {
   try {
     const envFile = readFileSync(".env.local", "utf8");
-    const match = envFile.match(/TURSO_AUTH_TOKEN=["']?([^"'\n]+)/);
-    if (match) authToken = match[1];
+    if (!dbUrl) {
+      const urlMatch = envFile.match(/DATABASE_URL=["']?([^"'\n]+)/);
+      if (urlMatch) dbUrl = urlMatch[1];
+    }
+    if (!authToken) {
+      const tokenMatch = envFile.match(/TURSO_AUTH_TOKEN=["']?([^"'\n]+)/);
+      if (tokenMatch) authToken = tokenMatch[1];
+    }
   } catch {}
 }
 
+if (!dbUrl) {
+  console.error("ERROR: DATABASE_URL is not set. Set it in your environment or .env.local");
+  process.exit(1);
+}
+
 const client = createClient({
-  url: "libsql://ward-production-p0rkchop.aws-us-east-2.turso.io",
+  url: dbUrl,
   authToken,
 });
 
