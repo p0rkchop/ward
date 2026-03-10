@@ -32,6 +32,11 @@ export default function PushNotificationBanner() {
   async function handleEnable() {
     setSubscribing(true);
     try {
+      if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+        console.error('Push subscription failed: VAPID public key not configured');
+        setVisible(false);
+        return;
+      }
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         const reg = await navigator.serviceWorker.register('/sw.js');
@@ -47,6 +52,7 @@ export default function PushNotificationBanner() {
         });
         await updateUserPreferences({ notifyViaPush: true });
         await updateSession();
+        localStorage.removeItem(DISMISSED_KEY);
       }
       setVisible(false);
     } catch (err) {

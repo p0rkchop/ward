@@ -305,17 +305,17 @@ export default function SettingsPage() {
               </label>
 
               {/* Push toggle */}
-              <label className="flex items-center justify-between cursor-pointer">
+              <div className="flex items-center justify-between">
                 <div>
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Push notifications</span>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Receive browser push notifications on this device</p>
                   {pushPermission === 'denied' && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                      Push notifications are blocked. Please enable them in your browser settings.
+                      Push notifications are blocked. Please enable them in your browser settings, then refresh this page.
                     </p>
                   )}
                   {pushPermission === 'unsupported' && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                       Push notifications are not supported by this browser.
                     </p>
                   )}
@@ -325,7 +325,7 @@ export default function SettingsPage() {
                     role="switch"
                     aria-checked={notifyViaPush}
                     onClick={() => setNotifyViaPush(!notifyViaPush)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    className={`cursor-pointer relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       notifyViaPush ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                   >
@@ -340,6 +340,10 @@ export default function SettingsPage() {
                     onClick={async () => {
                       setSubscribingPush(true);
                       try {
+                        if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+                          setMessage({ type: 'error', text: 'Push notifications are not configured. Please contact your administrator.' });
+                          return;
+                        }
                         const permission = await Notification.requestPermission();
                         setPushPermission(permission);
                         if (permission === 'granted') {
@@ -355,9 +359,15 @@ export default function SettingsPage() {
                             body: JSON.stringify(sub.toJSON()),
                           });
                           setNotifyViaPush(true);
+                          // Clear banner dismissal so it doesn't conflict
+                          localStorage.removeItem('push_banner_dismissed');
+                          setMessage({ type: 'success', text: 'Push notifications enabled!' });
+                        } else if (permission === 'denied') {
+                          setMessage({ type: 'error', text: 'Push notifications were blocked. You can change this in your browser settings.' });
                         }
                       } catch (err) {
                         console.error('Push subscription failed:', err);
+                        setMessage({ type: 'error', text: 'Failed to enable push notifications. Please try again.' });
                       } finally {
                         setSubscribingPush(false);
                       }
@@ -366,8 +376,16 @@ export default function SettingsPage() {
                   >
                     {subscribingPush ? 'Enabling...' : 'Enable Push'}
                   </button>
-                ) : null}
-              </label>
+                ) : (
+                  <div
+                    role="switch"
+                    aria-checked={false}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300 dark:bg-gray-600 opacity-50 cursor-not-allowed"
+                  >
+                    <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
