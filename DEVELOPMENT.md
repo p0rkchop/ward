@@ -236,6 +236,7 @@ After the initial 7-phase build, development continued with feature releases:
 | v1.10.0 | 2026-03-09 | Expanded notifications (11 types), appointment reminder cron, admin email test |
 | v1.10.1 | 2026-03-09 | Twilio dependency fix, deployment procedure, SMS toggle removal |
 | v1.12.0 | 2026-03-10 | Web Push Notifications (VAPID), per-user notification preferences, opt-in banner, 106 tests |
+| v1.12.1 | 2026-03-10 | Push UX fixes (always-visible toggle, error feedback, banner recovery), version bump to package.json |
 
 ## Task Dependencies
 
@@ -257,23 +258,27 @@ Every release must follow this checklist. Do not consider a release complete unt
 2. Run `npx tsc --noEmit` — confirm no errors in changed files (pre-existing test mock types are acceptable)
 3. Confirm `git status` is clean (no untracked/modified files beyond what's intended)
 
+### Version Bump (MANDATORY)
+4. Update `package.json` `"version"` field to match the release version — this value is displayed in all nav headers
+5. Verify: `node -e "console.log(require('./package.json').version)"` — must match intended tag
+
 ### Commit & Tag
-4. Stage changes: `git add -A`
-5. Write commit message to `.commit-msg.txt`, commit with `git commit -F .commit-msg.txt`
-6. Tag: `git tag v<MAJOR>.<MINOR>.<PATCH>`
-7. Push: `git push origin main --tags`
+6. Stage changes: `git add -A`
+7. Write commit message to `.commit-msg.txt`, commit with `git commit -F .commit-msg.txt`
+8. Tag: `git tag v<MAJOR>.<MINOR>.<PATCH>`
+9. Push: `git push origin main --tags`
 
 ### GitHub Release
-8. Write release notes to `.release-notes.md`
-9. Create release: `gh release create v<X.Y.Z> --title "<title>" --notes-file .release-notes.md`
-10. Clean up temp files: `rm .commit-msg.txt .release-notes.md`
+10. Write release notes to `.release-notes.md`
+11. Create release: `gh release create v<X.Y.Z> --title "<title>" --notes-file .release-notes.md`
+12. Clean up temp files: `rm .commit-msg.txt .release-notes.md`
 
 ### Post-Deploy Verification (MANDATORY)
-11. Wait ~90 seconds for Vercel to build and deploy
-12. Check deployment status: `vercel ls 2>&1 | head -10` — newest deployment must show **● Ready**
-13. If status is **● Error**, inspect with: `vercel inspect <deployment-url> 2>&1`
-14. Hit health endpoint: `curl -s https://career-ward.app/api/health` — must return `{"status":"healthy"}`
-15. If deployment failed, diagnose the error, fix, commit as a patch release (e.g., v1.10.1), and re-verify
+13. Wait ~90 seconds for Vercel to build and deploy
+14. Check deployment status: `vercel ls 2>&1 | head -10` — newest deployment must show **● Ready**
+15. If status is **● Error**, inspect with: `vercel inspect <deployment-url> 2>&1`
+16. Hit health endpoint: `curl -s https://career-ward.app/api/health` — must return `{"status":"healthy"}`
+17. If deployment failed, diagnose the error, fix, commit as a patch release (e.g., v1.10.1), and re-verify
 
 > **Lesson learned (v1.9.0–v1.10.0):** The `twilio` package was accidentally removed from `package.json`, causing Vercel builds to silently fail for two releases. The app continued serving the last successful deployment, masking the problem. Always verify deployment status after every push.
 
