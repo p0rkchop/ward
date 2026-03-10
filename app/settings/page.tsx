@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { updateUserPreferences } from '@/app/lib/user-settings-actions';
+import { updateUserPreferences, getUserPreferences } from '@/app/lib/user-settings-actions';
 import { useTheme } from 'next-themes';
 
 // Common US timezones — ordered by offset, most common first
@@ -54,7 +54,7 @@ export default function SettingsPage() {
     }
   }, []);
 
-  // Load user prefs from session
+  // Load user prefs from session, then override with fresh DB values
   useEffect(() => {
     if (session?.user) {
       setThemeState(session.user.theme || 'system');
@@ -63,6 +63,14 @@ export default function SettingsPage() {
       setTimezone(session.user.timezone || 'America/Chicago');
       setNotifyViaEmail(session.user.notifyViaEmail ?? true);
       setNotifyViaPush(session.user.notifyViaPush ?? false);
+
+      // Fetch fresh notification prefs from DB to avoid stale session cache
+      getUserPreferences().then((prefs) => {
+        if (prefs) {
+          setNotifyViaEmail(prefs.notifyViaEmail);
+          setNotifyViaPush(prefs.notifyViaPush);
+        }
+      });
     }
   }, [session]);
 

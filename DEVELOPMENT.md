@@ -237,6 +237,7 @@ After the initial 7-phase build, development continued with feature releases:
 | v1.10.1 | 2026-03-09 | Twilio dependency fix, deployment procedure, SMS toggle removal |
 | v1.12.0 | 2026-03-10 | Web Push Notifications (VAPID), per-user notification preferences, opt-in banner, 106 tests |
 | v1.12.1 | 2026-03-10 | Push UX fixes (always-visible toggle, error feedback, banner recovery), version bump to package.json |
+| v1.12.2 | 2026-03-10 | Fix stale session cache on Settings page — notification prefs now fetched from DB on mount |
 
 ## Task Dependencies
 
