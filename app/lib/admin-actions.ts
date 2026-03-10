@@ -4,6 +4,7 @@ import { db } from './db';
 import { getServerSession } from './auth';
 import { Role, BookingStatus } from '@/app/generated/prisma/enums';
 import { sendAdminCancellation, sendBookingReassignment, sendRoleChanged, sendAccountDeleted, sendProfessionalBookingCancelled, sendTestEmail } from '@/app/lib/email';
+import { sendPushToUser } from '@/app/lib/push';
 import type { EmailTestResult } from '@/app/lib/email';
 
 /**
@@ -543,7 +544,7 @@ export async function reassignBooking(
     const booking = await db.booking.findUnique({
       where: { id: bookingId, deletedAt: null },
       include: {
-        client: { select: { email: true } },
+        client: { select: { id: true, email: true, notifyViaEmail: true, notifyViaPush: true } },
         shift: {
           include: {
             professional: { select: { name: true } },
@@ -574,7 +575,7 @@ export async function reassignBooking(
     });
 
     // Fire-and-forget: notify client of reassignment if email on file
-    if (booking.client.email) {
+    if (booking.client.email && booking.client.notifyViaEmail) {
       // Fetch new shift details for the reassignment email
       const newShift = await db.shift.findUnique({
         where: { id: newShiftId },
@@ -602,6 +603,15 @@ export async function reassignBooking(
       }
     }
 
+    // Fire-and-forget: push notification to client about reassignment
+    if (booking.client.notifyViaPush) {
+      sendPushToUser(booking.client.id, {
+        title: 'Booking Reassigned',
+        body: 'Your appointment has been reassigned to a different professional or time.',
+        url: '/client/appointments',
+      }).catch(() => {});
+    }
+
     return { ok: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -622,10 +632,10 @@ export async function adminRemoveBooking(
     const booking = await db.booking.findUnique({
       where: { id: bookingId, deletedAt: null },
       include: {
-        client: { select: { name: true, email: true } },
+        client: { select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true } },
         shift: {
           include: {
-            professional: { select: { name: true, email: true } },
+            professional: { select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true } },
             resource: { select: { name: true, location: true } },
           },
         },
@@ -647,18 +657,36 @@ export async function adminRemoveBooking(
     };
 
     // Fire-and-forget: notify client if email on file
-    if (booking.client.email) {
+    if (booking.client.email && booking.client.notifyViaEmail) {
       sendAdminCancellation(booking.client.email, emailData).catch(() => {});
     }
 
+    // Fire-and-forget: push notification to client
+    if (booking.client.notifyViaPush) {
+      sendPushToUser(booking.client.id, {
+        title: 'Booking Cancelled',
+        body: `Your appointment with ${emailData.professionalName} has been cancelled by an administrator.`,
+        url: '/client/appointments',
+      }).catch(() => {});
+    }
+
     // Fire-and-forget: notify professional that a slot freed up
-    if (booking.shift.professional.email) {
+    if (booking.shift.professional.email && booking.shift.professional.notifyViaEmail) {
       sendProfessionalBookingCancelled(
         booking.shift.professional.email,
         booking.client.name ?? 'Client',
         emailData,
         'admin',
       ).catch(() => {});
+    }
+
+    // Fire-and-forget: push notification to professional
+    if (booking.shift.professional.notifyViaPush) {
+      sendPushToUser(booking.shift.professional.id, {
+        title: 'Booking Cancelled',
+        body: `${booking.client.name ?? 'A client'}'s appointment was cancelled by an administrator.`,
+        url: '/professional/bookings',
+      }).catch(() => {});
     }
 
     return { ok: true };

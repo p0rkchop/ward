@@ -38,12 +38,21 @@ export default function SettingsPage() {
   const [timeFormat, setTimeFormat] = useState('12h');
   const [dateFormat, setDateFormat] = useState('MM/DD/YYYY');
   const [timezone, setTimezone] = useState('America/Chicago');
+  const [notifyViaEmail, setNotifyViaEmail] = useState(true);
+  const [notifyViaPush, setNotifyViaPush] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>('unsupported');
+  const [subscribingPush, setSubscribingPush] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Hydration guard for theme
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    if ('Notification' in window) {
+      setPushPermission(Notification.permission);
+    }
+  }, []);
 
   // Load user prefs from session
   useEffect(() => {
@@ -52,6 +61,8 @@ export default function SettingsPage() {
       setTimeFormat(session.user.timeFormat || '12h');
       setDateFormat(session.user.dateFormat || 'MM/DD/YYYY');
       setTimezone(session.user.timezone || 'America/Chicago');
+      setNotifyViaEmail(session.user.notifyViaEmail ?? true);
+      setNotifyViaPush(session.user.notifyViaPush ?? false);
     }
   }, [session]);
 
@@ -74,7 +85,7 @@ export default function SettingsPage() {
     setSaving(true);
     setMessage(null);
 
-    const result = await updateUserPreferences({ theme, timeFormat, dateFormat, timezone });
+    const result = await updateUserPreferences({ theme, timeFormat, dateFormat, timezone, notifyViaEmail, notifyViaPush });
     if (result.ok) {
       // Apply the theme immediately
       setTheme(theme);
@@ -261,6 +272,105 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Notification Preferences (clients and professionals only) */}
+        {user.role !== 'ADMIN' && (
+          <div className="bg-white dark:bg-gray-900 shadow rounded-lg p-6 mb-6">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-6">Notification Preferences</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Choose how you&apos;d like to be notified about bookings, cancellations, and reminders.
+            </p>
+            <div className="space-y-4">
+              {/* Email toggle */}
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Email notifications</span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Receive notifications at {user.email || 'your email address'}</p>
+                  {!user.email && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Add an email in your profile to receive email notifications.</p>
+                  )}
+                </div>
+                <div
+                  role="switch"
+                  aria-checked={notifyViaEmail}
+                  onClick={() => setNotifyViaEmail(!notifyViaEmail)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    notifyViaEmail ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    notifyViaEmail ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </div>
+              </label>
+
+              {/* Push toggle */}
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Push notifications</span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Receive browser push notifications on this device</p>
+                  {pushPermission === 'denied' && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                      Push notifications are blocked. Please enable them in your browser settings.
+                    </p>
+                  )}
+                  {pushPermission === 'unsupported' && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Push notifications are not supported by this browser.
+                    </p>
+                  )}
+                </div>
+                {pushPermission === 'granted' ? (
+                  <div
+                    role="switch"
+                    aria-checked={notifyViaPush}
+                    onClick={() => setNotifyViaPush(!notifyViaPush)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      notifyViaPush ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      notifyViaPush ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </div>
+                ) : pushPermission === 'default' ? (
+                  <button
+                    type="button"
+                    disabled={subscribingPush}
+                    onClick={async () => {
+                      setSubscribingPush(true);
+                      try {
+                        const permission = await Notification.requestPermission();
+                        setPushPermission(permission);
+                        if (permission === 'granted') {
+                          const reg = await navigator.serviceWorker.register('/sw.js');
+                          await navigator.serviceWorker.ready;
+                          const sub = await reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+                          });
+                          await fetch('/api/push/subscribe', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(sub.toJSON()),
+                          });
+                          setNotifyViaPush(true);
+                        }
+                      } catch (err) {
+                        console.error('Push subscription failed:', err);
+                      } finally {
+                        setSubscribingPush(false);
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                  >
+                    {subscribingPush ? 'Enabling...' : 'Enable Push'}
+                  </button>
+                ) : null}
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* Save */}
         <div className="flex items-center justify-between">

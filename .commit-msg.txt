@@ -1,0 +1,13 @@
+feat: Web Push Notifications (v2.0.0)
+
+- VAPID-based Web Push notifications for clients and professionals (opt-in)
+- PushSubscription model, service worker (sw.js), push.ts service layer
+- POST/DELETE /api/push/subscribe for subscription management
+- PushNotificationBanner component — first-visit opt-in banner
+- Settings page: independent email/push notification toggles
+- Push integrated into booking-actions, admin-actions, cron reminders
+- Email sends gated on notifyViaEmail preference (default: true)
+- Push sends gated on notifyViaPush preference (default: false)
+- Stale subscription cleanup (410/404 auto-prune)
+- 6 push unit tests; 106 total tests across 7 files
+- BREAKING: DB schema change — PushSubscription table + User notification fields

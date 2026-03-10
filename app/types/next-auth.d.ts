@@ -11,6 +11,8 @@ declare module 'next-auth' {
     timeFormat: string;
     dateFormat: string;
     timezone: string;
+    notifyViaEmail: boolean;
+    notifyViaPush: boolean;
   }
 
   interface Session {
@@ -24,6 +26,8 @@ declare module 'next-auth' {
       timeFormat: string;
       dateFormat: string;
       timezone: string;
+      notifyViaEmail: boolean;
+      notifyViaPush: boolean;
       name?: string | null;
       email?: string | null;
       image?: string | null;
@@ -41,6 +45,8 @@ declare module 'next-auth/jwt' {
     timeFormat: string;
     dateFormat: string;
     timezone: string;
+    notifyViaEmail: boolean;
+    notifyViaPush: boolean;
   }
 }
 
@@ -54,6 +60,8 @@ export type SessionUser = {
   timeFormat: string;
   dateFormat: string;
   timezone: string;
+  notifyViaEmail: boolean;
+  notifyViaPush: boolean;
   name?: string | null;
   email?: string | null;
   image?: string | null;

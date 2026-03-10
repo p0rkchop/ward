@@ -64,6 +64,12 @@ describe('admin-actions', () => {
         phoneNumber: '+1234567890',
         setupComplete: true,
         isNewUser: false,
+        theme: 'system',
+        timeFormat: '12h',
+        dateFormat: 'MM/DD/YYYY',
+        timezone: 'America/Chicago',
+        notifyViaEmail: true,
+        notifyViaPush: false,
       },
       expires: new Date().toISOString(),
     })

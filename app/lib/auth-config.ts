@@ -56,6 +56,8 @@ export const authOptions: NextAuthOptions = {
             timeFormat: user.timeFormat,
             dateFormat: user.dateFormat,
             timezone: user.timezone,
+            notifyViaEmail: user.notifyViaEmail,
+            notifyViaPush: user.notifyViaPush,
           };
         } catch (dbErr: unknown) {
           // DB tables may not exist yet — return a synthetic user so the
@@ -74,6 +76,8 @@ export const authOptions: NextAuthOptions = {
             timeFormat: '12h',
             dateFormat: 'MM/DD/YYYY',
             timezone: 'America/Chicago',
+            notifyViaEmail: true,
+            notifyViaPush: false,
           };
         }
       },
@@ -91,6 +95,8 @@ export const authOptions: NextAuthOptions = {
         token.timeFormat = user.timeFormat;
         token.dateFormat = user.dateFormat;
         token.timezone = user.timezone;
+        token.notifyViaEmail = user.notifyViaEmail;
+        token.notifyViaPush = user.notifyViaPush;
         token.userValid = true;
       } else if (token.sub) {
         // Every subsequent request — validate user still exists & is active
@@ -109,6 +115,8 @@ export const authOptions: NextAuthOptions = {
             token.timeFormat = dbUser.timeFormat;
             token.dateFormat = dbUser.dateFormat;
             token.timezone = dbUser.timezone;
+            token.notifyViaEmail = dbUser.notifyViaEmail;
+            token.notifyViaPush = dbUser.notifyViaPush;
             token.userValid = true;
           }
         } catch (err) {
@@ -134,6 +142,8 @@ export const authOptions: NextAuthOptions = {
         session.user.timeFormat = (token.timeFormat as string) || '12h';
         session.user.dateFormat = (token.dateFormat as string) || 'MM/DD/YYYY';
         session.user.timezone = (token.timezone as string) || 'America/Chicago';
+        session.user.notifyViaEmail = token.notifyViaEmail ?? true;
+        session.user.notifyViaPush = token.notifyViaPush ?? false;
       }
       return session;
     },

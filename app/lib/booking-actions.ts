@@ -14,6 +14,7 @@ import {
   validate30MinuteInterval,
 } from '@/app/lib/validation';
 import { sendBookingConfirmation, sendBookingCancellation, sendProfessionalNewBooking, sendProfessionalBookingCancelled } from '@/app/lib/email';
+import { sendPushToUser } from '@/app/lib/push';
 
 /**
  * Get available time slots with capacity count for a given date range
@@ -265,12 +266,12 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
           },
           include: {
             client: {
-              select: { id: true, name: true, phoneNumber: true, email: true },
+              select: { id: true, name: true, phoneNumber: true, email: true, notifyViaEmail: true, notifyViaPush: true },
             },
             shift: {
               include: {
                 professional: {
-                  select: { id: true, name: true, phoneNumber: true, email: true },
+                  select: { id: true, name: true, phoneNumber: true, email: true, notifyViaEmail: true, notifyViaPush: true },
                 },
                 resource: {
                   select: { id: true, name: true, description: true, location: true },
@@ -290,17 +291,35 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
       };
 
       // Fire-and-forget: send confirmation email if client has an email on file
-      if (booking.client.email) {
+      if (booking.client.email && booking.client.notifyViaEmail) {
         sendBookingConfirmation(booking.client.email, emailData).catch(() => {});
       }
 
+      // Fire-and-forget: push notification to client
+      if (booking.client.notifyViaPush) {
+        sendPushToUser(booking.client.id, {
+          title: 'Booking Confirmed',
+          body: `Your appointment with ${emailData.professionalName} is confirmed.`,
+          url: '/client/appointments',
+        }).catch(() => {});
+      }
+
       // Fire-and-forget: notify professional of new booking
-      if (booking.shift.professional.email) {
+      if (booking.shift.professional.email && booking.shift.professional.notifyViaEmail) {
         sendProfessionalNewBooking(
           booking.shift.professional.email,
           booking.client.name ?? 'Client',
           emailData,
         ).catch(() => {});
+      }
+
+      // Fire-and-forget: push notification to professional
+      if (booking.shift.professional.notifyViaPush) {
+        sendPushToUser(booking.shift.professional.id, {
+          title: 'New Booking',
+          body: `${booking.client.name ?? 'A client'} booked an appointment with you.`,
+          url: '/professional/bookings',
+        }).catch(() => {});
       }
 
       return booking;
@@ -504,12 +523,12 @@ export async function cancelBooking(bookingId: string, _clientId?: string) {
     },
     include: {
       client: {
-        select: { name: true, email: true },
+        select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true },
       },
       shift: {
         include: {
           professional: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true },
           },
           resource: {
             select: { id: true, name: true, description: true, location: true },
@@ -528,18 +547,36 @@ export async function cancelBooking(bookingId: string, _clientId?: string) {
   };
 
   // Fire-and-forget: send cancellation email if client has an email on file
-  if (updatedBooking.client?.email) {
+  if (updatedBooking.client?.email && updatedBooking.client.notifyViaEmail) {
     sendBookingCancellation(updatedBooking.client.email, cancelEmailData).catch(() => {});
   }
 
+  // Fire-and-forget: push notification to client
+  if (updatedBooking.client?.notifyViaPush) {
+    sendPushToUser(updatedBooking.client.id, {
+      title: 'Booking Cancelled',
+      body: `Your appointment with ${cancelEmailData.professionalName} has been cancelled.`,
+      url: '/client/appointments',
+    }).catch(() => {});
+  }
+
   // Fire-and-forget: notify professional that a slot freed up
-  if (updatedBooking.shift.professional.email) {
+  if (updatedBooking.shift.professional.email && updatedBooking.shift.professional.notifyViaEmail) {
     sendProfessionalBookingCancelled(
       updatedBooking.shift.professional.email,
       updatedBooking.client?.name ?? 'Client',
       cancelEmailData,
       'client',
     ).catch(() => {});
+  }
+
+  // Fire-and-forget: push notification to professional
+  if (updatedBooking.shift.professional.notifyViaPush) {
+    sendPushToUser(updatedBooking.shift.professional.id, {
+      title: 'Booking Cancelled',
+      body: `${updatedBooking.client?.name ?? 'A client'} cancelled their appointment.`,
+      url: '/professional/bookings',
+    }).catch(() => {});
   }
 
   return updatedBooking;

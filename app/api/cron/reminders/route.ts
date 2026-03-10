@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/app/lib/db';
 import { sendAppointmentReminder } from '@/app/lib/email';
+import { sendPushToUser } from '@/app/lib/push';
 import type { BookingEmailData } from '@/app/lib/email';
 
 /**
@@ -28,10 +29,10 @@ export async function GET(request: Request) {
       startTime: { gte: now, lte: in24h },
     },
     include: {
-      client: { select: { name: true, email: true } },
+      client: { select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true } },
       shift: {
         include: {
-          professional: { select: { name: true, email: true } },
+          professional: { select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true } },
           resource: { select: { name: true, location: true } },
         },
       },
@@ -50,14 +51,34 @@ export async function GET(request: Request) {
     };
 
     // Remind client
-    if (booking.client.email) {
+    if (booking.client.email && booking.client.notifyViaEmail) {
       sendAppointmentReminder(booking.client.email, booking.client.name ?? 'Client', data).catch(() => {});
       sent++;
     }
 
+    // Push remind client
+    if (booking.client.notifyViaPush) {
+      sendPushToUser(booking.client.id, {
+        title: 'Upcoming Appointment',
+        body: `Reminder: You have an appointment with ${data.professionalName} coming up.`,
+        url: '/client/appointments',
+      }).catch(() => {});
+      sent++;
+    }
+
     // Remind professional
-    if (booking.shift.professional.email) {
+    if (booking.shift.professional.email && booking.shift.professional.notifyViaEmail) {
       sendAppointmentReminder(booking.shift.professional.email, booking.shift.professional.name ?? 'Professional', data).catch(() => {});
+      sent++;
+    }
+
+    // Push remind professional
+    if (booking.shift.professional.notifyViaPush) {
+      sendPushToUser(booking.shift.professional.id, {
+        title: 'Upcoming Appointment',
+        body: `Reminder: You have an appointment with ${booking.client.name ?? 'a client'} coming up.`,
+        url: '/professional/calendar',
+      }).catch(() => {});
       sent++;
     }
   }

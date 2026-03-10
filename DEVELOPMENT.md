@@ -180,6 +180,20 @@ After the initial 7-phase build, development continued with feature releases:
   - Removed obsolete SMS Notifications toggle from admin settings
   - Added mandatory Release & Deployment Procedure to this document
   - Established post-deploy health check verification as standard practice
+- [x] **v2.0.0 — Web Push Notifications** (2026-03-10)
+  - Added VAPID-based Web Push notifications for clients and professionals (opt-in)
+  - Created `app/lib/push.ts` with `sendPushToUser()` and stale subscription cleanup (410/404)
+  - Created `public/sw.js` service worker for push events and notification click routing
+  - Created `app/api/push/subscribe/route.ts` for subscription management (POST/DELETE)
+  - Created `app/components/PushNotificationBanner.tsx` — first-visit opt-in banner
+  - Added `PushSubscription` model to Prisma schema, `notifyViaEmail`/`notifyViaPush` fields on User
+  - Added notification preferences section to Settings page (email + push toggles)
+  - Integrated push into booking-actions, admin-actions, and cron reminders alongside email
+  - Email sends now gated on `notifyViaEmail` preference (default: true)
+  - Push sends gated on `notifyViaPush` preference (default: false)
+  - Added 6 push notification unit tests (push.test.ts)
+  - **BREAKING**: DB schema change — requires migration
+  - Total: 106 tests across 7 files
 
 ### Key Decisions Log
 | Date | Decision | Rationale | Affected Files |
@@ -202,6 +216,8 @@ After the initial 7-phase build, development continued with feature releases:
 | 2026-03-08 | Fire-and-forget email pattern | Email failures must never block or roll back the triggering operation | /app/lib/email.ts |
 | 2026-03-09 | Vercel Cron for daily reminders | Serverless cron avoids need for external scheduler; `CRON_SECRET` for auth | /api/cron/reminders, vercel.json |
 | 2026-03-09 | Admin email connectivity test | Step-by-step validation helps admins self-diagnose Resend config issues | /app/admin/settings/** |
+| 2026-03-10 | VAPID Web Push for notifications | Browser push notifications complement email; independent opt-in per channel | /app/lib/push.ts, /public/sw.js, /api/push/subscribe |
+| 2026-03-10 | Per-user notification channel preferences | Users choose email, push, or both; granular control vs all-or-nothing | User model fields, /app/settings/page.tsx |
 
 ## Release History
 
@@ -219,6 +235,7 @@ After the initial 7-phase build, development continued with feature releases:
 | v1.9.0 | 2026-03-08 | Email notifications via Resend (4 templates) |
 | v1.10.0 | 2026-03-09 | Expanded notifications (11 types), appointment reminder cron, admin email test |
 | v1.10.1 | 2026-03-09 | Twilio dependency fix, deployment procedure, SMS toggle removal |
+| v2.0.0 | 2026-03-10 | Web Push Notifications (VAPID), per-user notification preferences, opt-in banner, 106 tests |
 
 ## Task Dependencies
 

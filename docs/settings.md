@@ -80,3 +80,39 @@ The default timezone is **America/Chicago** (US Central).
 4. Settings take effect immediately — no need to refresh
 
 Your preferences are stored with your account and persist across sessions and devices.
+
+---
+
+## Notification Preferences
+
+**Available to:** Clients and Professionals only (Admins do not receive booking notifications)
+
+### Email Notifications
+
+Toggle whether you receive **email notifications** for booking events and reminders.
+
+| Setting | Default | Description |
+|:--------|:--------|:------------|
+| **Email notifications** | On | When enabled, you receive emails for booking confirmations, cancellations, reassignments, and daily reminders |
+
+{: .note }
+Even with email notifications enabled, you must have an email address on your profile to receive emails.
+
+### Push Notifications
+
+Toggle whether you receive **browser push notifications** for booking events and reminders.
+
+| Setting | Default | Description |
+|:--------|:--------|:------------|
+| **Push notifications** | Off | When enabled, your browser shows push notifications for booking events |
+
+The push notification section adapts based on your browser's permission state:
+
+| Browser Permission | What You See |
+|:-------------------|:-------------|
+| **Not yet asked** | An "Enable Push Notifications" button that triggers the browser permission prompt |
+| **Granted** | An on/off toggle to control push notifications |
+| **Denied** | A message explaining how to re-enable notifications in your browser settings |
+
+{: .note }
+Push notifications require a modern browser with Push API support (Chrome, Firefox, Edge, Safari 16+). If your browser doesn't support push, this section will not appear.

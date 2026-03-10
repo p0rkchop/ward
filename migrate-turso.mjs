@@ -213,6 +213,21 @@ const statements = [
   // ── v1.11.0: Add siteName and timeslotDuration to existing AppSettings rows ──
   `ALTER TABLE "AppSettings" ADD COLUMN "siteName" TEXT NOT NULL DEFAULT 'Ward'`,
   `ALTER TABLE "AppSettings" ADD COLUMN "timeslotDuration" INTEGER NOT NULL DEFAULT 30`,
+
+  // ── v2.0.0: Push notifications ──
+  `ALTER TABLE "User" ADD COLUMN "notifyViaEmail" BOOLEAN NOT NULL DEFAULT true`,
+  `ALTER TABLE "User" ADD COLUMN "notifyViaPush" BOOLEAN NOT NULL DEFAULT false`,
+  `CREATE TABLE IF NOT EXISTS "PushSubscription" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "endpoint" TEXT NOT NULL,
+    "p256dh" TEXT NOT NULL,
+    "auth" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "userId" TEXT NOT NULL,
+    CONSTRAINT "PushSubscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "PushSubscription_endpoint_key" ON "PushSubscription"("endpoint")`,
+  `CREATE INDEX IF NOT EXISTS "PushSubscription_userId_idx" ON "PushSubscription"("userId")`,
 ];
 
 console.log(`Running ${statements.length} statements...`);
@@ -252,5 +267,8 @@ console.log("EventResource columns:", eventResourceCols.rows.map(r => r.name));
 
 const appSettingsCols = await client.execute("PRAGMA table_info('AppSettings')");
 console.log("AppSettings columns:", appSettingsCols.rows.map(r => r.name));
+
+const pushSubCols = await client.execute("PRAGMA table_info('PushSubscription')");
+console.log("PushSubscription columns:", pushSubCols.rows.map(r => r.name));
 
 client.close();

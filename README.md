@@ -6,6 +6,7 @@
 [![Turso](https://img.shields.io/badge/Turso-SQLite-green?style=for-the-badge&logo=sqlite)](https://turso.tech)
 [![Twilio](https://img.shields.io/badge/Twilio-Verify-red?style=for-the-badge&logo=twilio)](https://twilio.com)
 [![Resend](https://img.shields.io/badge/Resend-Email-purple?style=for-the-badge)](https://resend.com)
+[![Web Push](https://img.shields.io/badge/Web_Push-VAPID-orange?style=for-the-badge)](https://developer.mozilla.org/en-US/docs/Web/API/Push_API)
 [![Vercel](https://img.shields.io/badge/Deploy%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
 
 A two-sided scheduling application where professional availability is strictly constrained by physical resource capacity, and clients are auto-matched to professionals based on timeslot selection.
@@ -60,6 +61,19 @@ Ward solves a critical problem in service scheduling: **physical capacity constr
 
 All emails are fire-and-forget — failures never block or roll back the underlying operation.
 
+### Web Push Notifications (opt-in)
+- **Browser push notifications** — VAPID-based Web Push Protocol via `web-push` npm package
+- **Opt-in banner** — clients and professionals see a one-time banner to enable push (dismissable)
+- **Settings toggles** — independent email and push notification preferences per user
+- **Booking confirmed** — push to client on successful booking
+- **Booking cancelled** — push to client on self-cancellation or admin cancellation
+- **Booking reassigned** — push to client when admin moves their booking
+- **New booking → professional** — push to professional when a client books on their shift
+- **Booking cancelled → professional** — push when a booking on their shift is cancelled
+- **Appointment reminder** — push reminders sent alongside email reminders via daily cron
+- **Click-to-navigate** — notification clicks open the relevant page (appointments, bookings, calendar)
+- **Stale subscription cleanup** — automatically removes expired/invalid push subscriptions (410/404)
+
 ### User Experience
 - **🌗 Dark Mode**: Toggle between light and dark themes, stored per-user in the database
 - **⚙️ User Preferences**: Per-user settings for timezone, date format (North American default), 12-hour/24-hour time display
@@ -83,6 +97,7 @@ All emails are fire-and-forget — failures never block or roll back the underly
 | **ORM** | Prisma 7 with libSQL adapter | Type-safe database queries and migrations |
 | **Authentication** | NextAuth 4 + Twilio Verify | Phone-based SMS verification with JWT sessions |
 | **Email** | Resend | Transactional email notifications from `noreply@career-ward.app` |
+| **Push** | web-push (VAPID) | Browser push notifications for booking events and reminders |
 | **Styling** | Tailwind CSS 4 + Geist font | Utility-first CSS with dark mode support |
 | **Testing** | Vitest + Testing Library | Unit and integration tests |
 | **Deployment** | Vercel | Serverless hosting with auto-deploy from GitHub |
@@ -110,7 +125,7 @@ All emails are fire-and-forget — failures never block or roll back the underly
 
 ### Core Entities
 
-- **`User`**: Phone-authenticated user with role, name, optional email, preferences (theme, timezone, date/time format)
+- **`User`**: Phone-authenticated user with role, name, optional email, preferences (theme, timezone, date/time format), notification preferences (email/push toggles)
 - **`Event`**: Multi-day scheduling event with timezone and date range
 - **`EventDay`**: Per-day configuration (start/end hours, blackout periods)
 - **`Resource`**: Physical capacity constraint with quantity, professionals-per-unit, optional location
@@ -118,6 +133,7 @@ All emails are fire-and-forget — failures never block or roll back the underly
 - **`Shift`**: Professional availability on a Resource during Event hours
 - **`Booking`**: Client appointment auto-matched to a Shift
 - **`AppSetting`**: System-wide configuration (e.g., branding image)
+- **`PushSubscription`**: Web Push subscription (endpoint, p256dh, auth keys) linked to User
 
 ### Business Rules
 
@@ -212,6 +228,9 @@ When a Client selects a valid timeslot:
 | `TWILIO_VERIFY_SERVICE_SID` | Twilio Verify Service SID (starts with `VA...`) | Yes |
 | `RESEND_API_KEY` | Resend API key for email notifications | Yes |
 | `CRON_SECRET` | Secret for authenticating the daily reminder cron job | Production only |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | VAPID public key for Web Push (generate with `npx web-push generate-vapid-keys`) | Yes |
+| `VAPID_PRIVATE_KEY` | VAPID private key for Web Push | Yes |
+| `VAPID_SUBJECT` | VAPID subject (e.g., `mailto:admin@career-ward.app`) | Yes |
 | `NODE_ENV` | Environment mode (`development` or `production`) | No |
 
 ## 📦 Deployment
@@ -254,8 +273,8 @@ npm run test:ui        # Run with Vitest UI
 npm run test:coverage  # Run with coverage report
 ```
 
-- **100 tests** across 6 test files (unit + integration)
-- Covers shift creation, booking auto-matching, admin actions, validation, and end-to-end booking lifecycle
+- **106 tests** across 7 test files (unit + integration)
+- Covers shift creation, booking auto-matching, admin actions, validation, push notifications, and end-to-end booking lifecycle
 - **100% pass rate**
 
 ## 🔒 Security Features

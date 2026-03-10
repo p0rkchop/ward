@@ -8,6 +8,8 @@ export type UserPreferences = {
   timeFormat: string;
   dateFormat: string;
   timezone: string;
+  notifyViaEmail: boolean;
+  notifyViaPush: boolean;
 };
 
 export async function getUserPreferences(): Promise<UserPreferences | null> {
@@ -17,7 +19,7 @@ export async function getUserPreferences(): Promise<UserPreferences | null> {
   try {
     const user = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { theme: true, timeFormat: true, dateFormat: true, timezone: true },
+      select: { theme: true, timeFormat: true, dateFormat: true, timezone: true, notifyViaEmail: true, notifyViaPush: true },
     });
     return user;
   } catch {
@@ -57,11 +59,13 @@ export async function updateUserPreferences(
   }
 
   try {
-    const data: Record<string, string> = {};
+    const data: Record<string, string | boolean> = {};
     if (prefs.theme) data.theme = prefs.theme;
     if (prefs.timeFormat) data.timeFormat = prefs.timeFormat;
     if (prefs.dateFormat) data.dateFormat = prefs.dateFormat;
     if (prefs.timezone) data.timezone = prefs.timezone;
+    if (typeof prefs.notifyViaEmail === 'boolean') data.notifyViaEmail = prefs.notifyViaEmail;
+    if (typeof prefs.notifyViaPush === 'boolean') data.notifyViaPush = prefs.notifyViaPush;
 
     if (Object.keys(data).length === 0) {
       return { ok: false, error: 'No preferences to update' };

@@ -261,6 +261,19 @@ Complete these before inviting testers:
 | E7 | **Change timezone** | Select a different timezone (e.g., switch from Central to Eastern). | Times displayed across the app shift by the correct offset. |
 | E8 | **Settings persist** | Change a setting, sign out, sign back in, and go to Settings. | Your previous choices are still selected. |
 
+### Notification Preferences (Clients & Professionals only)
+
+| # | Test | Instructions | Expected Result |
+|:--|:-----|:-------------|:----------------|
+| E9 | **Notification section visible** | Go to Settings as a Client or Professional. | A "Notification Preferences" section appears below Display Preferences with Email and Push toggles. |
+| E10 | **Notification section hidden for Admin** | Log in as Admin and go to Settings. | No "Notification Preferences" section is displayed. |
+| E11 | **Toggle email off** | Turn off the Email Notifications toggle and save. | Preference saves. You should NOT receive email notifications for subsequent booking events. |
+| E12 | **Toggle email back on** | Turn Email Notifications back on and save. | Preference saves. You resume receiving email notifications. |
+| E13 | **Enable push — first time** | In the Push Notifications section, click "Enable Push Notifications". | Browser prompts for notification permission. After granting, the toggle switches to On. |
+| E14 | **Toggle push off** | Turn off Push Notifications and save. | Preference saves. You should NOT receive push notifications for subsequent booking events. |
+| E15 | **Toggle push back on** | Turn Push Notifications back on and save. | Preference saves. You resume receiving push notifications. |
+| E16 | **Push denied state** | If you previously denied notification permission in your browser, visit Settings. | The Push section shows a message explaining that notifications are blocked and how to unblock in browser settings. |
+
 ---
 
 ## Section F: Cross-Role Scenarios
@@ -271,9 +284,9 @@ These tests require actions from multiple roles in sequence. Coordinate with you
 
 | # | Test | Steps | Expected Result |
 |:--|:-----|:------|:----------------|
-| F1 | **Full booking lifecycle** | 1. **Professional**: Create a shift on a future date. 2. **Client**: Go to Book Appointment, find the new slot, and book it. 3. **Professional**: Check My Bookings — the new booking appears. | Booking is visible to both Client and Professional. Both receive confirmation emails. |
-| F2 | **Admin reassigns booking** | 1. **Admin**: Go to Event Bookings, find the booking from F1, and reassign it to a different timeslot. | Client receives "Booking Reassigned" email with old and new details. Professional(s) receive notifications. Booking details update for Client. |
-| F3 | **Admin cancels booking** | 1. **Client**: Book a new appointment. 2. **Admin**: Cancel that booking from Event Bookings. | Client receives "Admin Cancellation" email. Professional receives cancellation notification. Booking disappears from Client's upcoming list. |
+| F1 | **Full booking lifecycle** | 1. **Professional**: Create a shift on a future date. 2. **Client**: Go to Book Appointment, find the new slot, and book it. 3. **Professional**: Check My Bookings — the new booking appears. | Booking is visible to both Client and Professional. Both receive confirmation emails. If push is enabled, both also receive push notifications. |
+| F2 | **Admin reassigns booking** | 1. **Admin**: Go to Event Bookings, find the booking from F1, and reassign it to a different timeslot. | Client receives "Booking Reassigned" email and push notification (if enabled) with old and new details. Professional(s) receive notifications. Booking details update for Client. |
+| F3 | **Admin cancels booking** | 1. **Client**: Book a new appointment. 2. **Admin**: Cancel that booking from Event Bookings. | Client receives "Admin Cancellation" email and push (if enabled). Professional receives cancellation notification. Booking disappears from Client's upcoming list. |
 | F4 | **Role change notification** | 1. **Admin**: Change a test user's role (e.g., Client → Professional). 2. **User**: Check email. 3. **User**: Log out and back in. | User receives "Role Changed" email. After re-login, they are redirected to the new role's dashboard. Access to the old role's pages is blocked. |
 | F5 | **Revert role change** | 1. **Admin**: Change the user's role back to the original. | User receives another email. After re-login, they return to their original dashboard. |
 
@@ -300,6 +313,9 @@ Repeat your role's critical path on a mobile device. Focus on usability, not re-
 
 **Assigned to:** All testers — check your inbox for each email type you should have received during testing.
 
+{: .note }
+Email notifications are only sent if the user has email notifications enabled (default: on) in Settings → Notification Preferences.
+
 | # | Email Type | Trigger | Recipient | Verified? |
 |:--|:-----------|:--------|:----------|:----------|
 | H1 | **Welcome** | Completing profile setup (Section A) | New user | ☐ |
@@ -319,6 +335,40 @@ For each email, verify:
 - [ ] Subject line is clear and relevant
 - [ ] Body contains correct details (names, dates, times, locations)
 - [ ] Sender shows as `noreply@career-ward.app`
+
+---
+
+## Section H-P: Push Notification Verification Matrix
+
+**Assigned to:** Client and Professional testers — verify push notifications for each event type. You must have push notifications enabled in Settings before running these tests.
+
+### Pre-requisite
+- [ ] Push notifications enabled in Settings → Notification Preferences
+- [ ] Browser permission granted for notifications
+
+| # | Push Type | Trigger | Recipient | Click opens | Verified? |
+|:--|:----------|:--------|:----------|:------------|:----------|
+| HP1 | **Booking Confirmed** | Client books appointment (D5, F1) | Client | /client/appointments | ☐ |
+| HP2 | **New Booking (Professional)** | Client books on your shift (F1) | Professional | /professional/bookings | ☐ |
+| HP3 | **Booking Cancelled (Client)** | Client cancels appointment (D10) | Client | /client/appointments | ☐ |
+| HP4 | **Booking Cancelled (Professional)** | A booking on your shift is cancelled (D10, F3) | Professional | /professional/bookings | ☐ |
+| HP5 | **Admin Cancellation** | Admin cancels a booking (F3) | Client | /client/appointments | ☐ |
+| HP6 | **Booking Reassigned** | Admin reassigns a booking (F2) | Client | /client/appointments | ☐ |
+
+For each push notification, verify:
+- [ ] Notification appeared in the browser/OS notification center
+- [ ] Title and body contain correct details (names, dates, times)
+- [ ] Clicking the notification opens Ward and navigates to the correct page
+- [ ] Notification appears even when the Ward tab is not the active tab
+
+### Push Opt-in Banner Test
+
+| # | Test | Instructions | Expected Result |
+|:--|:-----|:-------------|:----------------|
+| HP7 | **Banner appears** | Log in as a Client or Professional for the first time (or clear localStorage). | A push notification opt-in banner appears at the top of the page. |
+| HP8 | **Enable from banner** | Click "Enable" on the banner. | Browser prompts for notification permission. After granting, the banner disappears and push is enabled. |
+| HP9 | **Dismiss banner** | Click "Not now" on the banner. | Banner disappears. It does not reappear on subsequent page loads. |
+| HP10 | **Banner not shown for Admin** | Log in as Admin. | No push notification banner is displayed. |
 
 ---
 
@@ -346,7 +396,8 @@ Once all sections are complete, review the results:
 
 - **All critical-path items pass** — Sections A, B, C, D core items (login, CRUD, booking lifecycle)
 - **Cross-role scenarios work** — Section F confirms end-to-end workflows
-- **Emails are delivered** — Section H confirms all notification types
+- **Emails are delivered** — Section H confirms all email notification types
+- **Push notifications work** — Section H-P confirms push delivery, click navigation, and opt-in flow
 - **Mobile is usable** — Section G confirms no major layout/usability issues
 - **No blocking bugs remain** — All `uat`-labeled GitHub Issues marked Critical are resolved
 
@@ -355,8 +406,8 @@ Once all sections are complete, review the results:
 | Role | Tester | Sections | Status | Date |
 |:-----|:-------|:---------|:-------|:-----|
 | Admin | _____________ | A, B, E, F, G, H, I | ☐ Pass ☐ Fail | ___/___/___ |
-| Professional | _____________ | A, C, E, F, G, H, I | ☐ Pass ☐ Fail | ___/___/___ |
-| Client | _____________ | A, D, E, F, G, H, I | ☐ Pass ☐ Fail | ___/___/___ |
+| Professional | _____________ | A, C, E, F, G, H, H-P, I | ☐ Pass ☐ Fail | ___/___/___ |
+| Client | _____________ | A, D, E, F, G, H, H-P, I | ☐ Pass ☐ Fail | ___/___/___ |
 
 **Overall UAT Result:** ☐ **Accepted** ☐ **Accepted with conditions** ☐ **Not accepted**
 
