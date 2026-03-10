@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createEvent, updateEvent, deleteEvent, type EventData } from '@/app/lib/event-actions';
-import { formatDateShort } from '@/app/lib/format-utils';
+import { formatDateShort, computeEventStatus, type EventStatus } from '@/app/lib/format-utils';
 import EventDaysEditor from './EventDaysEditor';
 import EventResourcesEditor from './EventResourcesEditor';
 
@@ -516,15 +516,28 @@ export default function EventsManager({ initialEvents }: Props) {
                       <div className="text-xs text-gray-500 dark:text-gray-400">{event.timezone || 'America/Chicago'}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          event.isActive
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                        }`}
-                      >
-                        {event.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                      {(() => {
+                        const status = computeEventStatus(event);
+                        const styles: Record<EventStatus, string> = {
+                          active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                          ended: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                          upcoming: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                          inactive: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
+                        };
+                        const labels: Record<EventStatus, string> = {
+                          active: 'Active',
+                          ended: 'Ended',
+                          upcoming: 'Upcoming',
+                          inactive: 'Inactive',
+                        };
+                        return (
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`}
+                          >
+                            {labels[status]}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
                       <a

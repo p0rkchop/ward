@@ -30,6 +30,7 @@ vi.mock('./db', () => {
       resource: createMockDelegate(),
       shift: createMockDelegate(),
       booking: createMockDelegate(),
+      eventDay: createMockDelegate(),
     },
   };
 })
@@ -119,6 +120,9 @@ describe('shift-actions', () => {
         quantity: 1, professionalsPerUnit: 1, isActive: true,
         deletedAt: null, createdAt: new Date(), updatedAt: new Date(),
       } as any)
+
+      // Mock db.user.findUnique for event day validation (no event assigned)
+      vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: null } as any)
 
       // Mock transaction
       const mockShift = {
@@ -262,6 +266,95 @@ describe('shift-actions', () => {
 
       await expect(createShift(mockResourceId, mockStart, mockEnd))
         .rejects.toThrow('Resource is at capacity')
+    })
+
+    // Helper to set up mocks through the capacity check (for event day validation tests)
+    function setupMocksThroughCapacity() {
+      vi.mocked(validateSchema).mockReturnValue({
+        resourceId: mockResourceId,
+        start: mockStart,
+        end: mockEnd,
+      })
+      vi.mocked(isValid30MinuteInterval).mockReturnValue(true)
+      vi.mocked(isAlignedTo30MinuteBoundary).mockReturnValue(true)
+      vi.mocked(validateProfessionalRole).mockResolvedValue(undefined)
+      vi.mocked(validateResourceActive).mockResolvedValue(undefined)
+      vi.mocked(findOverlappingShifts).mockResolvedValue({
+        professionalOverlap: false,
+        resourceOverlapCount: 0,
+      })
+      vi.mocked(db.resource.findUnique).mockResolvedValue({
+        id: 'resource-id', name: 'Test', description: null, location: null,
+        quantity: 1, professionalsPerUnit: 1, isActive: true,
+        deletedAt: null, createdAt: new Date(), updatedAt: new Date(),
+      } as any)
+    }
+
+    it('throws BusinessRuleError when no event day exists for shift date', async () => {
+      setupMocksThroughCapacity()
+      vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: 'event-1' } as any)
+      vi.mocked(db.eventDay.findFirst).mockResolvedValue(null)
+
+      await expect(createShift(mockResourceId, mockStart, mockEnd))
+        .rejects.toThrow('No active event day exists for this date')
+    })
+
+    it('throws BusinessRuleError when shift is outside event day hours', async () => {
+      // Use local-time dates to match how setHours works in the validation code
+      const shiftDate = new Date(2026, 1, 22); // Feb 22, 2026 midnight local
+      const earlyStart = new Date(shiftDate);
+      earlyStart.setHours(8, 0, 0, 0);
+      const earlyEnd = new Date(shiftDate);
+      earlyEnd.setHours(8, 30, 0, 0);
+
+      setupMocksThroughCapacity()
+      vi.mocked(validateSchema).mockReturnValue({
+        resourceId: mockResourceId,
+        start: earlyStart,
+        end: earlyEnd,
+      })
+      vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: 'event-1' } as any)
+      // Event day has hours 14:00-17:00 but shift is at 08:00-08:30
+      vi.mocked(db.eventDay.findFirst).mockResolvedValue({
+        id: 'day-1',
+        date: shiftDate,
+        startTime: '14:00',
+        endTime: '17:00',
+        blackouts: [],
+      } as any)
+
+      await expect(createShift(mockResourceId, earlyStart, earlyEnd))
+        .rejects.toThrow('Shift must be within event day hours (14:00 - 17:00)')
+    })
+
+    it('throws BusinessRuleError when shift overlaps with blackout period', async () => {
+      // Use local-time dates to match how setHours works in the validation code
+      const shiftDate = new Date(2026, 1, 22); // Feb 22, 2026 midnight local
+      const localStart = new Date(shiftDate);
+      localStart.setHours(10, 0, 0, 0);
+      const localEnd = new Date(shiftDate);
+      localEnd.setHours(10, 30, 0, 0);
+
+      setupMocksThroughCapacity()
+      vi.mocked(validateSchema).mockReturnValue({
+        resourceId: mockResourceId,
+        start: localStart,
+        end: localEnd,
+      })
+      vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: 'event-1' } as any)
+      // Event day covers 09:00-17:00, blackout from 10:00-11:00
+      vi.mocked(db.eventDay.findFirst).mockResolvedValue({
+        id: 'day-1',
+        date: shiftDate,
+        startTime: '09:00',
+        endTime: '17:00',
+        blackouts: [
+          { startTime: '10:00', endTime: '11:00', description: 'Lunch' },
+        ],
+      } as any)
+
+      await expect(createShift(mockResourceId, localStart, localEnd))
+        .rejects.toThrow('Shift overlaps with a blackout period (10:00 - 11:00: Lunch)')
     })
   })
 

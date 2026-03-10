@@ -238,6 +238,7 @@ After the initial 7-phase build, development continued with feature releases:
 | v1.12.0 | 2026-03-10 | Web Push Notifications (VAPID), per-user notification preferences, opt-in banner, 106 tests |
 | v1.12.1 | 2026-03-10 | Push UX fixes (always-visible toggle, error feedback, banner recovery), version bump to package.json |
 | v1.12.2 | 2026-03-10 | Fix stale session cache on Settings page — notification prefs now fetched from DB on mount |
+| v1.13.0 | 2026-03-10 | Fix event bugs: computed event status (ended/upcoming/active/inactive), server-side shift validation against event day hours and blackout periods, filter past events from booking queries |
 
 ## Task Dependencies
 

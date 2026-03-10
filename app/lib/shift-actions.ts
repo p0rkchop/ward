@@ -87,6 +87,62 @@ export async function createShift(
     }
   }
 
+  // Validate shift against event day schedule and blackout periods
+  const professional = await db.user.findUnique({
+    where: { id: professionalId },
+    select: { eventId: true },
+  });
+
+  if (professional?.eventId) {
+    const shiftDate = new Date(input.start);
+    shiftDate.setHours(0, 0, 0, 0);
+
+    const eventDay = await db.eventDay.findFirst({
+      where: {
+        eventId: professional.eventId,
+        date: shiftDate,
+        deletedAt: null,
+        isActive: true,
+      },
+      include: {
+        blackouts: {
+          where: { deletedAt: null },
+          select: { startTime: true, endTime: true, description: true },
+        },
+      },
+    });
+
+    if (!eventDay) {
+      throw new BusinessRuleError('No active event day exists for this date');
+    }
+
+    // Check shift falls within event day hours
+    const [dayStartH, dayStartM] = eventDay.startTime.split(':').map(Number);
+    const [dayEndH, dayEndM] = eventDay.endTime.split(':').map(Number);
+    const dayStart = new Date(eventDay.date);
+    dayStart.setHours(dayStartH, dayStartM, 0, 0);
+    const dayEnd = new Date(eventDay.date);
+    dayEnd.setHours(dayEndH, dayEndM, 0, 0);
+
+    if (input.start < dayStart || input.end > dayEnd) {
+      throw new BusinessRuleError(
+        `Shift must be within event day hours (${eventDay.startTime} - ${eventDay.endTime})`
+      );
+    }
+
+    // Check shift does not overlap with blackout periods
+    const shiftStartStr = `${input.start.getHours().toString().padStart(2, '0')}:${input.start.getMinutes().toString().padStart(2, '0')}`;
+    const shiftEndStr = `${input.end.getHours().toString().padStart(2, '0')}:${input.end.getMinutes().toString().padStart(2, '0')}`;
+
+    for (const blackout of eventDay.blackouts) {
+      if (shiftStartStr < blackout.endTime && shiftEndStr > blackout.startTime) {
+        throw new BusinessRuleError(
+          `Shift overlaps with a blackout period (${blackout.startTime} - ${blackout.endTime}${blackout.description ? ': ' + blackout.description : ''})`
+        );
+      }
+    }
+  }
+
   // Create shift transactionally with re-checking constraints
   try {
     const shift = await db.$transaction(async (tx) => {

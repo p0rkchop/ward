@@ -59,6 +59,7 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
             event: {
               isActive: true,
               deletedAt: null,
+              endDate: { gte: start },
             },
           },
         },

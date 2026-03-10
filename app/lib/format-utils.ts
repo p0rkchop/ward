@@ -111,3 +111,23 @@ export function prefsFromSession(user?: {
     timezone: user?.timezone || DEFAULT_PREFS.timezone,
   };
 }
+
+// ── Event Status ──
+
+export type EventStatus = 'active' | 'ended' | 'upcoming' | 'inactive';
+
+/**
+ * Compute an event's display status from its dates and isActive flag.
+ */
+export function computeEventStatus(event: { startDate: Date; endDate: Date; isActive: boolean }): EventStatus {
+  if (!event.isActive) return 'inactive';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const endDate = new Date(event.endDate);
+  endDate.setHours(23, 59, 59, 999);
+  const startDate = new Date(event.startDate);
+  startDate.setHours(0, 0, 0, 0);
+  if (endDate < today) return 'ended';
+  if (startDate > today) return 'upcoming';
+  return 'active';
+}
