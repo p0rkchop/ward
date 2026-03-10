@@ -180,7 +180,7 @@ After the initial 7-phase build, development continued with feature releases:
   - Removed obsolete SMS Notifications toggle from admin settings
   - Added mandatory Release & Deployment Procedure to this document
   - Established post-deploy health check verification as standard practice
-- [x] **v2.0.0 — Web Push Notifications** (2026-03-10)
+- [x] **v1.12.0 — Web Push Notifications** (2026-03-10)
   - Added VAPID-based Web Push notifications for clients and professionals (opt-in)
   - Created `app/lib/push.ts` with `sendPushToUser()` and stale subscription cleanup (410/404)
   - Created `public/sw.js` service worker for push events and notification click routing
@@ -192,7 +192,7 @@ After the initial 7-phase build, development continued with feature releases:
   - Email sends now gated on `notifyViaEmail` preference (default: true)
   - Push sends gated on `notifyViaPush` preference (default: false)
   - Added 6 push notification unit tests (push.test.ts)
-  - **BREAKING**: DB schema change — requires migration
+  - DB schema change — requires migration
   - Total: 106 tests across 7 files
 
 ### Key Decisions Log
@@ -235,7 +235,7 @@ After the initial 7-phase build, development continued with feature releases:
 | v1.9.0 | 2026-03-08 | Email notifications via Resend (4 templates) |
 | v1.10.0 | 2026-03-09 | Expanded notifications (11 types), appointment reminder cron, admin email test |
 | v1.10.1 | 2026-03-09 | Twilio dependency fix, deployment procedure, SMS toggle removal |
-| v2.0.0 | 2026-03-10 | Web Push Notifications (VAPID), per-user notification preferences, opt-in banner, 106 tests |
+| v1.12.0 | 2026-03-10 | Web Push Notifications (VAPID), per-user notification preferences, opt-in banner, 106 tests |
 
 ## Task Dependencies
 

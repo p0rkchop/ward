@@ -214,7 +214,7 @@ const statements = [
   `ALTER TABLE "AppSettings" ADD COLUMN "siteName" TEXT NOT NULL DEFAULT 'Ward'`,
   `ALTER TABLE "AppSettings" ADD COLUMN "timeslotDuration" INTEGER NOT NULL DEFAULT 30`,
 
-  // ── v2.0.0: Push notifications ──
+  // ── v1.12.0: Push notifications ──
   `ALTER TABLE "User" ADD COLUMN "notifyViaEmail" BOOLEAN NOT NULL DEFAULT true`,
   `ALTER TABLE "User" ADD COLUMN "notifyViaPush" BOOLEAN NOT NULL DEFAULT false`,
   `CREATE TABLE IF NOT EXISTS "PushSubscription" (
