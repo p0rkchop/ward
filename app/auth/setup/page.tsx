@@ -11,9 +11,12 @@ export default function SetupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [rolePassword, setRolePassword] = useState('');
+  const [enablePush, setEnablePush] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<{ role: string; eventName?: string } | null>(null);
+
+  const pushSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,7 +24,31 @@ export default function SetupPage() {
     setLoading(true);
 
     try {
-      const result = await completeSetup(name, email || null, rolePassword || null);
+      // If user opted into push, request permission and subscribe
+      let pushSubscribed = false;
+      if (enablePush && pushSupported && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            const reg = await navigator.serviceWorker.register('/sw.js');
+            await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+            });
+            await fetch('/api/push/subscribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(sub.toJSON()),
+            });
+            pushSubscribed = true;
+          }
+        } catch (pushErr) {
+          console.error('Push subscription during setup failed:', pushErr);
+        }
+      }
+
+      const result = await completeSetup(name, email || null, rolePassword || null, pushSubscribed);
 
       if (!result.ok) {
         setError(result.error);
@@ -134,6 +161,25 @@ export default function SetupPage() {
                 If you have a role password from your administrator, enter it here.
               </p>
             </div>
+
+            {pushSupported && (
+              <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                <input
+                  id="enablePush"
+                  type="checkbox"
+                  checked={enablePush}
+                  onChange={(e) => setEnablePush(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="enablePush" className="text-sm text-blue-800 dark:text-blue-200">
+                  <span className="font-medium">Enable push notifications</span>
+                  <br />
+                  <span className="text-xs text-blue-600 dark:text-blue-400">
+                    Get instant alerts for bookings, cancellations, and reminders.
+                  </span>
+                </label>
+              </div>
+            )}
 
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">

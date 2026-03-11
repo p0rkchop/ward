@@ -18,6 +18,10 @@ export default async function AdminLayout({
     redirect('/auth/login');
   }
 
+  if (!session.user.setupComplete) {
+    redirect('/auth/setup');
+  }
+
   if (session.user.role !== Role.ADMIN) {
     redirect('/auth/unauthorized');
   }

@@ -14,7 +14,8 @@ type SetupResult =
 export async function completeSetup(
   name: string,
   email: string | null,
-  rolePassword: string | null
+  rolePassword: string | null,
+  notifyViaPush: boolean = false
 ): Promise<SetupResult> {
   const session = await getServerSession();
   if (!session?.user?.id) {
@@ -74,6 +75,7 @@ export async function completeSetup(
         email: trimmedEmail,
         role,
         setupComplete: true,
+        notifyViaPush,
         ...(eventId ? { eventId } : {}),
       },
     });

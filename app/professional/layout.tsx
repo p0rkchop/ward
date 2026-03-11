@@ -19,6 +19,10 @@ export default async function ProfessionalLayout({
     redirect('/auth/login');
   }
 
+  if (!session.user.setupComplete) {
+    redirect('/auth/setup');
+  }
+
   if (session.user.role !== Role.PROFESSIONAL) {
     redirect('/auth/unauthorized');
   }

@@ -19,6 +19,10 @@ export default async function ClientLayout({
     redirect('/auth/login');
   }
 
+  if (!session.user.setupComplete) {
+    redirect('/auth/setup');
+  }
+
   if (session.user.role !== Role.CLIENT) {
     redirect('/auth/unauthorized');
   }

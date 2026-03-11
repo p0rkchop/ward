@@ -12,6 +12,11 @@ export default async function Home() {
     redirect('/auth/login');
   }
 
+  // New users must complete setup before accessing any dashboard
+  if (!session.user.setupComplete) {
+    redirect('/auth/setup');
+  }
+
   switch (session.user.role) {
     case 'ADMIN':
       redirect('/admin/dashboard');
