@@ -51,3 +51,6 @@ KNOWLEDGE-*.md
 # editor/tool configs
 .vscode/
 .claude/
+
+# local memory and stuff
+ISSUES.md

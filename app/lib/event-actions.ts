@@ -83,18 +83,27 @@ export async function getEventDays(eventId: string): Promise<EventDayWithBlackou
 }
 
 /**
+ * Parse a date-only string ("2026-04-01") as noon UTC so the calendar date
+ * is correct in every timezone from UTC-12 to UTC+12.
+ */
+function parseLocalDate(dateStr: string): Date {
+  return new Date(dateStr + 'T12:00:00Z');
+}
+
+/**
  * Generate an array of dates between startDate and endDate (inclusive).
+ * Uses noon UTC to avoid timezone-related date drift.
  */
 function generateDateRange(startDate: Date, endDate: Date): Date[] {
   const dates: Date[] = [];
   const current = new Date(startDate);
-  current.setHours(0, 0, 0, 0);
+  current.setUTCHours(12, 0, 0, 0);
   const end = new Date(endDate);
-  end.setHours(0, 0, 0, 0);
+  end.setUTCHours(12, 0, 0, 0);
 
   while (current <= end) {
     dates.push(new Date(current));
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
   return dates;
 }
@@ -119,8 +128,8 @@ export async function createEvent(data: {
     return { ok: false, error: 'Professional password is required' };
   }
 
-  const startDate = new Date(data.startDate);
-  const endDate = new Date(data.endDate);
+  const startDate = parseLocalDate(data.startDate);
+  const endDate = parseLocalDate(data.endDate);
 
   if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
     return { ok: false, error: 'Invalid date format' };
@@ -191,8 +200,8 @@ export async function updateEvent(
 
   if (data.name !== undefined) updateData.name = data.name.trim();
   if (data.description !== undefined) updateData.description = data.description?.trim() || null;
-  if (data.startDate !== undefined) updateData.startDate = new Date(data.startDate);
-  if (data.endDate !== undefined) updateData.endDate = new Date(data.endDate);
+  if (data.startDate !== undefined) updateData.startDate = parseLocalDate(data.startDate);
+  if (data.endDate !== undefined) updateData.endDate = parseLocalDate(data.endDate);
   if (data.defaultStartTime !== undefined) updateData.defaultStartTime = data.defaultStartTime;
   if (data.defaultEndTime !== undefined) updateData.defaultEndTime = data.defaultEndTime;
   if (data.timezone !== undefined) updateData.timezone = data.timezone;

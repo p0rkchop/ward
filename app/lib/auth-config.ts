@@ -60,25 +60,9 @@ export const authOptions: NextAuthOptions = {
             notifyViaPush: user.notifyViaPush,
           };
         } catch (dbErr: unknown) {
-          // DB tables may not exist yet — return a synthetic user so the
-          // JWT session can still be issued after a successful Twilio verify.
           const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
-          console.log('[authorize] DB unavailable, using synthetic user', JSON.stringify({ phone, error: msg }));
-
-          return {
-            id: `synthetic-${phone}`,
-            phoneNumber: phone,
-            name: `User ${phone.slice(-4)}`,
-            role: Role.CLIENT,
-            setupComplete: false,
-            isNewUser: true,
-            theme: 'system',
-            timeFormat: '12h',
-            dateFormat: 'MM/DD/YYYY',
-            timezone: 'America/Chicago',
-            notifyViaEmail: true,
-            notifyViaPush: false,
-          };
+          console.error('[authorize] DB error during user lookup/create', JSON.stringify({ phone, error: msg }));
+          throw new Error('Account creation failed. Please try again.');
         }
       },
     }),
@@ -102,9 +86,12 @@ export const authOptions: NextAuthOptions = {
         // Every subsequent request — validate user still exists & is active
         try {
           const dbUser = await db.user.findUnique({ where: { id: token.sub } });
-          if (!dbUser || dbUser.deletedAt) {
-            console.log('[jwt] User invalidated', JSON.stringify({ id: token.sub, found: !!dbUser, deleted: !!dbUser?.deletedAt }));
+          if (dbUser?.deletedAt) {
+            console.log('[jwt] User deleted', JSON.stringify({ id: token.sub }));
             token.userValid = false;
+          } else if (!dbUser) {
+            // User not found — may be read-after-write lag, don't invalidate
+            console.log('[jwt] User not found in DB, keeping token valid', JSON.stringify({ id: token.sub }));
           } else {
             // Sync latest DB state into token
             token.name = dbUser.name;

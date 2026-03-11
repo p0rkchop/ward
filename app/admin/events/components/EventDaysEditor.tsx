@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import {
   getEventDays,
   updateEventDay,
@@ -8,7 +9,7 @@ import {
   deleteBlackout,
   type EventDayWithBlackouts,
 } from '@/app/lib/event-actions';
-import { formatDateWithDay } from '@/app/lib/format-utils';
+import { formatDateWithDay, formatTimeString, prefsFromSession } from '@/app/lib/format-utils';
 
 interface Props {
   eventId: string;
@@ -17,6 +18,8 @@ interface Props {
 }
 
 export default function EventDaysEditor({ eventId, eventName, onClose }: Props) {
+  const { data: session } = useSession();
+  const prefs = prefsFromSession(session?.user);
   const [days, setDays] = useState<EventDayWithBlackouts[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -247,7 +250,7 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
                     ) : (
                       <>
                         <span className="rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-1 text-sm text-gray-700 dark:text-gray-300">
-                          {day.startTime} – {day.endTime}
+                          {formatTimeString(day.startTime, prefs)} – {formatTimeString(day.endTime, prefs)}
                         </span>
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -302,7 +305,7 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
                           className="flex items-center gap-3 rounded-md bg-red-50 px-3 py-1.5"
                         >
                           <span className="text-sm font-medium text-red-700">
-                            {b.startTime} – {b.endTime}
+                            {formatTimeString(b.startTime, prefs)} – {formatTimeString(b.endTime, prefs)}
                           </span>
                           {b.description && (
                             <span className="text-sm text-red-600">{b.description}</span>

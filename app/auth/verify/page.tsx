@@ -31,19 +31,9 @@ function VerifyPageContent() {
       setError('Invalid verification code. Please try again.');
       setLoading(false);
     } else {
-      // Fetch the fresh session to check if user needs setup
-      try {
-        const sessionRes = await fetch('/api/auth/session');
-        const session = await sessionRes.json();
-        if (session?.user && !session.user.setupComplete) {
-          router.push('/auth/setup');
-        } else {
-          router.push('/');
-        }
-      } catch {
-        // Fallback — middleware will catch it anyway
-        router.push('/');
-      }
+      // Middleware handles routing: redirects to /auth/setup if
+      // setupComplete is false, or to the role-based dashboard.
+      router.push('/');
     }
   };
 

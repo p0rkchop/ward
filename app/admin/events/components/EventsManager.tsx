@@ -62,15 +62,15 @@ export default function EventsManager({ initialEvents }: Props) {
       return;
     }
 
-    // Refresh by adding to list
-    const dayCount = Math.max(1, Math.ceil((new Date(newEndDate).getTime() - new Date(newStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    // Refresh by adding to list — use noon UTC so calendar date is correct in all timezones
+    const dayCount = Math.max(1, Math.ceil((new Date(newEndDate + 'T12:00:00Z').getTime() - new Date(newStartDate + 'T12:00:00Z').getTime()) / (1000 * 60 * 60 * 24)) + 1);
     setEvents((prev) => [
       {
         id: result.id,
         name: newName.trim(),
         description: newDescription.trim() || null,
-        startDate: new Date(newStartDate),
-        endDate: new Date(newEndDate),
+        startDate: new Date(newStartDate + 'T12:00:00Z'),
+        endDate: new Date(newEndDate + 'T12:00:00Z'),
         defaultStartTime: newDefaultStartTime,
         defaultEndTime: newDefaultEndTime,
         timezone: newTimezone,
@@ -121,8 +121,8 @@ export default function EventsManager({ initialEvents }: Props) {
     if (currentEvent) {
       const oldStart = new Date(currentEvent.startDate).getTime();
       const oldEnd = new Date(currentEvent.endDate).getTime();
-      const newStart = new Date(editStartDate).getTime();
-      const newEnd = new Date(editEndDate).getTime();
+      const newStart = new Date(editStartDate + 'T12:00:00Z').getTime();
+      const newEnd = new Date(editEndDate + 'T12:00:00Z').getTime();
       const isNarrowing = newStart > oldStart || newEnd < oldEnd;
       if (isNarrowing) {
         const confirmed = confirm(
@@ -162,7 +162,7 @@ export default function EventsManager({ initialEvents }: Props) {
       setTimeout(() => setSuccessMessage(''), 8000);
     }
 
-    const dayCount = Math.max(1, Math.ceil((new Date(editEndDate).getTime() - new Date(editStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    const dayCount = Math.max(1, Math.ceil((new Date(editEndDate + 'T12:00:00Z').getTime() - new Date(editStartDate + 'T12:00:00Z').getTime()) / (1000 * 60 * 60 * 24)) + 1);
     setEvents((prev) =>
       prev.map((ev) =>
         ev.id === id
@@ -170,8 +170,8 @@ export default function EventsManager({ initialEvents }: Props) {
               ...ev,
               name: editName.trim(),
               description: editDescription.trim() || null,
-              startDate: new Date(editStartDate),
-              endDate: new Date(editEndDate),
+              startDate: new Date(editStartDate + 'T12:00:00Z'),
+              endDate: new Date(editEndDate + 'T12:00:00Z'),
               defaultStartTime: editDefaultStartTime,
               defaultEndTime: editDefaultEndTime,
               timezone: editTimezone,
