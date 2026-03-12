@@ -95,12 +95,14 @@ export async function createShift(
 
   if (professional?.eventId) {
     const shiftDate = new Date(input.start);
-    shiftDate.setHours(0, 0, 0, 0);
+    shiftDate.setUTCHours(0, 0, 0, 0);
+    const nextDate = new Date(shiftDate);
+    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
 
     const eventDay = await db.eventDay.findFirst({
       where: {
         eventId: professional.eventId,
-        date: shiftDate,
+        date: { gte: shiftDate, lt: nextDate },
         deletedAt: null,
         isActive: true,
       },
@@ -116,24 +118,18 @@ export async function createShift(
       throw new BusinessRuleError('No active event day exists for this date');
     }
 
-    // Check shift falls within event day hours
-    const [dayStartH, dayStartM] = eventDay.startTime.split(':').map(Number);
-    const [dayEndH, dayEndM] = eventDay.endTime.split(':').map(Number);
-    const dayStart = new Date(eventDay.date);
-    dayStart.setHours(dayStartH, dayStartM, 0, 0);
-    const dayEnd = new Date(eventDay.date);
-    dayEnd.setHours(dayEndH, dayEndM, 0, 0);
+    // Check shift falls within event day hours using time strings
+    // (avoids timezone issues with Date object construction)
+    const shiftStartStr = `${input.start.getUTCHours().toString().padStart(2, '0')}:${input.start.getUTCMinutes().toString().padStart(2, '0')}`;
+    const shiftEndStr = `${input.end.getUTCHours().toString().padStart(2, '0')}:${input.end.getUTCMinutes().toString().padStart(2, '0')}`;
 
-    if (input.start < dayStart || input.end > dayEnd) {
+    if (shiftStartStr < eventDay.startTime || shiftEndStr > eventDay.endTime) {
       throw new BusinessRuleError(
         `Shift must be within event day hours (${eventDay.startTime} - ${eventDay.endTime})`
       );
     }
 
     // Check shift does not overlap with blackout periods
-    const shiftStartStr = `${input.start.getHours().toString().padStart(2, '0')}:${input.start.getMinutes().toString().padStart(2, '0')}`;
-    const shiftEndStr = `${input.end.getHours().toString().padStart(2, '0')}:${input.end.getMinutes().toString().padStart(2, '0')}`;
-
     for (const blackout of eventDay.blackouts) {
       if (shiftStartStr < blackout.endTime && shiftEndStr > blackout.startTime) {
         throw new BusinessRuleError(

@@ -300,12 +300,10 @@ describe('shift-actions', () => {
     })
 
     it('throws BusinessRuleError when shift is outside event day hours', async () => {
-      // Use local-time dates to match how setHours works in the validation code
-      const shiftDate = new Date(2026, 1, 22); // Feb 22, 2026 midnight local
-      const earlyStart = new Date(shiftDate);
-      earlyStart.setHours(8, 0, 0, 0);
-      const earlyEnd = new Date(shiftDate);
-      earlyEnd.setHours(8, 30, 0, 0);
+      // Use UTC dates to match server-side UTC-based validation
+      const earlyStart = new Date('2026-02-22T08:00:00.000Z');
+      const earlyEnd = new Date('2026-02-22T08:30:00.000Z');
+      const shiftDate = new Date('2026-02-22T00:00:00.000Z');
 
       setupMocksThroughCapacity()
       vi.mocked(validateSchema).mockReturnValue({
@@ -329,11 +327,10 @@ describe('shift-actions', () => {
 
     it('throws BusinessRuleError when shift overlaps with blackout period', async () => {
       // Use local-time dates to match how setHours works in the validation code
-      const shiftDate = new Date(2026, 1, 22); // Feb 22, 2026 midnight local
-      const localStart = new Date(shiftDate);
-      localStart.setHours(10, 0, 0, 0);
-      const localEnd = new Date(shiftDate);
-      localEnd.setHours(10, 30, 0, 0);
+      // Use UTC dates to match server-side UTC-based validation
+      const localStart = new Date('2026-02-22T10:00:00.000Z');
+      const localEnd = new Date('2026-02-22T10:30:00.000Z');
+      const shiftDate = new Date('2026-02-22T00:00:00.000Z');
 
       setupMocksThroughCapacity()
       vi.mocked(validateSchema).mockReturnValue({

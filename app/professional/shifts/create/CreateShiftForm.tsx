@@ -80,10 +80,9 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
     setError(null);
 
     try {
-      // Combine date and time
+      // Combine date and time in UTC to avoid timezone issues
       const [hours, minutes] = startTime.split(':').map(Number);
-      const startDate = new Date(date);
-      startDate.setHours(hours, minutes, 0, 0);
+      const startDate = new Date(`${date}T${startTime}:00.000Z`);
 
       // Round to nearest 30-minute boundary
       const roundedStart = roundToNearest30Minutes(startDate);
