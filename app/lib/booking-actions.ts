@@ -43,8 +43,32 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
     throw new Error('Date range must not exceed 31 days');
   }
 
+  // Pre-fetch visible event IDs — an event is visible to clients if
+  // today >= (event.startDate - visibleDaysBefore days)
+  const now = new Date();
+  const activeEvents = await db.event.findMany({
+    where: {
+      isActive: true,
+      deletedAt: null,
+      endDate: { gte: start },
+    },
+    select: { id: true, startDate: true, visibleDaysBefore: true },
+  });
+
+  const visibleEventIds = activeEvents
+    .filter((e) => {
+      const visibilityDate = new Date(e.startDate);
+      visibilityDate.setUTCDate(visibilityDate.getUTCDate() - e.visibleDaysBefore);
+      return now >= visibilityDate;
+    })
+    .map((e) => e.id);
+
+  if (visibleEventIds.length === 0) {
+    return { allSlots: [], availableSlots: [] };
+  }
+
   // Fetch all shifts that cover the date range
-  // Only include shifts on resources that are assigned to active events
+  // Only include shifts on resources that are assigned to visible active events
   const allShifts = await db.shift.findMany({
     where: {
       deletedAt: null,
@@ -56,11 +80,7 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
         eventResources: {
           some: {
             deletedAt: null,
-            event: {
-              isActive: true,
-              deletedAt: null,
-              endDate: { gte: start },
-            },
+            eventId: { in: visibleEventIds },
           },
         },
       },

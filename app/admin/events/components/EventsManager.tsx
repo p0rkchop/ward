@@ -28,6 +28,7 @@ export default function EventsManager({ initialEvents }: Props) {
   const [newDefaultEndTime, setNewDefaultEndTime] = useState('17:00');
   const [newTimezone, setNewTimezone] = useState('America/Chicago');
   const [newPassword, setNewPassword] = useState('');
+  const [newVisibleDaysBefore, setNewVisibleDaysBefore] = useState(0);
 
   // Edit form state
   const [editName, setEditName] = useState('');
@@ -39,6 +40,7 @@ export default function EventsManager({ initialEvents }: Props) {
   const [editTimezone, setEditTimezone] = useState('America/Chicago');
   const [editPassword, setEditPassword] = useState('');
   const [editActive, setEditActive] = useState(true);
+  const [editVisibleDaysBefore, setEditVisibleDaysBefore] = useState(0);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -53,6 +55,7 @@ export default function EventsManager({ initialEvents }: Props) {
       defaultStartTime: newDefaultStartTime,
       defaultEndTime: newDefaultEndTime,
       timezone: newTimezone,
+      visibleDaysBefore: newVisibleDaysBefore,
       professionalPassword: newPassword,
     });
 
@@ -74,6 +77,7 @@ export default function EventsManager({ initialEvents }: Props) {
         defaultStartTime: newDefaultStartTime,
         defaultEndTime: newDefaultEndTime,
         timezone: newTimezone,
+        visibleDaysBefore: newVisibleDaysBefore,
         professionalPassword: newPassword.trim(),
         isActive: true,
         adminId: '',
@@ -91,6 +95,7 @@ export default function EventsManager({ initialEvents }: Props) {
     setNewDefaultEndTime('17:00');
     setNewTimezone('America/Chicago');
     setNewPassword('');
+    setNewVisibleDaysBefore(0);
     setShowCreate(false);
     setLoading(false);
   }
@@ -106,6 +111,7 @@ export default function EventsManager({ initialEvents }: Props) {
     setEditTimezone(event.timezone || 'America/Chicago');
     setEditPassword(event.professionalPassword);
     setEditActive(event.isActive);
+    setEditVisibleDaysBefore(event.visibleDaysBefore);
     setError('');
   }
 
@@ -143,6 +149,7 @@ export default function EventsManager({ initialEvents }: Props) {
       defaultStartTime: editDefaultStartTime,
       defaultEndTime: editDefaultEndTime,
       timezone: editTimezone,
+      visibleDaysBefore: editVisibleDaysBefore,
       professionalPassword: editPassword,
       isActive: editActive,
     });
@@ -175,6 +182,7 @@ export default function EventsManager({ initialEvents }: Props) {
               defaultStartTime: editDefaultStartTime,
               defaultEndTime: editDefaultEndTime,
               timezone: editTimezone,
+              visibleDaysBefore: editVisibleDaysBefore,
               professionalPassword: editPassword.trim(),
               isActive: editActive,
               _count: { ...ev._count, professionals: ev._count?.professionals ?? 0, days: dayCount },
@@ -325,6 +333,21 @@ export default function EventsManager({ initialEvents }: Props) {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Visible Days Before Event</label>
+            <input
+              type="number"
+              min={0}
+              max={365}
+              value={newVisibleDaysBefore}
+              onChange={(e) => setNewVisibleDaysBefore(Math.max(0, Math.min(365, parseInt(e.target.value) || 0)))}
+              className="w-full sm:w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100"
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              How many days before the event starts that clients can see it. 0 = visible only on event day.
+            </p>
+          </div>
+
           <div className="flex gap-3">
             <button
               type="submit"
@@ -469,6 +492,20 @@ export default function EventsManager({ initialEvents }: Props) {
                           rows={2}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100"
                         />
+                        <div>
+                          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Visible Days Before Event</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={365}
+                            value={editVisibleDaysBefore}
+                            onChange={(e) => setEditVisibleDaysBefore(Math.max(0, Math.min(365, parseInt(e.target.value) || 0)))}
+                            className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100"
+                          />
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            0 = visible only on event day
+                          </p>
+                        </div>
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleUpdate(event.id)}
@@ -514,6 +551,11 @@ export default function EventsManager({ initialEvents }: Props) {
                     <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                       <div>{event.defaultStartTime || '09:00'} – {event.defaultEndTime || '17:00'}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">{event.timezone || 'America/Chicago'}</div>
+                      {event.visibleDaysBefore > 0 && (
+                        <div className="text-xs text-blue-500 dark:text-blue-400 mt-0.5">
+                          Visible {event.visibleDaysBefore}d before
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {(() => {

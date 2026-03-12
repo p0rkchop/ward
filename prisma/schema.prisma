@@ -64,6 +64,7 @@ model Event {
   defaultStartTime     String    @default("09:00")
   defaultEndTime       String    @default("17:00")
   timezone             String    @default("America/Chicago")
+  visibleDaysBefore    Int       @default(0)
   professionalPassword String
   isActive             Boolean   @default(true)
   deletedAt            DateTime?

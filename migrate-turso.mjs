@@ -106,6 +106,9 @@ const statements = [
   `ALTER TABLE "Event" ADD COLUMN "defaultStartTime" TEXT NOT NULL DEFAULT '09:00'`,
   `ALTER TABLE "Event" ADD COLUMN "defaultEndTime" TEXT NOT NULL DEFAULT '17:00'`,
 
+  // ── ALTER Event table to add visibleDaysBefore ──
+  `ALTER TABLE "Event" ADD COLUMN "visibleDaysBefore" INTEGER NOT NULL DEFAULT 0`,
+
   // ── EventDay table ──
   `CREATE TABLE IF NOT EXISTS "EventDay" (
     "id" TEXT NOT NULL PRIMARY KEY,

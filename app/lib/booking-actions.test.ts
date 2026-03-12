@@ -27,6 +27,7 @@ vi.mock('./db', () => {
     db: {
       $transaction: vi.fn(),
       user: createMockDelegate(),
+      event: createMockDelegate(),
       resource: createMockDelegate(),
       shift: createMockDelegate(),
       booking: createMockDelegate(),
@@ -88,6 +89,10 @@ describe('booking-actions', () => {
       ]
 
       vi.mocked(generateTimeSlots).mockReturnValue(mockSlots)
+      // Mock visible events
+      vi.mocked(db.event.findMany).mockResolvedValue([
+        { id: 'event-1', startDate: new Date('2026-02-20T12:00:00Z'), visibleDaysBefore: 30 },
+      ] as any)
       // Mock shifts that cover both slots (2 shifts, each covering both 30-minute slots)
       const mockShifts = [
         { id: 'shift-1', startTime: new Date('2026-02-24T09:30:00Z'), endTime: new Date('2026-02-24T11:30:00Z') },
@@ -162,6 +167,10 @@ describe('booking-actions', () => {
       ]
 
       vi.mocked(generateTimeSlots).mockReturnValue(mockSlots)
+      // Mock visible events
+      vi.mocked(db.event.findMany).mockResolvedValue([
+        { id: 'event-1', startDate: new Date('2026-02-20T12:00:00Z'), visibleDaysBefore: 30 },
+      ] as any)
       // Mock shifts: one shift covers first slot only, none for second slot
       const mockShifts = [
         { id: 'shift-1', startTime: new Date('2026-02-24T09:30:00Z'), endTime: new Date('2026-02-24T10:29:00Z') },

@@ -28,6 +28,7 @@ vi.mock('./db', () => {
     db: {
       $transaction: vi.fn(),
       user: createMockDelegate(),
+      event: createMockDelegate(),
       resource: createMockDelegate(),
       shift: createMockDelegate(),
       booking: createMockDelegate(),
@@ -258,6 +259,10 @@ describe('Integration Tests - Complete User Flows', () => {
         { start: mockStart, end: mockEnd }
       ]
       vi.mocked(generateTimeSlots).mockReturnValue(mockSlots)
+      // Mock visible events
+      vi.mocked(db.event.findMany).mockResolvedValue([
+        { id: 'event-1', startDate: new Date('2026-02-20T12:00:00Z'), visibleDaysBefore: 30 },
+      ] as any)
       // Mock shifts that cover the slot
       vi.mocked(db.shift.findMany).mockResolvedValue([
         { id: mockShiftId, startTime: new Date('2026-02-22T09:30:00Z'), endTime: new Date('2026-02-22T11:00:00Z') },

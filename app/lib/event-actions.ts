@@ -20,6 +20,7 @@ export type EventData = {
   defaultStartTime: string;
   defaultEndTime: string;
   timezone: string;
+  visibleDaysBefore: number;
   professionalPassword: string;
   isActive: boolean;
   adminId: string;
@@ -116,6 +117,7 @@ export async function createEvent(data: {
   defaultStartTime: string; // e.g. "09:00"
   defaultEndTime: string; // e.g. "17:00"
   timezone: string; // IANA timezone e.g. "America/Chicago"
+  visibleDaysBefore?: number; // 0-365, days before event start date that clients can see it
   professionalPassword: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const admin = await requireAdmin();
@@ -142,6 +144,7 @@ export async function createEvent(data: {
   const defaultStartTime = data.defaultStartTime || '09:00';
   const defaultEndTime = data.defaultEndTime || '17:00';
   const timezone = data.timezone || 'America/Chicago';
+  const visibleDaysBefore = Math.max(0, Math.min(365, data.visibleDaysBefore ?? 0));
 
   try {
     const event = await db.event.create({
@@ -153,6 +156,7 @@ export async function createEvent(data: {
         defaultStartTime,
         defaultEndTime,
         timezone,
+        visibleDaysBefore,
         professionalPassword: data.professionalPassword.trim(),
         adminId: admin.id,
       },
@@ -190,6 +194,7 @@ export async function updateEvent(
     defaultStartTime?: string;
     defaultEndTime?: string;
     timezone?: string;
+    visibleDaysBefore?: number;
     professionalPassword?: string;
     isActive?: boolean;
   }
@@ -205,6 +210,7 @@ export async function updateEvent(
   if (data.defaultStartTime !== undefined) updateData.defaultStartTime = data.defaultStartTime;
   if (data.defaultEndTime !== undefined) updateData.defaultEndTime = data.defaultEndTime;
   if (data.timezone !== undefined) updateData.timezone = data.timezone;
+  if (data.visibleDaysBefore !== undefined) updateData.visibleDaysBefore = Math.max(0, Math.min(365, data.visibleDaysBefore));
   if (data.professionalPassword !== undefined) updateData.professionalPassword = data.professionalPassword.trim();
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
