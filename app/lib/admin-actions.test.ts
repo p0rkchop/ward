@@ -39,8 +39,12 @@ vi.mock('./db', () => {
     db: {
       user: createMockDelegate(),
       resource: createMockDelegate(),
+      event: createMockDelegate(),
+      eventResource: createMockDelegate(),
+      eventDay: createMockDelegate(),
       shift: createMockDelegate(),
       booking: createMockDelegate(),
+      pushSubscription: createMockDelegate(),
     },
   };
 })
@@ -287,22 +291,20 @@ describe('admin-actions', () => {
     })
 
     describe('deleteResource', () => {
-      it('soft deletes a resource', async () => {
+      it('soft deletes a resource and cascades shifts/bookings', async () => {
         const resourceId = 'resource-id'
-        const mockDeletedResource = {
+        // No active shifts on this resource
+        vi.mocked(db.shift.findMany).mockResolvedValue([])
+        vi.mocked(db.eventResource.updateMany).mockResolvedValue({ count: 0 })
+        vi.mocked(db.resource.update).mockResolvedValue({
           id: resourceId,
-          name: 'Resource Name',
-          description: 'Resource description',
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          deletedAt: new Date('2026-02-22T10:00:00Z'),
-        }
-        vi.mocked(db.resource.update).mockResolvedValue(mockDeletedResource as any)
+          deletedAt: new Date(),
+        } as any)
 
         const result = await deleteResource(resourceId)
 
-        expect(result.deletedAt).toBeTruthy()
+        expect(result.cancelledShifts).toBe(0)
+        expect(result.cancelledBookings).toBe(0)
         expect(db.resource.update).toHaveBeenCalledWith({
           where: { id: resourceId, deletedAt: null },
           data: { deletedAt: expect.any(Date) },
@@ -393,27 +395,30 @@ describe('admin-actions', () => {
     })
 
     describe('deleteUser', () => {
-      it('soft deletes a user', async () => {
+      it('soft deletes a user and cascades bookings for clients', async () => {
         const userId = 'user-id'
-        const mockDeletedUser = {
+        // Mock findUnique to return a CLIENT user
+        vi.mocked(db.user.findUnique).mockResolvedValue({
           id: userId,
-          name: 'User Name',
-          phoneNumber: '+1234567890',
+          role: 'CLIENT',
           email: 'user@example.com',
-          role: Role.CLIENT,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          name: 'User Name',
+          eventId: null,
+        } as any)
+        // No bookings to cascade
+        vi.mocked(db.booking.findMany).mockResolvedValue([])
+        vi.mocked(db.pushSubscription.deleteMany).mockResolvedValue({ count: 0 })
+        vi.mocked(db.user.update).mockResolvedValue({
+          email: 'user@example.com',
+          name: 'User Name',
           deletedAt: new Date('2026-02-22T10:00:00Z'),
-        }
-        vi.mocked(db.user.update).mockResolvedValue(mockDeletedUser as any)
+        } as any)
 
         const result = await deleteUser(userId)
 
         expect(result.deletedAt).toBeTruthy()
-        expect(db.user.update).toHaveBeenCalledWith({
-          where: { id: userId, deletedAt: null },
-          data: { deletedAt: expect.any(Date) },
-          select: { email: true, name: true, deletedAt: true },
+        expect(db.pushSubscription.deleteMany).toHaveBeenCalledWith({
+          where: { userId },
         })
       })
     })

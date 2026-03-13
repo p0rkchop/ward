@@ -196,7 +196,7 @@ export default function EventsManager({ initialEvents }: Props) {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this event? Professionals linked to it will be unlinked.')) return;
+    if (!confirm('Delete this event? All shifts and bookings on this event will be cancelled, and professionals will be unlinked. Affected clients and professionals will be notified.')) return;
 
     setLoading(true);
     const result = await deleteEvent(id);
@@ -204,6 +204,14 @@ export default function EventsManager({ initialEvents }: Props) {
       setError(result.error);
       setLoading(false);
       return;
+    }
+
+    if (result.cancelledShifts || result.cancelledBookings) {
+      const parts: string[] = [];
+      if (result.cancelledShifts) parts.push(`${result.cancelledShifts} shift(s)`);
+      if (result.cancelledBookings) parts.push(`${result.cancelledBookings} booking(s)`);
+      setSuccessMessage(`Event deleted. Cancelled ${parts.join(' and ')}.`);
+      setTimeout(() => setSuccessMessage(''), 8000);
     }
 
     setEvents((prev) => prev.filter((ev) => ev.id !== id));

@@ -1,0 +1,10 @@
+fix: add cascade soft-deletes and notifications to all deletion paths
+
+- New cascadeCancelShifts() primitive in admin-actions.ts
+- deleteEvent now cascades: EventDays, EventResources, Shifts, Bookings
+- deleteResource now cascades: EventResources, Shifts, Bookings
+- unassignResourceFromEvent now cascades: Shifts, Bookings
+- deleteUser now cascades: Shifts/Bookings, PushSubscriptions, eventId
+- All paths send email + push notifications to affected users
+- Updated UI confirm dialogs and cascade summary messages
+- Updated tests for new return types and mock delegates

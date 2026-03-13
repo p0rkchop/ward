@@ -2,6 +2,7 @@
 
 import { db } from '@/app/lib/db';
 import { getServerSession } from '@/app/lib/auth';
+import { cascadeCancelShifts } from '@/app/lib/admin-actions';
 
 async function requireAdmin() {
   const session = await getServerSession();
@@ -333,11 +334,57 @@ export async function updateEvent(
   }
 }
 
-export async function deleteEvent(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deleteEvent(id: string): Promise<{ ok: true; cancelledShifts: number; cancelledBookings: number } | { ok: false; error: string }> {
   await requireAdmin();
 
   try {
-    // Soft delete — also unlink any professionals from this event
+    // Find all resources assigned to this event
+    const eventResources = await db.eventResource.findMany({
+      where: { eventId: id, deletedAt: null },
+      select: { id: true, resourceId: true },
+    });
+    const resourceIds = eventResources.map((er) => er.resourceId);
+
+    // Find all active shifts on those resources within the event's date range
+    const event = await db.event.findUnique({ where: { id } });
+    let cancelledShifts = 0;
+    let cancelledBookings = 0;
+
+    if (event && resourceIds.length > 0) {
+      const dayStart = new Date(event.startDate);
+      dayStart.setUTCHours(0, 0, 0, 0);
+      const dayEnd = new Date(event.endDate);
+      dayEnd.setUTCHours(23, 59, 59, 999);
+
+      const shifts = await db.shift.findMany({
+        where: {
+          deletedAt: null,
+          resourceId: { in: resourceIds },
+          startTime: { gte: dayStart },
+          endTime: { lte: dayEnd },
+        },
+        select: { id: true },
+      });
+
+      // Cascade-cancel shifts and their bookings with notifications
+      const result = await cascadeCancelShifts(shifts.map((s) => s.id));
+      cancelledShifts = result.cancelledShifts;
+      cancelledBookings = result.cancelledBookings;
+    }
+
+    // Soft-delete EventResources
+    await db.eventResource.updateMany({
+      where: { eventId: id, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+
+    // Soft-delete EventDays
+    await db.eventDay.updateMany({
+      where: { eventId: id, deletedAt: null },
+      data: { deletedAt: new Date() },
+    });
+
+    // Soft-delete the Event
     await db.event.update({
       where: { id },
       data: { deletedAt: new Date(), isActive: false },
@@ -349,7 +396,7 @@ export async function deleteEvent(id: string): Promise<{ ok: true } | { ok: fals
       data: { eventId: null },
     });
 
-    return { ok: true };
+    return { ok: true, cancelledShifts, cancelledBookings };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[deleteEvent] Error:', msg);
@@ -570,15 +617,56 @@ export async function assignResourceToEvent(
 
 export async function unassignResourceFromEvent(
   id: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; cancelledShifts: number; cancelledBookings: number } | { ok: false; error: string }> {
   await requireAdmin();
 
   try {
+    // Fetch the EventResource to get the resourceId and eventId
+    const er = await db.eventResource.findUnique({
+      where: { id, deletedAt: null },
+      select: { resourceId: true, eventId: true },
+    });
+
+    let cancelledShifts = 0;
+    let cancelledBookings = 0;
+
+    if (er) {
+      // Get the event's date range to scope shift cancellation
+      const event = await db.event.findUnique({
+        where: { id: er.eventId },
+        select: { startDate: true, endDate: true },
+      });
+
+      if (event) {
+        const dayStart = new Date(event.startDate);
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const dayEnd = new Date(event.endDate);
+        dayEnd.setUTCHours(23, 59, 59, 999);
+
+        // Find shifts on this resource within the event's date range
+        const shifts = await db.shift.findMany({
+          where: {
+            deletedAt: null,
+            resourceId: er.resourceId,
+            startTime: { gte: dayStart },
+            endTime: { lte: dayEnd },
+          },
+          select: { id: true },
+        });
+
+        const result = await cascadeCancelShifts(shifts.map((s) => s.id));
+        cancelledShifts = result.cancelledShifts;
+        cancelledBookings = result.cancelledBookings;
+      }
+    }
+
+    // Soft-delete the EventResource join record
     await db.eventResource.update({
       where: { id, deletedAt: null },
       data: { deletedAt: new Date() },
     });
-    return { ok: true };
+
+    return { ok: true, cancelledShifts, cancelledBookings };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[unassignResourceFromEvent] Error:', msg);

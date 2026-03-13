@@ -3,7 +3,7 @@
 import { db } from './db';
 import { getServerSession } from './auth';
 import { Role, BookingStatus } from '@/app/generated/prisma/enums';
-import { sendAdminCancellation, sendBookingReassignment, sendRoleChanged, sendAccountDeleted, sendProfessionalBookingCancelled, sendTestEmail } from '@/app/lib/email';
+import { sendAdminCancellation, sendBookingReassignment, sendRoleChanged, sendAccountDeleted, sendProfessionalBookingCancelled, sendShiftCancelled, sendTestEmail } from '@/app/lib/email';
 import { sendPushToUser } from '@/app/lib/push';
 import type { EmailTestResult } from '@/app/lib/email';
 
@@ -216,13 +216,144 @@ export async function updateResource(id: string, data: { name?: string; descript
   });
 }
 
+/**
+ * Cascade-cancel an array of shifts and their bookings, sending notifications.
+ * Used internally by deleteResource, deleteEvent, unassignResource, deleteUser.
+ * Returns counts of cancelled shifts and bookings.
+ */
+export async function cascadeCancelShifts(
+  shiftIds: string[]
+): Promise<{ cancelledShifts: number; cancelledBookings: number }> {
+  let cancelledShifts = 0;
+  let cancelledBookings = 0;
+
+  for (const shiftId of shiftIds) {
+    // Fetch the shift with its bookings, professional, and resource for notifications
+    const shift = await db.shift.findUnique({
+      where: { id: shiftId },
+      include: {
+        professional: {
+          select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true },
+        },
+        resource: {
+          select: { id: true, name: true, description: true, location: true },
+        },
+        bookings: {
+          where: { deletedAt: null, status: 'CONFIRMED' },
+          include: {
+            client: {
+              select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!shift) continue;
+
+    // Cancel each booking and notify client + professional
+    for (const booking of shift.bookings) {
+      await db.booking.update({
+        where: { id: booking.id },
+        data: { status: 'CANCELLED', deletedAt: new Date() },
+      });
+      cancelledBookings++;
+
+      const emailData = {
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        professionalName: shift.professional.name ?? 'TBD',
+        resourceName: shift.resource.name,
+        resourceLocation: shift.resource.location,
+      };
+
+      // Notify client
+      if (booking.client?.email && booking.client.notifyViaEmail) {
+        sendAdminCancellation(booking.client.email, emailData).catch(() => {});
+      }
+      if (booking.client?.notifyViaPush) {
+        sendPushToUser(booking.client.id, {
+          title: 'Booking Cancelled',
+          body: `Your appointment with ${emailData.professionalName} has been cancelled by an administrator.`,
+          url: '/client/appointments',
+        }).catch(() => {});
+      }
+
+      // Notify professional
+      if (shift.professional.email && shift.professional.notifyViaEmail) {
+        sendProfessionalBookingCancelled(
+          shift.professional.email,
+          booking.client?.name ?? 'Client',
+          emailData,
+          'admin',
+        ).catch(() => {});
+      }
+      if (shift.professional.notifyViaPush) {
+        sendPushToUser(shift.professional.id, {
+          title: 'Booking Cancelled',
+          body: `${booking.client?.name ?? 'A client'}'s appointment was cancelled by an administrator.`,
+          url: '/professional/bookings',
+        }).catch(() => {});
+      }
+    }
+
+    // Soft-delete the shift
+    await db.shift.update({
+      where: { id: shiftId },
+      data: { deletedAt: new Date() },
+    });
+    cancelledShifts++;
+
+    // Notify professional that their shift was cancelled (if no bookings already notified them)
+    if (shift.professional.email && shift.professional.notifyViaEmail) {
+      const shiftEmailData = {
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        professionalName: shift.professional.name ?? 'TBD',
+        resourceName: shift.resource.name,
+        resourceLocation: shift.resource.location,
+      };
+      sendShiftCancelled(shift.professional.email, shiftEmailData).catch(() => {});
+    }
+    if (shift.professional.notifyViaPush) {
+      sendPushToUser(shift.professional.id, {
+        title: 'Shift Cancelled',
+        body: `Your shift on ${shift.resource.name} was cancelled by an administrator.`,
+        url: '/professional/shifts',
+      }).catch(() => {});
+    }
+  }
+
+  return { cancelledShifts, cancelledBookings };
+}
+
 export async function deleteResource(id: string) {
   await requireAdmin();
-  // Soft delete
-  return await db.resource.update({
+
+  // Find all active shifts on this resource
+  const shifts = await db.shift.findMany({
+    where: { resourceId: id, deletedAt: null },
+    select: { id: true },
+  });
+
+  // Cascade-cancel shifts and their bookings with notifications
+  const { cancelledShifts, cancelledBookings } = await cascadeCancelShifts(
+    shifts.map((s) => s.id)
+  );
+
+  // Soft-delete EventResource assignments
+  await db.eventResource.updateMany({
+    where: { resourceId: id, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
+
+  // Soft-delete the resource
+  await db.resource.update({
     where: { id, deletedAt: null },
     data: { deletedAt: new Date() },
   });
+
+  return { cancelledShifts, cancelledBookings };
 }
 
 // User Management
@@ -267,19 +398,102 @@ export async function updateUserRole(id: string, role: Role) {
 
 export async function deleteUser(id: string) {
   await requireAdmin();
-  // Soft delete
-  const user = await db.user.update({
+
+  // Find user to determine role
+  const user = await db.user.findUnique({
     where: { id, deletedAt: null },
+    select: { role: true, email: true, name: true, eventId: true },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Cascade: if professional, cancel their shifts (and those shifts' bookings)
+  if (user.role === 'PROFESSIONAL') {
+    const shifts = await db.shift.findMany({
+      where: { professionalId: id, deletedAt: null },
+      select: { id: true },
+    });
+    await cascadeCancelShifts(shifts.map((s) => s.id));
+  }
+
+  // Cascade: if client, cancel their bookings
+  if (user.role === 'CLIENT') {
+    const bookings = await db.booking.findMany({
+      where: { clientId: id, deletedAt: null, status: 'CONFIRMED' },
+      include: {
+        shift: {
+          include: {
+            professional: {
+              select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true },
+            },
+            resource: {
+              select: { id: true, name: true, description: true, location: true },
+            },
+          },
+        },
+      },
+    });
+
+    for (const booking of bookings) {
+      await db.booking.update({
+        where: { id: booking.id },
+        data: { status: 'CANCELLED', deletedAt: new Date() },
+      });
+
+      // Notify professional that the booking was cancelled
+      const emailData = {
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        professionalName: booking.shift.professional.name ?? 'TBD',
+        resourceName: booking.shift.resource.name,
+        resourceLocation: booking.shift.resource.location,
+      };
+      if (booking.shift.professional.email && booking.shift.professional.notifyViaEmail) {
+        sendProfessionalBookingCancelled(
+          booking.shift.professional.email,
+          user.name ?? 'Client',
+          emailData,
+          'admin',
+        ).catch(() => {});
+      }
+      if (booking.shift.professional.notifyViaPush) {
+        sendPushToUser(booking.shift.professional.id, {
+          title: 'Booking Cancelled',
+          body: `${user.name ?? 'A client'}'s account was removed. Their appointment was cancelled.`,
+          url: '/professional/bookings',
+        }).catch(() => {});
+      }
+    }
+  }
+
+  // Clean up push subscriptions
+  await db.pushSubscription.deleteMany({
+    where: { userId: id },
+  });
+
+  // Unlink from event
+  if (user.eventId) {
+    await db.user.update({
+      where: { id },
+      data: { eventId: null },
+    });
+  }
+
+  // Soft delete the user
+  const deletedUser = await db.user.update({
+    where: { id },
     data: { deletedAt: new Date() },
     select: { email: true, name: true, deletedAt: true },
   });
 
   // Fire-and-forget: notify user of account removal
-  if (user.email) {
-    sendAccountDeleted(user.email, user.name ?? 'User').catch(() => {});
+  if (deletedUser.email) {
+    sendAccountDeleted(deletedUser.email, deletedUser.name ?? 'User').catch(() => {});
   }
 
-  return user;
+  return deletedUser;
 }
 
 // Admin Tools

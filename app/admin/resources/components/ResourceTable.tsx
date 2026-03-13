@@ -158,7 +158,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this resource? This will soft-delete it.')) {
+    if (!confirm('Delete this resource? All shifts and bookings on this resource will be cancelled. Affected clients and professionals will be notified.')) {
       return;
     }
 
