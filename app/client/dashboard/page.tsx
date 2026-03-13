@@ -31,22 +31,24 @@ export default async function ClientDashboard() {
   const dayAfterTomorrow = new Date(tomorrow);
   dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
 
-  // Also get upcoming beyond tomorrow for the "upcoming" section
+  // End of the current week (Sunday night)
   const weekEnd = new Date(today);
-  weekEnd.setDate(weekEnd.getDate() + 7);
+  weekEnd.setDate(weekEnd.getDate() + (7 - weekEnd.getDay()));
 
   let todayBookings: BookingWithDetails[] = [];
   let tomorrowBookings: BookingWithDetails[] = [];
-  let laterBookings: BookingWithDetails[] = [];
+  let thisWeekBookings: BookingWithDetails[] = [];
+  let upcomingBookings: BookingWithDetails[] = [];
   let stats = {
     todayAppointments: 0,
     tomorrowAppointments: 0,
-    upcomingAppointments: 0,
     totalThisWeek: 0,
+    upcomingAppointments: 0,
   };
 
   try {
-    const bookings = await getClientBookings(clientId, today, weekEnd);
+    // Fetch all future bookings (no end-date cap)
+    const bookings = await getClientBookings(clientId, today);
 
     todayBookings = bookings.filter(b => {
       const d = new Date(b.startTime);
@@ -58,16 +60,23 @@ export default async function ClientDashboard() {
       return d >= tomorrow && d < dayAfterTomorrow;
     });
 
-    laterBookings = bookings.filter(b => {
+    thisWeekBookings = bookings.filter(b => {
       const d = new Date(b.startTime);
-      return d >= dayAfterTomorrow;
+      return d >= dayAfterTomorrow && d < weekEnd;
     });
+
+    upcomingBookings = bookings.filter(b => {
+      const d = new Date(b.startTime);
+      return d >= weekEnd;
+    });
+
+    const allThisWeek = bookings.filter(b => new Date(b.startTime) < weekEnd);
 
     stats = {
       todayAppointments: todayBookings.length,
       tomorrowAppointments: tomorrowBookings.length,
+      totalThisWeek: allThisWeek.length,
       upcomingAppointments: bookings.filter(b => new Date(b.startTime) >= now).length,
-      totalThisWeek: bookings.length,
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
@@ -151,23 +160,6 @@ export default async function ClientDashboard() {
         <Link href="/client/appointments" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="rounded-md bg-purple-100 p-3">
-                <svg className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-5">
-              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Upcoming</div>
-              <div className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{stats.upcomingAppointments}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">total upcoming</div>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/client/book" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
               <div className="rounded-md bg-yellow-100 p-3">
                 <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -178,6 +170,23 @@ export default async function ClientDashboard() {
               <div className="text-sm font-medium text-gray-500 dark:text-gray-400">This Week</div>
               <div className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{stats.totalThisWeek}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">total this week</div>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/client/appointments" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="rounded-md bg-purple-100 p-3">
+                <svg className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+            </div>
+            <div className="ml-5">
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Upcoming</div>
+              <div className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{stats.upcomingAppointments}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">total upcoming</div>
             </div>
           </div>
         </Link>
@@ -224,13 +233,49 @@ export default async function ClientDashboard() {
           </div>
         </div>
 
-        {/* Later This Week */}
-        {laterBookings.length > 0 && (
+        {/* This Week */}
+        {thisWeekBookings.length > 0 && (
           <div>
-            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Later This Week</h2>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">This Week</h2>
             <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
               <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                {laterBookings.map((booking) => (
+                {thisWeekBookings.map((booking) => (
+                  <li key={booking.id} className="py-4">
+                    <div className="flex items-start justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {formatDateTimeRange(new Date(booking.startTime), new Date(booking.endTime), prefs)}
+                          </p>
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                            Confirmed
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                          with <span className="font-medium">{booking.shift.professional.name}</span>
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {booking.shift.resource.name}
+                          {booking.shift.resource.location && (
+                            <span className="ml-1 text-gray-400 dark:text-gray-500">&bull; {booking.shift.resource.location}</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming */}
+        {upcomingBookings.length > 0 && (
+          <div>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Upcoming</h2>
+            <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
+              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                {upcomingBookings.map((booking) => (
                   <li key={booking.id} className="py-4">
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
