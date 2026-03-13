@@ -1,5 +1,5 @@
 import { getServerSession } from '@/app/lib/auth';
-import { getAvailableTimeslots } from '@/app/lib/booking-actions';
+import { getAvailableTimeslots, getVisibleEventHorizon } from '@/app/lib/booking-actions';
 import { redirect } from 'next/navigation';
 import { Role } from '@/app/generated/prisma/enums';
 import BookAppointmentForm from './components/BookAppointmentForm';
@@ -19,10 +19,9 @@ export default async function BookAppointmentPage() {
 
   const clientId = session.user.id;
 
-  // Get available timeslots for the next 7 days
+  // Get available timeslots up to the furthest visible event (capped at 31 days)
   const startDate = new Date();
-  const endDate = new Date();
-  endDate.setDate(endDate.getDate() + 7);
+  const endDate = await getVisibleEventHorizon();
 
   let availableSlots: Awaited<ReturnType<typeof getAvailableTimeslots>>['availableSlots'] = [];
   let allSlots: Awaited<ReturnType<typeof getAvailableTimeslots>>['allSlots'] = [];

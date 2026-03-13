@@ -16,16 +16,51 @@ import {
 import { sendBookingConfirmation, sendBookingCancellation, sendProfessionalNewBooking, sendProfessionalBookingCancelled } from '@/app/lib/email';
 import { sendPushToUser } from '@/app/lib/push';
 
+// Maximum date range span allowed for timeslot queries (31 days).
+// Prevents unbounded in-memory slot generation that could cause
+// serverless function timeouts or excessive memory usage on Vercel.
+const MAX_TIMESLOT_RANGE_MS = 31 * 24 * 60 * 60 * 1000;
+
+/**
+ * Returns the latest endDate among currently visible events, capped at 31 days.
+ * Used by the client booking page to determine the timeslot query window.
+ */
+export async function getVisibleEventHorizon(): Promise<Date> {
+  const now = new Date();
+  const maxHorizon = new Date(now.getTime() + MAX_TIMESLOT_RANGE_MS);
+
+  const activeEvents = await db.event.findMany({
+    where: {
+      isActive: true,
+      deletedAt: null,
+      endDate: { gte: now },
+    },
+    select: { startDate: true, endDate: true, visibleDaysBefore: true },
+  });
+
+  let horizon = new Date();
+  horizon.setDate(horizon.getDate() + 7); // Minimum 7-day window
+
+  for (const e of activeEvents) {
+    const visibilityDate = new Date(e.startDate);
+    visibilityDate.setUTCDate(visibilityDate.getUTCDate() - e.visibleDaysBefore);
+    if (now >= visibilityDate && e.endDate > horizon) {
+      horizon = new Date(e.endDate);
+    }
+  }
+
+  // Add 1 day buffer past endDate so the last day's timeslots are included
+  horizon.setUTCDate(horizon.getUTCDate() + 1);
+
+  return horizon > maxHorizon ? maxHorizon : horizon;
+}
+
 /**
  * Get available time slots with capacity count for a given date range
  * @param start Start date (inclusive)
  * @param end End date (exclusive)
  * @returns Array of time slots with available capacity
  */
-// Maximum date range span allowed for timeslot queries (31 days).
-// Prevents unbounded in-memory slot generation that could cause
-// serverless function timeouts or excessive memory usage on Vercel.
-const MAX_TIMESLOT_RANGE_MS = 31 * 24 * 60 * 60 * 1000;
 
 export async function getAvailableTimeslots(start: Date, end: Date) {
   // Require authentication — only clients and admins should query available timeslots
