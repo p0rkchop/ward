@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { formatDateFull, formatTime, formatTimeRange, formatDateWithDay, prefsFromSession } from '@/app/lib/format-utils';
-import { bookTimeslot, rescheduleBooking } from '@/app/lib/booking-actions';
+import { bookTimeslot, rescheduleBooking, type ClientEventBookingStatus } from '@/app/lib/booking-actions';
 
 interface TimeSlot {
   start: Date;
@@ -19,9 +19,10 @@ interface BookAppointmentFormProps {
   clientId: string;
   slotsByDay: Record<string, TimeSlot[]>;
   rescheduleBookingId?: string;
+  bookingStatus?: ClientEventBookingStatus[];
 }
 
-export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBookingId }: BookAppointmentFormProps) {
+export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBookingId, bookingStatus = [] }: BookAppointmentFormProps) {
   const isReschedule = !!rescheduleBookingId;
   const router = useRouter();
   const { data: session } = useSession();
@@ -33,6 +34,10 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
   const [success, setSuccess] = useState(false);
 
   const days = Object.keys(slotsByDay).sort();
+
+  // Check if the client has reached booking limits (skip in reschedule mode)
+  const limitReachedEvents = isReschedule ? [] : bookingStatus.filter((s) => s.hasReachedLimit);
+  const isBookingBlocked = limitReachedEvents.length > 0 && days.length > 0;
 
   const handleSlotSelect = (slot: TimeSlot) => {
     setSelectedSlot(slot);
@@ -99,7 +104,70 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
         </p>
       </div>
 
-      {days.length === 0 ? (
+      {isBookingBlocked ? (
+        <div className="relative">
+          {/* Greyed-out slots behind overlay */}
+          <div className="opacity-30 pointer-events-none select-none">
+            <div className="space-y-6">
+              {days.slice(0, 2).map((dayStr) => {
+                const day = new Date(dayStr);
+                const daySlots = slotsByDay[dayStr];
+                return (
+                  <div key={dayStr} className="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-0">
+                    <h3 className="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">
+                      {formatDateFull(day, prefs)}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                      {daySlots.slice(0, 8).map((slot) => (
+                        <div
+                          key={slot.start.toISOString()}
+                          className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 p-4 text-center"
+                        >
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatTime(slot.start, prefs)}</div>
+                          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">{slot.availableCapacity} available</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Overlay */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg p-8 max-w-md text-center">
+              <svg className="mx-auto h-12 w-12 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Booking Limit Reached
+              </h3>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                {limitReachedEvents.length === 1 && !limitReachedEvents[0].allowMultiBooking
+                  ? `You already have an appointment booked for ${limitReachedEvents[0].eventName}. Only one booking is allowed per event.`
+                  : `You've reached the maximum number of bookings allowed.`}
+              </p>
+              {limitReachedEvents[0]?.existingBookingId && (
+                <div className="mt-6 flex flex-col gap-3">
+                  <a
+                    href={`/client/book?reschedule=${limitReachedEvents[0].existingBookingId}`}
+                    className="inline-flex justify-center rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                  >
+                    Reschedule Appointment
+                  </a>
+                  <a
+                    href="/client/appointments"
+                    className="inline-flex justify-center rounded-md bg-gray-100 dark:bg-gray-700 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    View My Appointments
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : days.length === 0 ? (
         <div className="rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-12 text-center">
           <svg
             className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"

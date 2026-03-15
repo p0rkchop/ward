@@ -1,5 +1,5 @@
 import { getServerSession } from '@/app/lib/auth';
-import { getAvailableTimeslots, getVisibleEventHorizon } from '@/app/lib/booking-actions';
+import { getAvailableTimeslots, getVisibleEventHorizon, getClientEventBookingStatus } from '@/app/lib/booking-actions';
 import { redirect } from 'next/navigation';
 import { Role } from '@/app/generated/prisma/enums';
 import BookAppointmentForm from './components/BookAppointmentForm';
@@ -26,11 +26,16 @@ export default async function BookAppointmentPage({ searchParams }: { searchPara
 
   let availableSlots: Awaited<ReturnType<typeof getAvailableTimeslots>>['availableSlots'] = [];
   let allSlots: Awaited<ReturnType<typeof getAvailableTimeslots>>['allSlots'] = [];
+  let bookingStatus: Awaited<ReturnType<typeof getClientEventBookingStatus>> = [];
 
   try {
-    const result = await getAvailableTimeslots(startDate, endDate);
+    const [result, status] = await Promise.all([
+      getAvailableTimeslots(startDate, endDate),
+      getClientEventBookingStatus(),
+    ]);
     availableSlots = result.availableSlots;
     allSlots = result.allSlots;
+    bookingStatus = status;
   } catch (error) {
     console.error('Error fetching available timeslots:', error);
     // Continue with empty data
@@ -65,6 +70,7 @@ export default async function BookAppointmentPage({ searchParams }: { searchPara
             clientId={clientId}
             slotsByDay={slotsByDay}
             rescheduleBookingId={params.reschedule}
+            bookingStatus={bookingStatus}
           />
         </div>
 

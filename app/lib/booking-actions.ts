@@ -204,6 +204,113 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
   };
 }
 
+export type ClientEventBookingStatus = {
+  eventId: string;
+  eventName: string;
+  allowMultiBooking: boolean;
+  maxBookingsPerClient: number | null;
+  existingBookingCount: number;
+  existingBookingId: string | null; // first booking ID, for reschedule link
+  hasReachedLimit: boolean;
+};
+
+/**
+ * Get the client's booking status for each visible event.
+ * Used by the booking page to show overlays when limits are reached.
+ */
+export async function getClientEventBookingStatus(): Promise<ClientEventBookingStatus[]> {
+  const session = await getServerSession();
+  if (!session?.user?.id) return [];
+
+  const now = new Date();
+
+  // Get visible events
+  const events = await db.event.findMany({
+    where: {
+      isActive: true,
+      deletedAt: null,
+      endDate: { gte: now },
+      eventResources: {
+        some: {
+          deletedAt: null,
+          resource: { isActive: true, deletedAt: null, staffOnly: false },
+        },
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      startDate: true,
+      visibleDaysBefore: true,
+      allowMultiBooking: true,
+      maxBookingsPerClient: true,
+    },
+  });
+
+  // Filter to visible events only
+  const visibleEvents = events.filter((e) => {
+    const visibilityDate = new Date(e.startDate);
+    visibilityDate.setUTCDate(visibilityDate.getUTCDate() - e.visibleDaysBefore);
+    return now >= visibilityDate;
+  });
+
+  const results: ClientEventBookingStatus[] = [];
+
+  for (const event of visibleEvents) {
+    const bookings = await db.booking.findMany({
+      where: {
+        clientId: session.user.id,
+        deletedAt: null,
+        status: 'CONFIRMED',
+        shift: {
+          deletedAt: null,
+          resource: {
+            eventResources: {
+              some: { eventId: event.id, deletedAt: null },
+            },
+          },
+        },
+      },
+      select: { id: true },
+      take: 1,
+    });
+
+    const count = await db.booking.count({
+      where: {
+        clientId: session.user.id,
+        deletedAt: null,
+        status: 'CONFIRMED',
+        shift: {
+          deletedAt: null,
+          resource: {
+            eventResources: {
+              some: { eventId: event.id, deletedAt: null },
+            },
+          },
+        },
+      },
+    });
+
+    const hasReachedLimit = !event.allowMultiBooking
+      ? count >= 1
+      : event.maxBookingsPerClient
+        ? count >= event.maxBookingsPerClient
+        : false;
+
+    results.push({
+      eventId: event.id,
+      eventName: event.name,
+      allowMultiBooking: event.allowMultiBooking,
+      maxBookingsPerClient: event.maxBookingsPerClient,
+      existingBookingCount: count,
+      existingBookingId: bookings[0]?.id ?? null,
+      hasReachedLimit,
+    });
+  }
+
+  return results;
+}
+
 /**
  * Book a time slot (auto-match a professional)
  * clientId is derived from the authenticated session — not accepted from the client.
