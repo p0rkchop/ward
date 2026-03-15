@@ -352,28 +352,26 @@ describe('Integration Tests - Complete User Flows', () => {
         },
       }
 
-      vi.mocked(db.booking.findUnique).mockResolvedValue(mockBooking as any)
-      vi.mocked(db.booking.update).mockResolvedValue({
+      const fullBooking = {
         ...mockBooking,
-        deletedAt: new Date('2099-06-15T11:00:00Z'),
-        client: { email: null },
+        client: { id: mockClientId, name: 'Test Client', email: null, notifyViaEmail: false, notifyViaPush: false },
         shift: {
-          professional: { id: mockProfessionalId, name: 'Test Professional' },
+          ...mockBooking.shift,
+          professional: { id: mockProfessionalId, name: 'Test Professional', email: null, notifyViaEmail: false, notifyViaPush: false },
           resource: { id: mockResourceId, name: 'Test Resource', description: 'Test Description', location: null },
         },
-      } as any)
+      }
+
+      // First call: validation (shift times only), second call: full data for notifications
+      vi.mocked(db.booking.findUnique)
+        .mockResolvedValueOnce(mockBooking as any)
+        .mockResolvedValueOnce(fullBooking as any)
+      vi.mocked(db.booking.delete).mockResolvedValue(mockBooking as any)
 
       const result = await cancelBooking(mockBookingId, mockClientId)
 
-      expect(result.deletedAt).toBeTruthy()
-      expect(db.booking.findUnique).toHaveBeenCalledWith({
-        where: { id: mockBookingId },
-        include: {
-          shift: {
-            select: { startTime: true, endTime: true },
-          },
-        },
-      })
+      expect(result).toBeTruthy()
+      expect(db.booking.delete).toHaveBeenCalledWith({ where: { id: mockBookingId } })
     })
   })
 

@@ -252,12 +252,9 @@ export async function cascadeCancelShifts(
 
     if (!shift) continue;
 
-    // Cancel each booking and notify client + professional
+    // Hard-delete each booking and notify client + professional
     for (const booking of shift.bookings) {
-      await db.booking.update({
-        where: { id: booking.id },
-        data: { status: 'CANCELLED', deletedAt: new Date() },
-      });
+      await db.booking.delete({ where: { id: booking.id } });
       cancelledBookings++;
 
       const emailData = {
@@ -858,10 +855,8 @@ export async function adminRemoveBooking(
     });
     if (!booking) return { ok: false, error: 'Booking not found' };
 
-    await db.booking.update({
-      where: { id: bookingId },
-      data: { status: BookingStatus.CANCELLED, deletedAt: new Date() },
-    });
+    // Hard-delete so the unique constraint slot is freed for re-booking
+    await db.booking.delete({ where: { id: bookingId } });
 
     const emailData = {
       startTime: booking.startTime,

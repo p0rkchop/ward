@@ -520,33 +520,25 @@ describe('booking-actions', () => {
         },
       } as any
 
-      vi.mocked(db.booking.findUnique).mockResolvedValue(mockBooking)
-      vi.mocked(db.booking.update).mockResolvedValue({
+      const fullBooking = {
         ...mockBooking,
-        deletedAt: new Date(),
-        client: { email: null },
+        client: { id: 'client-id', name: 'Test Client', email: null, notifyViaEmail: false, notifyViaPush: false },
         shift: {
-          professional: { id: 'professional-id', name: 'Test Professional' },
+          ...mockBooking.shift,
+          professional: { id: 'professional-id', name: 'Test Professional', email: null, notifyViaEmail: false, notifyViaPush: false },
           resource: { id: 'resource-id', name: 'Test Resource', description: 'Test Description', location: null },
         },
-      } as any)
+      } as any
+
+      vi.mocked(db.booking.findUnique)
+        .mockResolvedValueOnce(mockBooking)
+        .mockResolvedValueOnce(fullBooking)
+      vi.mocked(db.booking.delete).mockResolvedValue(mockBooking)
 
       const result = await cancelBooking('booking-id', 'client-id')
 
-      expect(result.deletedAt).toBeTruthy()
-      expect(db.booking.findUnique).toHaveBeenCalledWith({
-        where: { id: 'booking-id' },
-        include: {
-          shift: {
-            select: { startTime: true, endTime: true },
-          },
-        },
-      })
-      expect(db.booking.update).toHaveBeenCalledWith({
-        where: { id: 'booking-id' },
-        data: { status: 'CANCELLED', deletedAt: expect.any(Date) },
-        include: expect.any(Object),
-      })
+      expect(result).toBeTruthy()
+      expect(db.booking.delete).toHaveBeenCalledWith({ where: { id: 'booking-id' } })
     })
 
     it('throws NotFoundError for non-existent booking', async () => {

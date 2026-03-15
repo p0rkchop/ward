@@ -308,13 +308,12 @@ export async function updateEvent(
               if (shiftsToCancel.length > 0) {
                 const shiftIds = shiftsToCancel.map((s) => s.id);
 
-                // Soft-delete bookings on those shifts
-                const cancelledBookings = await db.booking.updateMany({
+                // Hard-delete bookings on those shifts to free unique constraint slots
+                const cancelledBookings = await db.booking.deleteMany({
                   where: {
                     shiftId: { in: shiftIds },
                     deletedAt: null,
                   },
-                  data: { status: 'CANCELLED', deletedAt: new Date() },
                 });
                 cascadedBookings += cancelledBookings.count;
 

@@ -746,13 +746,9 @@ export async function cancelBooking(bookingId: string, _clientId?: string) {
     throw new BusinessRuleError('Cannot cancel past bookings');
   }
 
-  // Soft delete the booking and update status
-  const updatedBooking = await db.booking.update({
+  // Read full booking data for notifications before deleting
+  const fullBooking = await db.booking.findUnique({
     where: { id: bookingId },
-    data: {
-      status: 'CANCELLED',
-      deletedAt: new Date(),
-    },
     include: {
       client: {
         select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true },
@@ -770,22 +766,29 @@ export async function cancelBooking(bookingId: string, _clientId?: string) {
     },
   });
 
+  if (!fullBooking) {
+    throw new NotFoundError(`Booking ${bookingId} not found`);
+  }
+
+  // Hard-delete the booking so the unique constraint slot is freed
+  await db.booking.delete({ where: { id: bookingId } });
+
   const cancelEmailData = {
-    startTime: updatedBooking.startTime,
-    endTime: updatedBooking.endTime,
-    professionalName: updatedBooking.shift.professional.name ?? 'TBD',
-    resourceName: updatedBooking.shift.resource.name,
-    resourceLocation: updatedBooking.shift.resource.location,
+    startTime: fullBooking.startTime,
+    endTime: fullBooking.endTime,
+    professionalName: fullBooking.shift.professional.name ?? 'TBD',
+    resourceName: fullBooking.shift.resource.name,
+    resourceLocation: fullBooking.shift.resource.location,
   };
 
   // Fire-and-forget: send cancellation email if client has an email on file
-  if (updatedBooking.client?.email && updatedBooking.client.notifyViaEmail) {
-    sendBookingCancellation(updatedBooking.client.email, cancelEmailData).catch(() => {});
+  if (fullBooking.client?.email && fullBooking.client.notifyViaEmail) {
+    sendBookingCancellation(fullBooking.client.email, cancelEmailData).catch(() => {});
   }
 
   // Fire-and-forget: push notification to client
-  if (updatedBooking.client?.notifyViaPush) {
-    sendPushToUser(updatedBooking.client.id, {
+  if (fullBooking.client?.notifyViaPush) {
+    sendPushToUser(fullBooking.client.id, {
       title: 'Booking Cancelled',
       body: `Your appointment with ${cancelEmailData.professionalName} has been cancelled.`,
       url: '/client/appointments',
@@ -793,25 +796,25 @@ export async function cancelBooking(bookingId: string, _clientId?: string) {
   }
 
   // Fire-and-forget: notify professional that a slot freed up
-  if (updatedBooking.shift.professional.email && updatedBooking.shift.professional.notifyViaEmail) {
+  if (fullBooking.shift.professional.email && fullBooking.shift.professional.notifyViaEmail) {
     sendProfessionalBookingCancelled(
-      updatedBooking.shift.professional.email,
-      updatedBooking.client?.name ?? 'Client',
+      fullBooking.shift.professional.email,
+      fullBooking.client?.name ?? 'Client',
       cancelEmailData,
       'client',
     ).catch(() => {});
   }
 
   // Fire-and-forget: push notification to professional
-  if (updatedBooking.shift.professional.notifyViaPush) {
-    sendPushToUser(updatedBooking.shift.professional.id, {
+  if (fullBooking.shift.professional.notifyViaPush) {
+    sendPushToUser(fullBooking.shift.professional.id, {
       title: 'Booking Cancelled',
-      body: `${updatedBooking.client?.name ?? 'A client'} cancelled their appointment.`,
+      body: `${fullBooking.client?.name ?? 'A client'} cancelled their appointment.`,
       url: '/professional/bookings',
     }).catch(() => {});
   }
 
-  return updatedBooking;
+  return fullBooking;
 }
 
 /**
@@ -886,11 +889,8 @@ export async function rescheduleBooking(
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const newBooking = await db.$transaction(async (tx) => {
-        // Cancel the old booking
-        await tx.booking.update({
-          where: { id: bookingId },
-          data: { status: 'CANCELLED', deletedAt: new Date() },
-        });
+        // Hard-delete the old booking to free the unique constraint slot
+        await tx.booking.delete({ where: { id: bookingId } });
 
         // Find available shifts for the new timeslot
         const availableShifts = await tx.shift.findMany({
