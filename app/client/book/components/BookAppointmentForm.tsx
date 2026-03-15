@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { formatDateFull, formatTime, formatTimeRange, formatDateWithDay, prefsFromSession } from '@/app/lib/format-utils';
-import { bookTimeslot, rescheduleBooking, type ClientEventBookingStatus } from '@/app/lib/booking-actions';
+import { bookTimeslot, rescheduleBooking, getClientEventBookingStatus, type ClientEventBookingStatus } from '@/app/lib/booking-actions';
 
 interface TimeSlot {
   start: Date;
@@ -35,8 +35,29 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
 
   const days = Object.keys(slotsByDay).sort();
 
+  // Live booking status — re-fetched on mount and on demand
+  const [liveBookingStatus, setLiveBookingStatus] = useState<ClientEventBookingStatus[]>(bookingStatus);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+
+  const refreshBookingStatus = useCallback(async () => {
+    setCheckingStatus(true);
+    try {
+      const fresh = await getClientEventBookingStatus();
+      setLiveBookingStatus(fresh);
+    } catch {
+      // Fall back to server-rendered data
+    } finally {
+      setCheckingStatus(false);
+    }
+  }, []);
+
+  // Re-check on mount to catch changes since server render
+  useEffect(() => {
+    refreshBookingStatus();
+  }, [refreshBookingStatus]);
+
   // Check if the client has reached booking limits (skip in reschedule mode)
-  const limitReachedEvents = isReschedule ? [] : bookingStatus.filter((s) => s.hasReachedLimit);
+  const limitReachedEvents = isReschedule ? [] : liveBookingStatus.filter((s) => s.hasReachedLimit);
   const isBookingBlocked = limitReachedEvents.length > 0 && days.length > 0;
 
   const handleSlotSelect = (slot: TimeSlot) => {
@@ -164,6 +185,15 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
                   </a>
                 </div>
               )}
+              <div className="mt-4">
+                <button
+                  onClick={refreshBookingStatus}
+                  disabled={checkingStatus}
+                  className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-50"
+                >
+                  {checkingStatus ? 'Checking...' : 'Check again'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
