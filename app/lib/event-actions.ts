@@ -527,6 +527,7 @@ export type EventResourceData = {
   resourceLocation: string | null;
   resourceQuantity: number;
   resourceProfessionalsPerUnit: number;
+  resourceStaffOnly: boolean;
 };
 
 export async function getEventResources(eventId: string): Promise<EventResourceData[]> {
@@ -543,6 +544,7 @@ export async function getEventResources(eventId: string): Promise<EventResourceD
           location: true,
           quantity: true,
           professionalsPerUnit: true,
+          staffOnly: true,
         },
       },
     },
@@ -557,6 +559,7 @@ export async function getEventResources(eventId: string): Promise<EventResourceD
     resourceLocation: er.resource.location,
     resourceQuantity: er.resource.quantity,
     resourceProfessionalsPerUnit: er.resource.professionalsPerUnit,
+    resourceStaffOnly: er.resource.staffOnly,
   }));
 }
 
@@ -578,7 +581,7 @@ export async function getUnassignedResources(eventId: string) {
       ...(assignedIds.length > 0 && { id: { notIn: assignedIds } }),
     },
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, description: true, location: true, quantity: true, professionalsPerUnit: true },
+    select: { id: true, name: true, description: true, location: true, quantity: true, professionalsPerUnit: true, staffOnly: true },
   });
 }
 
@@ -682,5 +685,95 @@ export async function unassignResourceFromEvent(
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[unassignResourceFromEvent] Error:', msg);
     return { ok: false, error: 'Failed to unassign resource' };
+  }
+}
+
+/**
+ * Get active events visible to professionals for joining.
+ * Does NOT expose the professional password.
+ */
+export async function getJoinableEvents() {
+  const session = await getServerSession();
+  if (!session?.user?.id || session.user.role !== 'PROFESSIONAL') {
+    throw new Error('Unauthorized: Professional access required');
+  }
+
+  const now = new Date();
+  const events = await db.event.findMany({
+    where: {
+      isActive: true,
+      deletedAt: null,
+      endDate: { gte: now },
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      startDate: true,
+      endDate: true,
+      defaultStartTime: true,
+      defaultEndTime: true,
+      timezone: true,
+      _count: { select: { professionals: true } },
+    },
+    orderBy: { startDate: 'asc' },
+  });
+
+  return events;
+}
+
+/**
+ * Join an event by providing the event's professional password.
+ * Updates the professional's eventId.
+ */
+export async function joinEvent(
+  eventId: string,
+  password: string
+): Promise<{ ok: true; eventName: string } | { ok: false; error: string }> {
+  const session = await getServerSession();
+  if (!session?.user?.id || session.user.role !== 'PROFESSIONAL') {
+    return { ok: false, error: 'Only professionals can join events' };
+  }
+
+  const trimmedPassword = password.trim();
+  if (!trimmedPassword) {
+    return { ok: false, error: 'Event password is required' };
+  }
+
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: {
+      id: true,
+      name: true,
+      professionalPassword: true,
+      isActive: true,
+      deletedAt: true,
+      endDate: true,
+    },
+  });
+
+  if (!event || event.deletedAt || !event.isActive) {
+    return { ok: false, error: 'Event not found or is no longer active' };
+  }
+
+  if (event.endDate < new Date()) {
+    return { ok: false, error: 'This event has already ended' };
+  }
+
+  if (trimmedPassword !== event.professionalPassword) {
+    return { ok: false, error: 'Incorrect event password' };
+  }
+
+  try {
+    await db.user.update({
+      where: { id: session.user.id },
+      data: { eventId: event.id },
+    });
+
+    return { ok: true, eventName: event.name };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[joinEvent] Error:', msg);
+    return { ok: false, error: 'Failed to join event' };
   }
 }

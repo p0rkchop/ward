@@ -254,6 +254,7 @@ describe('admin-actions', () => {
             location: undefined,
             quantity: resourceData.quantity,
             professionalsPerUnit: resourceData.professionalsPerUnit,
+            staffOnly: false,
             isActive: resourceData.isActive,
           },
         })
@@ -274,6 +275,7 @@ describe('admin-actions', () => {
           location: null,
           quantity: 1,
           professionalsPerUnit: 1,
+          staffOnly: false,
           createdAt: new Date(),
           updatedAt: new Date(),
           deletedAt: null

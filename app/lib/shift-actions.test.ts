@@ -518,8 +518,8 @@ describe('shift-actions', () => {
   describe('getActiveResources', () => {
     it('returns active resources', async () => {
       const mockResources = [
-        { id: 'resource-1', name: 'Resource 1', description: null, location: null, quantity: 1, professionalsPerUnit: 1, isActive: true, createdAt: new Date(), updatedAt: new Date(), deletedAt: null },
-        { id: 'resource-2', name: 'Resource 2', description: null, location: null, quantity: 1, professionalsPerUnit: 1, isActive: true, createdAt: new Date(), updatedAt: new Date(), deletedAt: null },
+        { id: 'resource-1', name: 'Resource 1', description: null, location: null, quantity: 1, professionalsPerUnit: 1, staffOnly: false, isActive: true, createdAt: new Date(), updatedAt: new Date(), deletedAt: null },
+        { id: 'resource-2', name: 'Resource 2', description: null, location: null, quantity: 1, professionalsPerUnit: 1, staffOnly: false, isActive: true, createdAt: new Date(), updatedAt: new Date(), deletedAt: null },
       ]
       vi.mocked(db.resource.findMany).mockResolvedValue(mockResources)
 

@@ -194,7 +194,7 @@ export async function getResources() {
   });
 }
 
-export async function createResource(data: { name: string; description?: string; location?: string; quantity: number; professionalsPerUnit: number; isActive: boolean }) {
+export async function createResource(data: { name: string; description?: string; location?: string; quantity: number; professionalsPerUnit: number; staffOnly?: boolean; isActive: boolean }) {
   await requireAdmin();
   return await db.resource.create({
     data: {
@@ -203,12 +203,13 @@ export async function createResource(data: { name: string; description?: string;
       location: data.location,
       quantity: data.quantity,
       professionalsPerUnit: data.professionalsPerUnit,
+      staffOnly: data.staffOnly ?? false,
       isActive: data.isActive,
     },
   });
 }
 
-export async function updateResource(id: string, data: { name?: string; description?: string; location?: string; quantity?: number; professionalsPerUnit?: number; isActive?: boolean }) {
+export async function updateResource(id: string, data: { name?: string; description?: string; location?: string; quantity?: number; professionalsPerUnit?: number; staffOnly?: boolean; isActive?: boolean }) {
   await requireAdmin();
   return await db.resource.update({
     where: { id, deletedAt: null },

@@ -16,6 +16,7 @@ interface UnassignedResource {
   location: string | null;
   quantity: number;
   professionalsPerUnit: number;
+  staffOnly: boolean;
 }
 
 interface Props {
@@ -71,6 +72,7 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
           resourceLocation: resource.location,
           resourceQuantity: resource.quantity,
           resourceProfessionalsPerUnit: resource.professionalsPerUnit,
+          resourceStaffOnly: resource.staffOnly,
         },
       ]);
       setUnassigned((prev) => prev.filter((r) => r.id !== resourceId));
@@ -102,6 +104,7 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
             location: er.resourceLocation,
             quantity: er.resourceQuantity,
             professionalsPerUnit: er.resourceProfessionalsPerUnit,
+            staffOnly: er.resourceStaffOnly,
           },
         ].sort((a, b) => a.name.localeCompare(b.name))
       );
@@ -165,6 +168,9 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
                             <span className="font-medium text-green-700">
                               Capacity: {er.resourceQuantity * er.resourceProfessionalsPerUnit}
                             </span>
+                            {er.resourceStaffOnly && (
+                              <span className="font-medium text-orange-700">Staff Only</span>
+                            )}
                           </div>
                           {er.resourceDescription && (
                             <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{er.resourceDescription}</p>
@@ -205,6 +211,9 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
                             {r.location && <span>📍 {r.location}</span>}
                             <span>Qty: {r.quantity}</span>
                             <span>Pros/Unit: {r.professionalsPerUnit}</span>
+                            {r.staffOnly && (
+                              <span className="font-medium text-orange-700">Staff Only</span>
+                            )}
                           </div>
                           {r.description && (
                             <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{r.description}</p>

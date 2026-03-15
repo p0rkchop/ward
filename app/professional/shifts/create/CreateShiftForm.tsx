@@ -164,8 +164,13 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
           <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">No Event Assigned</h3>
           <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
             You must be assigned to an active event with upcoming dates before you can create shifts.
-            Please contact an administrator to be assigned to an event.
           </p>
+          <a
+            href="/professional/events"
+            className="mt-3 inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500"
+          >
+            Browse &amp; Join Events
+          </a>
         </div>
       </div>
     );

@@ -135,6 +135,7 @@ model Resource {
   location            String?
   quantity            Int      @default(1)
   professionalsPerUnit Int     @default(1)
+  staffOnly           Boolean  @default(false)
   isActive            Boolean  @default(true)
   deletedAt           DateTime?
   createdAt           DateTime @default(now())

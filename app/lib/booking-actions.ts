@@ -112,6 +112,7 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
       resource: {
         isActive: true,
         deletedAt: null,
+        staffOnly: false,
         eventResources: {
           some: {
             deletedAt: null,
@@ -253,6 +254,7 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
             resource: {
               isActive: true,
               deletedAt: null,
+              staffOnly: false,
               eventResources: {
                 some: {
                   deletedAt: null,

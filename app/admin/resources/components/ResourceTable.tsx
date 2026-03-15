@@ -12,6 +12,7 @@ interface Resource {
   location: string | null;
   quantity: number;
   professionalsPerUnit: number;
+  staffOnly: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -30,7 +31,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedResource, setEditedResource] = useState<Partial<Resource> | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newResource, setNewResource] = useState({ name: '', description: '', location: '', quantity: 1, professionalsPerUnit: 1, isActive: true });
+  const [newResource, setNewResource] = useState({ name: '', description: '', location: '', quantity: 1, professionalsPerUnit: 1, staffOnly: false, isActive: true });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -140,6 +141,7 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
         location: editedResource.location ?? undefined,
         quantity: editedResource.quantity,
         professionalsPerUnit: editedResource.professionalsPerUnit,
+        staffOnly: editedResource.staffOnly,
         isActive: editedResource.isActive,
       });
 
@@ -193,11 +195,12 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
         location: newResource.location || undefined,
         quantity: newResource.quantity,
         professionalsPerUnit: newResource.professionalsPerUnit,
+        staffOnly: newResource.staffOnly,
         isActive: newResource.isActive,
       });
 
       setResources([...resources, created]);
-      setNewResource({ name: '', description: '', location: '', quantity: 1, professionalsPerUnit: 1, isActive: true });
+      setNewResource({ name: '', description: '', location: '', quantity: 1, professionalsPerUnit: 1, staffOnly: false, isActive: true });
       setShowCreateForm(false);
       router.refresh();
     } catch (err: any) {
@@ -269,6 +272,20 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                   className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500"
                 />
                 <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Staff Only
+              </label>
+              <div className="mt-2 flex items-center">
+                <input
+                  type="checkbox"
+                  checked={newResource.staffOnly}
+                  onChange={(e) => setNewResource({ ...newResource, staffOnly: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Not bookable by clients</span>
               </div>
             </div>
             <div>
@@ -404,6 +421,9 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
               >
                 Pros/Unit <SortIcon column="prosPerUnit" />
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Staff Only
+              </th>
               <th
                 className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={() => handleSort('status')}
@@ -484,6 +504,26 @@ export default function ResourceTable({ initialResources }: ResourceTableProps) 
                     />
                   ) : (
                     <div className="text-sm text-gray-900 dark:text-gray-100">{resource.professionalsPerUnit}</div>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-6 py-4">
+                  {editingId === resource.id ? (
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={editedResource?.staffOnly ?? false}
+                        onChange={(e) => setEditedResource({ ...editedResource, staffOnly: e.target.checked })}
+                        className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                      />
+                    </div>
+                  ) : (
+                    resource.staffOnly ? (
+                      <span className="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800">
+                        Staff Only
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
+                    )
                   )}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">

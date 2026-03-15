@@ -18,6 +18,7 @@ export default function ProfessionalNav({ user, siteName, version }: Professiona
 
   const navigation = [
     { name: 'Dashboard', href: '/professional/dashboard' },
+    { name: 'Events', href: '/professional/events' },
     { name: 'Calendar', href: '/professional/calendar' },
     { name: 'Create Shift', href: '/professional/shifts/create' },
     { name: 'My Shifts', href: '/professional/shifts' },
