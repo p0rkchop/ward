@@ -22,6 +22,8 @@ export type EventData = {
   defaultEndTime: string;
   timezone: string;
   visibleDaysBefore: number;
+  allowMultiBooking: boolean;
+  maxBookingsPerClient: number | null;
   professionalPassword: string;
   isActive: boolean;
   adminId: string;
@@ -119,6 +121,8 @@ export async function createEvent(data: {
   defaultEndTime: string; // e.g. "17:00"
   timezone: string; // IANA timezone e.g. "America/Chicago"
   visibleDaysBefore?: number; // 0-365, days before event start date that clients can see it
+  allowMultiBooking?: boolean;
+  maxBookingsPerClient?: number | null;
   professionalPassword: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const admin = await requireAdmin();
@@ -158,6 +162,8 @@ export async function createEvent(data: {
         defaultEndTime,
         timezone,
         visibleDaysBefore,
+        allowMultiBooking: data.allowMultiBooking ?? false,
+        maxBookingsPerClient: data.allowMultiBooking ? (data.maxBookingsPerClient ?? null) : null,
         professionalPassword: data.professionalPassword.trim(),
         adminId: admin.id,
       },
@@ -196,6 +202,8 @@ export async function updateEvent(
     defaultEndTime?: string;
     timezone?: string;
     visibleDaysBefore?: number;
+    allowMultiBooking?: boolean;
+    maxBookingsPerClient?: number | null;
     professionalPassword?: string;
     isActive?: boolean;
   }
@@ -212,6 +220,11 @@ export async function updateEvent(
   if (data.defaultEndTime !== undefined) updateData.defaultEndTime = data.defaultEndTime;
   if (data.timezone !== undefined) updateData.timezone = data.timezone;
   if (data.visibleDaysBefore !== undefined) updateData.visibleDaysBefore = Math.max(0, Math.min(365, data.visibleDaysBefore));
+  if (data.allowMultiBooking !== undefined) {
+    updateData.allowMultiBooking = data.allowMultiBooking;
+    if (!data.allowMultiBooking) updateData.maxBookingsPerClient = null;
+  }
+  if (data.maxBookingsPerClient !== undefined) updateData.maxBookingsPerClient = data.maxBookingsPerClient;
   if (data.professionalPassword !== undefined) updateData.professionalPassword = data.professionalPassword.trim();
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
 

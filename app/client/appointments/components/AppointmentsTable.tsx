@@ -143,7 +143,13 @@ export default function AppointmentsTable({ bookings, clientId, isPast = false }
                     )}
                   </td>
                   {!isPast && !booking.deletedAt && (
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium space-x-3">
+                      <a
+                        href={`/client/book?reschedule=${booking.id}`}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        Reschedule
+                      </a>
                       <button
                         onClick={() => handleCancelBooking(booking.id)}
                         disabled={cancellingId === booking.id}

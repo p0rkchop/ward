@@ -243,6 +243,10 @@ const statements = [
 
   // ── v1.19.0: Staff-only resources ──
   `ALTER TABLE "Resource" ADD COLUMN "staffOnly" BOOLEAN NOT NULL DEFAULT false`,
+
+  // ── v1.20.0: Multi-booking per event ──
+  `ALTER TABLE "Event" ADD COLUMN "allowMultiBooking" BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE "Event" ADD COLUMN "maxBookingsPerClient" INTEGER`,
 ];
 
 console.log(`Running ${statements.length} statements...`);

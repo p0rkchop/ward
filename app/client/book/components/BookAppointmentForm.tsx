@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { formatDateFull, formatTime, formatTimeRange, formatDateWithDay, prefsFromSession } from '@/app/lib/format-utils';
-import { bookTimeslot } from '@/app/lib/booking-actions';
+import { bookTimeslot, rescheduleBooking } from '@/app/lib/booking-actions';
 
 interface TimeSlot {
   start: Date;
@@ -18,9 +18,11 @@ interface TimeSlot {
 interface BookAppointmentFormProps {
   clientId: string;
   slotsByDay: Record<string, TimeSlot[]>;
+  rescheduleBookingId?: string;
 }
 
-export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppointmentFormProps) {
+export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBookingId }: BookAppointmentFormProps) {
+  const isReschedule = !!rescheduleBookingId;
   const router = useRouter();
   const { data: session } = useSession();
   const prefs = prefsFromSession(session?.user);
@@ -47,7 +49,11 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
     setError(null);
 
     try {
-      await bookTimeslot(clientId, selectedSlot.start, selectedSlot.end, notes || undefined);
+      if (rescheduleBookingId) {
+        await rescheduleBooking(rescheduleBookingId, selectedSlot.start, selectedSlot.end, notes || undefined);
+      } else {
+        await bookTimeslot(clientId, selectedSlot.start, selectedSlot.end, notes || undefined);
+      }
       setSuccess(true);
       setTimeout(() => {
         router.push('/client/appointments');
@@ -68,9 +74,13 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="mt-4 text-lg font-medium text-green-800">Appointment Booked Successfully!</h3>
+        <h3 className="mt-4 text-lg font-medium text-green-800">
+          {isReschedule ? 'Appointment Rescheduled!' : 'Appointment Booked Successfully!'}
+        </h3>
         <p className="mt-2 text-green-700">
-          Your appointment has been confirmed. Redirecting to your appointments...
+          {isReschedule
+            ? 'Your appointment has been rescheduled. Redirecting to your appointments...'
+            : 'Your appointment has been confirmed. Redirecting to your appointments...'}
         </p>
       </div>
     );
@@ -79,9 +89,13 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
   return (
     <div className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow">
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Available Time Slots</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          {isReschedule ? 'Reschedule Appointment' : 'Available Time Slots'}
+        </h2>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Select a 30-minute time slot for your appointment.
+          {isReschedule
+            ? 'Select a new time slot. Your current booking will be cancelled and replaced.'
+            : 'Select a 30-minute time slot for your appointment.'}
         </p>
       </div>
 
@@ -199,7 +213,7 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
                   disabled={loading}
                   className="w-full rounded-md bg-green-600 px-4 py-3 text-center text-lg font-semibold text-white shadow-sm hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {loading ? 'Booking...' : 'Book Appointment'}
+                  {loading ? (isReschedule ? 'Rescheduling...' : 'Booking...') : (isReschedule ? 'Reschedule Appointment' : 'Book Appointment')}
                 </button>
               </div>
             </div>

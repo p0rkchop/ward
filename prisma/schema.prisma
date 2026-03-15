@@ -65,6 +65,8 @@ model Event {
   defaultEndTime       String    @default("17:00")
   timezone             String    @default("America/Chicago")
   visibleDaysBefore    Int       @default(0)
+  allowMultiBooking    Boolean   @default(false)
+  maxBookingsPerClient Int?
   professionalPassword String
   isActive             Boolean   @default(true)
   deletedAt            DateTime?

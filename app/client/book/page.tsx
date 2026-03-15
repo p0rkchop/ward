@@ -6,7 +6,8 @@ import BookAppointmentForm from './components/BookAppointmentForm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function BookAppointmentPage() {
+export default async function BookAppointmentPage({ searchParams }: { searchParams: Promise<{ reschedule?: string }> }) {
+  const params = await searchParams;
   const session = await getServerSession();
 
   if (!session?.user) {
@@ -49,10 +50,12 @@ export default async function BookAppointmentPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-          Book Appointment
+          {params.reschedule ? 'Reschedule Appointment' : 'Book Appointment'}
         </h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Select an available time slot for your appointment.
+          {params.reschedule
+            ? 'Select a new time slot for your appointment. Your current booking will be cancelled.'
+            : 'Select an available time slot for your appointment.'}
         </p>
       </div>
 
@@ -61,6 +64,7 @@ export default async function BookAppointmentPage() {
           <BookAppointmentForm
             clientId={clientId}
             slotsByDay={slotsByDay}
+            rescheduleBookingId={params.reschedule}
           />
         </div>
 

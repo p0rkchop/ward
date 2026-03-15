@@ -29,6 +29,8 @@ export default function EventsManager({ initialEvents }: Props) {
   const [newTimezone, setNewTimezone] = useState('America/Chicago');
   const [newPassword, setNewPassword] = useState('');
   const [newVisibleDaysBefore, setNewVisibleDaysBefore] = useState(0);
+  const [newAllowMultiBooking, setNewAllowMultiBooking] = useState(false);
+  const [newMaxBookingsPerClient, setNewMaxBookingsPerClient] = useState<number | ''>('');
 
   // Edit form state
   const [editName, setEditName] = useState('');
@@ -41,6 +43,8 @@ export default function EventsManager({ initialEvents }: Props) {
   const [editPassword, setEditPassword] = useState('');
   const [editActive, setEditActive] = useState(true);
   const [editVisibleDaysBefore, setEditVisibleDaysBefore] = useState(0);
+  const [editAllowMultiBooking, setEditAllowMultiBooking] = useState(false);
+  const [editMaxBookingsPerClient, setEditMaxBookingsPerClient] = useState<number | ''>('');
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -56,6 +60,8 @@ export default function EventsManager({ initialEvents }: Props) {
       defaultEndTime: newDefaultEndTime,
       timezone: newTimezone,
       visibleDaysBefore: newVisibleDaysBefore,
+      allowMultiBooking: newAllowMultiBooking,
+      maxBookingsPerClient: newAllowMultiBooking && newMaxBookingsPerClient ? Number(newMaxBookingsPerClient) : null,
       professionalPassword: newPassword,
     });
 
@@ -78,6 +84,8 @@ export default function EventsManager({ initialEvents }: Props) {
         defaultEndTime: newDefaultEndTime,
         timezone: newTimezone,
         visibleDaysBefore: newVisibleDaysBefore,
+        allowMultiBooking: newAllowMultiBooking,
+        maxBookingsPerClient: newAllowMultiBooking && newMaxBookingsPerClient ? Number(newMaxBookingsPerClient) : null,
         professionalPassword: newPassword.trim(),
         isActive: true,
         adminId: '',
@@ -96,6 +104,8 @@ export default function EventsManager({ initialEvents }: Props) {
     setNewTimezone('America/Chicago');
     setNewPassword('');
     setNewVisibleDaysBefore(0);
+    setNewAllowMultiBooking(false);
+    setNewMaxBookingsPerClient('');
     setShowCreate(false);
     setLoading(false);
   }
@@ -112,6 +122,8 @@ export default function EventsManager({ initialEvents }: Props) {
     setEditPassword(event.professionalPassword);
     setEditActive(event.isActive);
     setEditVisibleDaysBefore(event.visibleDaysBefore);
+    setEditAllowMultiBooking(event.allowMultiBooking);
+    setEditMaxBookingsPerClient(event.maxBookingsPerClient ?? '');
     setError('');
   }
 
@@ -150,6 +162,8 @@ export default function EventsManager({ initialEvents }: Props) {
       defaultEndTime: editDefaultEndTime,
       timezone: editTimezone,
       visibleDaysBefore: editVisibleDaysBefore,
+      allowMultiBooking: editAllowMultiBooking,
+      maxBookingsPerClient: editAllowMultiBooking && editMaxBookingsPerClient ? Number(editMaxBookingsPerClient) : null,
       professionalPassword: editPassword,
       isActive: editActive,
     });
@@ -183,6 +197,8 @@ export default function EventsManager({ initialEvents }: Props) {
               defaultEndTime: editDefaultEndTime,
               timezone: editTimezone,
               visibleDaysBefore: editVisibleDaysBefore,
+              allowMultiBooking: editAllowMultiBooking,
+              maxBookingsPerClient: editAllowMultiBooking && editMaxBookingsPerClient ? Number(editMaxBookingsPerClient) : null,
               professionalPassword: editPassword.trim(),
               isActive: editActive,
               _count: { ...ev._count, professionals: ev._count?.professionals ?? 0, days: dayCount },
@@ -356,6 +372,34 @@ export default function EventsManager({ initialEvents }: Props) {
             </p>
           </div>
 
+          <div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="new-multi-booking"
+                checked={newAllowMultiBooking}
+                onChange={(e) => setNewAllowMultiBooking(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="new-multi-booking" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Allow multiple bookings per client
+              </label>
+            </div>
+            {newAllowMultiBooking && (
+              <div className="mt-2 ml-6">
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Max bookings per client (leave empty for unlimited)</label>
+                <input
+                  type="number"
+                  min={2}
+                  value={newMaxBookingsPerClient}
+                  onChange={(e) => setNewMaxBookingsPerClient(e.target.value ? Math.max(2, parseInt(e.target.value) || 2) : '')}
+                  placeholder="Unlimited"
+                  className="w-full sm:w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100"
+                />
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-3">
             <button
               type="submit"
@@ -513,6 +557,33 @@ export default function EventsManager({ initialEvents }: Props) {
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             0 = visible only on event day
                           </p>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id={`edit-multi-booking-${event.id}`}
+                              checked={editAllowMultiBooking}
+                              onChange={(e) => setEditAllowMultiBooking(e.target.checked)}
+                              className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor={`edit-multi-booking-${event.id}`} className="text-xs text-gray-700 dark:text-gray-300">
+                              Allow multiple bookings per client
+                            </label>
+                          </div>
+                          {editAllowMultiBooking && (
+                            <div className="mt-1 ml-6">
+                              <input
+                                type="number"
+                                min={2}
+                                value={editMaxBookingsPerClient}
+                                onChange={(e) => setEditMaxBookingsPerClient(e.target.value ? Math.max(2, parseInt(e.target.value) || 2) : '')}
+                                placeholder="Unlimited"
+                                className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 text-sm"
+                              />
+                              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Max per client (empty = unlimited)</p>
+                            </div>
+                          )}
                         </div>
                         <div className="flex gap-2">
                           <button

@@ -243,6 +243,67 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date, no
   // Check client role
   await validateClientRole(input.clientId);
 
+  // Check multi-booking limits across all events the timeslot could belong to
+  // Find events that have resources with shifts covering this timeslot
+  const relevantEvents = await db.event.findMany({
+    where: {
+      isActive: true,
+      deletedAt: null,
+      eventResources: {
+        some: {
+          deletedAt: null,
+          resource: {
+            isActive: true,
+            deletedAt: null,
+            staffOnly: false,
+            shifts: {
+              some: {
+                deletedAt: null,
+                startTime: { lte: input.start },
+                endTime: { gte: input.end },
+              },
+            },
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+      allowMultiBooking: true,
+      maxBookingsPerClient: true,
+    },
+  });
+
+  for (const event of relevantEvents) {
+    // Count existing confirmed bookings for this client in this event
+    const existingCount = await db.booking.count({
+      where: {
+        clientId: input.clientId,
+        deletedAt: null,
+        status: 'CONFIRMED',
+        shift: {
+          deletedAt: null,
+          resource: {
+            eventResources: {
+              some: {
+                eventId: event.id,
+                deletedAt: null,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!event.allowMultiBooking && existingCount >= 1) {
+      throw new BusinessRuleError('You already have a booking for this event. Cancel your existing booking first, or ask the event admin to enable multiple bookings.');
+    }
+
+    if (event.allowMultiBooking && event.maxBookingsPerClient && existingCount >= event.maxBookingsPerClient) {
+      throw new BusinessRuleError(`You have reached the maximum of ${event.maxBookingsPerClient} booking${event.maxBookingsPerClient !== 1 ? 's' : ''} for this event.`);
+    }
+  }
+
   // Auto-matching algorithm with concurrency handling
   const maxRetries = 2;
   let lastError: Error | null = null;
@@ -651,4 +712,224 @@ export async function cancelBooking(bookingId: string, _clientId?: string) {
   }
 
   return updatedBooking;
+}
+
+/**
+ * Reschedule a booking: atomically cancels the old booking and creates a new one.
+ * This bypasses multi-booking limits since the old booking is cancelled first within
+ * the same logical operation.
+ */
+export async function rescheduleBooking(
+  bookingId: string,
+  newStart: Date,
+  newEnd: Date,
+  notes?: string,
+) {
+  // Derive clientId from server session
+  const session = await getServerSession();
+  if (!session?.user?.id) {
+    throw new Error('Authentication required');
+  }
+  const clientId = session.user.id;
+
+  // Validate the new timeslot
+  const input = validateSchema(createBookingSchema, { clientId, start: newStart, end: newEnd });
+  validate30MinuteInterval(input.start, input.end);
+
+  if (!isAlignedTo30MinuteBoundary(input.start)) {
+    throw new ValidationError('Booking start time must be aligned to 30-minute boundaries');
+  }
+
+  if (input.start < new Date()) {
+    throw new BusinessRuleError('Cannot reschedule to a timeslot in the past');
+  }
+
+  const trimmedNotes = notes?.trim() || null;
+  if (trimmedNotes && trimmedNotes.length > 250) {
+    throw new ValidationError('Notes must be 250 characters or fewer');
+  }
+
+  // Verify the existing booking
+  const existingBooking = await db.booking.findUnique({
+    where: { id: bookingId },
+    include: {
+      client: { select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true } },
+      shift: {
+        include: {
+          professional: { select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true } },
+          resource: { select: { id: true, name: true, description: true, location: true } },
+        },
+      },
+    },
+  });
+
+  if (!existingBooking) {
+    throw new NotFoundError('Booking not found');
+  }
+
+  if (existingBooking.clientId !== clientId) {
+    throw new BusinessRuleError('You can only reschedule your own bookings');
+  }
+
+  if (existingBooking.deletedAt || existingBooking.status === 'CANCELLED') {
+    throw new BusinessRuleError('Cannot reschedule a cancelled booking');
+  }
+
+  if (new Date(existingBooking.startTime) < new Date()) {
+    throw new BusinessRuleError('Cannot reschedule a past booking');
+  }
+
+  // Cancel old + create new in a transaction
+  const maxRetries = 2;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const newBooking = await db.$transaction(async (tx) => {
+        // Cancel the old booking
+        await tx.booking.update({
+          where: { id: bookingId },
+          data: { status: 'CANCELLED', deletedAt: new Date() },
+        });
+
+        // Find available shifts for the new timeslot
+        const availableShifts = await tx.shift.findMany({
+          where: {
+            deletedAt: null,
+            startTime: { lte: input.start },
+            endTime: { gte: input.end },
+            resource: {
+              isActive: true,
+              deletedAt: null,
+              staffOnly: false,
+              eventResources: {
+                some: {
+                  deletedAt: null,
+                  event: { isActive: true, deletedAt: null },
+                },
+              },
+            },
+          },
+          include: {
+            resource: { select: { id: true, name: true, isActive: true } },
+            professional: { select: { id: true, name: true, phoneNumber: true, email: true, notifyViaEmail: true, notifyViaPush: true } },
+            bookings: {
+              where: { deletedAt: null, status: 'CONFIRMED', startTime: input.start, endTime: input.end },
+              select: { id: true },
+            },
+          },
+        });
+
+        const shiftsWithCapacity = availableShifts.filter((s) => s.bookings.length < 1);
+
+        if (shiftsWithCapacity.length === 0) {
+          throw new BusinessRuleError('No available professionals for the requested timeslot');
+        }
+
+        const randomIndex = Math.floor(Math.random() * shiftsWithCapacity.length);
+        const selectedShift = shiftsWithCapacity[randomIndex];
+
+        // Re-check capacity
+        const existingBookingCount = await tx.booking.count({
+          where: {
+            shiftId: selectedShift.id,
+            deletedAt: null,
+            status: 'CONFIRMED',
+            startTime: input.start,
+            endTime: input.end,
+          },
+        });
+
+        if (existingBookingCount >= 1) {
+          throw new ConflictError('Capacity taken by concurrent booking');
+        }
+
+        return await tx.booking.create({
+          data: {
+            startTime: input.start,
+            endTime: input.end,
+            clientId: input.clientId,
+            shiftId: selectedShift.id,
+            status: 'CONFIRMED',
+            notes: trimmedNotes,
+          },
+          include: {
+            client: { select: { id: true, name: true, phoneNumber: true, email: true, notifyViaEmail: true, notifyViaPush: true } },
+            shift: {
+              include: {
+                professional: { select: { id: true, name: true, phoneNumber: true, email: true, notifyViaEmail: true, notifyViaPush: true } },
+                resource: { select: { id: true, name: true, description: true, location: true } },
+              },
+            },
+          },
+        });
+      });
+
+      // Notifications for the new booking
+      const emailData = {
+        startTime: newBooking.startTime,
+        endTime: newBooking.endTime,
+        professionalName: newBooking.shift.professional.name ?? 'TBD',
+        resourceName: newBooking.shift.resource.name,
+        resourceLocation: newBooking.shift.resource.location,
+      };
+
+      if (newBooking.client.email && newBooking.client.notifyViaEmail) {
+        sendBookingConfirmation(newBooking.client.email, emailData).catch(() => {});
+      }
+      if (newBooking.client.notifyViaPush) {
+        sendPushToUser(newBooking.client.id, {
+          title: 'Booking Rescheduled',
+          body: `Your appointment has been rescheduled with ${emailData.professionalName}.`,
+          url: '/client/appointments',
+        }).catch(() => {});
+      }
+
+      // Notify old professional if different from new
+      if (existingBooking.shift.professional.id !== newBooking.shift.professional.id) {
+        if (existingBooking.shift.professional.email && existingBooking.shift.professional.notifyViaEmail) {
+          sendProfessionalBookingCancelled(
+            existingBooking.shift.professional.email,
+            existingBooking.client?.name ?? 'Client',
+            {
+              startTime: existingBooking.startTime,
+              endTime: existingBooking.endTime,
+              professionalName: existingBooking.shift.professional.name ?? 'TBD',
+              resourceName: existingBooking.shift.resource.name,
+              resourceLocation: existingBooking.shift.resource.location,
+            },
+            'client',
+          ).catch(() => {});
+        }
+      }
+
+      // Notify new professional
+      if (newBooking.shift.professional.email && newBooking.shift.professional.notifyViaEmail) {
+        sendProfessionalNewBooking(
+          newBooking.shift.professional.email,
+          newBooking.client.name ?? 'Client',
+          emailData,
+        ).catch(() => {});
+      }
+      if (newBooking.shift.professional.notifyViaPush) {
+        sendPushToUser(newBooking.shift.professional.id, {
+          title: 'New Booking',
+          body: `${newBooking.client.name ?? 'A client'} booked an appointment with you.`,
+          url: '/professional/bookings',
+        }).catch(() => {});
+      }
+
+      return newBooking;
+    } catch (error) {
+      lastError = error as Error;
+      if (error instanceof ConflictError && attempt < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, Math.random() * 100));
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  console.error('Failed to reschedule booking after retries:', lastError);
+  throw lastError;
 }
