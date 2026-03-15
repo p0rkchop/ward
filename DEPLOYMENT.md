@@ -273,7 +273,7 @@ The project includes `vercel.json` with optimized settings:
     }
   },
   "installCommand": "npm install",
-  "buildCommand": "npx prisma generate && npx prisma db push && npm run build",
+  "buildCommand": "npx prisma generate && npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
   "regions": ["iad1"]
@@ -283,10 +283,11 @@ The project includes `vercel.json` with optimized settings:
 **Build Process**:
 1. Installs dependencies with `npm install`
 2. Generates Prisma client with `npx prisma generate`
-3. Pushes schema changes to the production database with `npx prisma db push`
-4. Builds Next.js application with `npm run build`
-5. Deploys with optimal serverless function settings
-6. Registers Vercel Cron schedule for daily appointment reminders
+3. Builds Next.js application with `npm run build`
+4. Deploys with optimal serverless function settings
+5. Registers Vercel Cron schedule for daily appointment reminders
+
+**Note**: `prisma db push` does **not** work with Turso's `libsql://` URLs. Schema changes to the production database must be applied separately using `node migrate-turso.mjs` (see [Schema Deployment](#schema-deployment) below).
 
 ### 5. Vercel Project
 
@@ -328,18 +329,23 @@ Follow this procedure for each release:
    gh issue close <number> --comment "Implemented in v<version>"
    ```
 
-6. **Deploy to Vercel** (career-ward only):
+6. **Apply schema changes** (if any Prisma schema changes were made):
+   - Add the new ALTER TABLE / CREATE TABLE statements to `migrate-turso.mjs`
+   - Run: `node migrate-turso.mjs` (reads `DATABASE_URL` and `TURSO_AUTH_TOKEN` from env or `.env.local`)
+   - Verify the output shows `OK` for new columns and `SKIP` for existing ones
+
+7. **Deploy to Vercel** (career-ward only):
    ```bash
    npx vercel --prod --yes
    ```
 
-7. **Verify deployment**:
+8. **Verify deployment**:
    ```bash
    npx vercel inspect <deployment-url>
    ```
    Confirm status is `● Ready` and the project name is `career-ward`.
 
-**Important**: The Vercel build command (`npx prisma generate && npm run build`) automatically pushes schema changes to the production Turso database. No separate `prisma db push` step is needed.
+**Important**: `prisma db push` does **not** work with Turso `libsql://` URLs. Always use `migrate-turso.mjs` for production schema changes.
 
 ### 7. Custom Domain (Optional)
 

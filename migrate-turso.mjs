@@ -231,6 +231,18 @@ const statements = [
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "PushSubscription_endpoint_key" ON "PushSubscription"("endpoint")`,
   `CREATE INDEX IF NOT EXISTS "PushSubscription_userId_idx" ON "PushSubscription"("userId")`,
+
+  // ── v1.14.0: User preferences ──
+  `ALTER TABLE "User" ADD COLUMN "theme" TEXT NOT NULL DEFAULT 'system'`,
+  `ALTER TABLE "User" ADD COLUMN "timeFormat" TEXT NOT NULL DEFAULT '12h'`,
+  `ALTER TABLE "User" ADD COLUMN "dateFormat" TEXT NOT NULL DEFAULT 'MM/DD/YYYY'`,
+  `ALTER TABLE "User" ADD COLUMN "timezone" TEXT NOT NULL DEFAULT 'America/Chicago'`,
+
+  // ── v1.15.0: Event timezone ──
+  `ALTER TABLE "Event" ADD COLUMN "timezone" TEXT NOT NULL DEFAULT 'America/Chicago'`,
+
+  // ── v1.19.0: Staff-only resources ──
+  `ALTER TABLE "Resource" ADD COLUMN "staffOnly" BOOLEAN NOT NULL DEFAULT false`,
 ];
 
 console.log(`Running ${statements.length} statements...`);
