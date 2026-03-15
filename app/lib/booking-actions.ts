@@ -153,11 +153,11 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
     (a, b) => a.start.getTime() - b.start.getTime()
   );
 
-  // Fetch all confirmed bookings within the date range
+  // Fetch ALL bookings within the date range (including cancelled ones)
+  // because the unique constraint on (shiftId, startTime, endTime) means
+  // cancelled bookings still occupy the slot and prevent new bookings.
   const allBookings = await db.booking.findMany({
     where: {
-      deletedAt: null,
-      status: 'CONFIRMED',
       startTime: { gte: start, lt: end },
       shift: {
         deletedAt: null,
@@ -449,24 +449,19 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date, no
             },
             bookings: {
               where: {
-                deletedAt: null,
-                status: 'CONFIRMED',
                 startTime: input.start,
                 endTime: input.end,
               },
-              select: { id: true },
+              select: { id: true, status: true, deletedAt: true },
             },
           },
         });
 
         // Filter shifts with available capacity
+        // Exclude shifts that have ANY booking row (even cancelled) at this exact time
+        // because a unique constraint on (shiftId, startTime, endTime) prevents duplicates.
         const shiftsWithCapacity = availableShifts.filter((shift) => {
-          // Count bookings for this exact timeslot (already filtered by start/end)
-          const bookingCount = shift.bookings.length;
-          // For simplicity, assume each shift has capacity of 1 (one professional)
-          // In a real system, shift might have capacity >1 (e.g., group sessions)
-          const shiftCapacity = 1;
-          return bookingCount < shiftCapacity;
+          return shift.bookings.length === 0;
         });
 
         if (shiftsWithCapacity.length === 0) {
@@ -477,20 +472,18 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date, no
         const randomIndex = Math.floor(Math.random() * shiftsWithCapacity.length);
         const selectedShift = shiftsWithCapacity[randomIndex];
 
-        // Step 3: Re-check capacity within transaction to prevent race conditions
+        // Step 3: Re-check within transaction — any row (including cancelled)
+        // would violate the unique constraint on (shiftId, startTime, endTime)
         const existingBookingCount = await tx.booking.count({
           where: {
             shiftId: selectedShift.id,
-            deletedAt: null,
-            status: 'CONFIRMED',
             startTime: input.start,
             endTime: input.end,
           },
         });
 
         if (existingBookingCount >= 1) {
-          // Capacity taken by concurrent booking, throw to trigger retry
-          throw new ConflictError('Capacity taken by concurrent booking');
+          throw new ConflictError('Slot unavailable (unique constraint)');
         }
 
         // Step 4: Create the booking
@@ -921,13 +914,14 @@ export async function rescheduleBooking(
             resource: { select: { id: true, name: true, isActive: true } },
             professional: { select: { id: true, name: true, phoneNumber: true, email: true, notifyViaEmail: true, notifyViaPush: true } },
             bookings: {
-              where: { deletedAt: null, status: 'CONFIRMED', startTime: input.start, endTime: input.end },
+              where: { startTime: input.start, endTime: input.end },
               select: { id: true },
             },
           },
         });
 
-        const shiftsWithCapacity = availableShifts.filter((s) => s.bookings.length < 1);
+        // Exclude shifts with ANY booking row at this time (unique constraint)
+        const shiftsWithCapacity = availableShifts.filter((s) => s.bookings.length === 0);
 
         if (shiftsWithCapacity.length === 0) {
           throw new BusinessRuleError('No available professionals for the requested timeslot');
@@ -936,19 +930,17 @@ export async function rescheduleBooking(
         const randomIndex = Math.floor(Math.random() * shiftsWithCapacity.length);
         const selectedShift = shiftsWithCapacity[randomIndex];
 
-        // Re-check capacity
+        // Re-check — any row would violate unique constraint
         const existingBookingCount = await tx.booking.count({
           where: {
             shiftId: selectedShift.id,
-            deletedAt: null,
-            status: 'CONFIRMED',
             startTime: input.start,
             endTime: input.end,
           },
         });
 
         if (existingBookingCount >= 1) {
-          throw new ConflictError('Capacity taken by concurrent booking');
+          throw new ConflictError('Slot unavailable (unique constraint)');
         }
 
         return await tx.booking.create({
