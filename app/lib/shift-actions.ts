@@ -382,6 +382,82 @@ export async function getActiveResources(eventId?: string | null) {
 }
 
 /**
+ * Get all shifts for a professional's event (for the calendar agenda view).
+ * Returns shifts with professional info and booking details.
+ * @param start Optional start date filter
+ * @param end Optional end date filter
+ */
+export async function getEventShifts(
+  start?: Date,
+  end?: Date
+) {
+  const session = await getServerSession();
+  if (!session?.user) {
+    throw new BusinessRuleError('Authentication required');
+  }
+  if (session.user.role !== Role.PROFESSIONAL) {
+    throw new BusinessRuleError('Only professionals can view event shifts');
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { eventId: true },
+  });
+
+  if (!user?.eventId) {
+    return [];
+  }
+
+  const where: any = {
+    deletedAt: null,
+    resource: {
+      isActive: true,
+      deletedAt: null,
+      eventResources: {
+        some: {
+          eventId: user.eventId,
+          deletedAt: null,
+        },
+      },
+    },
+  };
+
+  if (start && end) {
+    where.startTime = { gte: start };
+    where.endTime = { lte: end };
+  } else if (start) {
+    where.startTime = { gte: start };
+  } else if (end) {
+    where.endTime = { lte: end };
+  }
+
+  return await db.shift.findMany({
+    where,
+    include: {
+      professional: {
+        select: { id: true, name: true },
+      },
+      resource: {
+        select: { id: true, name: true, description: true },
+      },
+      bookings: {
+        where: { deletedAt: null, status: 'CONFIRMED' },
+        select: {
+          id: true,
+          startTime: true,
+          endTime: true,
+          clientId: true,
+          client: {
+            select: { id: true, name: true },
+          },
+        },
+      },
+    },
+    orderBy: { startTime: 'asc' },
+  });
+}
+
+/**
  * Get the count of available 30-min timeslots a professional can still sign up for,
  * based on their event's resources, event day hours, and remaining capacity.
  */
