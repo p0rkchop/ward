@@ -273,7 +273,7 @@ The project includes `vercel.json` with optimized settings:
     }
   },
   "installCommand": "npm install",
-  "buildCommand": "npx prisma generate && npm run build",
+  "buildCommand": "npx prisma generate && npx prisma db push --skip-generate && npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
   "regions": ["iad1"]
@@ -283,18 +283,65 @@ The project includes `vercel.json` with optimized settings:
 **Build Process**:
 1. Installs dependencies with `npm install`
 2. Generates Prisma client with `npx prisma generate`
-3. Builds Next.js application with `npm run build`
-4. Deploys with optimal serverless function settings
-5. Registers Vercel Cron schedule for daily appointment reminders
+3. Pushes schema changes to the production database with `npx prisma db push --skip-generate`
+4. Builds Next.js application with `npm run build`
+5. Deploys with optimal serverless function settings
+6. Registers Vercel Cron schedule for daily appointment reminders
 
-### 5. Deployment
+### 5. Vercel Project
 
-1. After configuring environment variables, click **"Deploy"**
-2. Vercel will automatically build and deploy
-3. Monitor build logs for any issues
-4. Once deployed, your application will be available at `https://your-app.vercel.app`
+The production Vercel project is **`career-ward`** (deployed at https://career-ward.app). There are other Vercel projects linked to the same repo (`ward`, `cyphercon-career-ward`, `ward-s28e`) — **do not deploy to those**; only deploy to `career-ward`.
 
-### 6. Custom Domain (Optional)
+To link the CLI to the correct project:
+```bash
+npx vercel link --project career-ward --yes
+```
+
+### 6. Release & Deploy Procedure
+
+Follow this procedure for each release:
+
+1. **Run tests and type check**:
+   ```bash
+   npx prisma generate
+   npm run test:run
+   npx tsc --noEmit
+   ```
+
+2. **Version bump** — update `version` in `package.json` (semver: patch for fixes, minor for features)
+
+3. **Commit and tag**:
+   ```bash
+   git add <changed files>
+   git commit -m "feat: description of changes (#issue-numbers)"
+   git tag v<version>
+   git push && git push --tags
+   ```
+
+4. **Create GitHub release** with detailed notes:
+   ```bash
+   gh release create v<version> --title "v<version> — Short Title" --notes "..."
+   ```
+
+5. **Close resolved GitHub issues**:
+   ```bash
+   gh issue close <number> --comment "Implemented in v<version>"
+   ```
+
+6. **Deploy to Vercel** (career-ward only):
+   ```bash
+   npx vercel --prod --yes
+   ```
+
+7. **Verify deployment**:
+   ```bash
+   npx vercel inspect <deployment-url>
+   ```
+   Confirm status is `● Ready` and the project name is `career-ward`.
+
+**Important**: The Vercel build command (`npx prisma generate && npm run build`) automatically pushes schema changes to the production Turso database. No separate `prisma db push` step is needed.
+
+### 7. Custom Domain (Optional)
 
 1. Go to **Settings** → **Domains**
 2. Add your custom domain
@@ -852,6 +899,6 @@ After deployment, verify:
 
 ---
 
-*Last Updated: 2026-03-09*
-*Application Version: 1.10.1*
-*Deployment Guide Version: 2.0.0*
+*Last Updated: 2026-03-15*
+*Application Version: 1.19.0*
+*Deployment Guide Version: 2.1.0*
