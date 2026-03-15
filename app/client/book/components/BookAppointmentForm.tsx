@@ -25,6 +25,7 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
   const { data: session } = useSession();
   const prefs = prefsFromSession(session?.user);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -46,7 +47,7 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
     setError(null);
 
     try {
-      await bookTimeslot(clientId, selectedSlot.start, selectedSlot.end);
+      await bookTimeslot(clientId, selectedSlot.start, selectedSlot.end, notes || undefined);
       setSuccess(true);
       setTimeout(() => {
         router.push('/client/appointments');
@@ -173,7 +174,25 @@ export default function BookAppointmentForm({ clientId, slotsByDay }: BookAppoin
                 </div>
               </div>
 
-              <div className="mt-6">
+              <div className="mt-4">
+                <label htmlFor="booking-notes" className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Notes for your professional <span className="font-normal">(optional)</span>
+                </label>
+                <textarea
+                  id="booking-notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value.slice(0, 250))}
+                  maxLength={250}
+                  rows={2}
+                  placeholder="Any details your professional should know..."
+                  className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 shadow-sm placeholder:text-gray-400 focus:border-green-500 focus:outline-none focus:ring-green-500"
+                />
+                <div className="mt-1 text-xs text-gray-400 dark:text-gray-500 text-right">
+                  {notes.length}/250
+                </div>
+              </div>
+
+              <div className="mt-4">
                 <button
                   type="button"
                   onClick={handleBookAppointment}

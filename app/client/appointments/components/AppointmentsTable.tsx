@@ -10,6 +10,7 @@ interface Booking {
   id: string;
   startTime: Date;
   endTime: Date;
+  notes: string | null;
   deletedAt: Date | null;
   shift: {
     resource: {
@@ -101,10 +102,15 @@ export default function AppointmentsTable({ bookings, clientId, isPast = false }
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
               {bookings.map((booking) => (
                 <tr key={booking.id}>
-                  <td className="whitespace-nowrap px-6 py-4">
+                  <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{booking.shift.resource.name}</div>
                     {booking.shift.resource.description && (
                       <div className="text-sm text-gray-500 dark:text-gray-400">{booking.shift.resource.description}</div>
+                    )}
+                    {booking.notes && (
+                      <div className="mt-1 text-xs text-gray-400 dark:text-gray-500 italic max-w-xs truncate" title={booking.notes}>
+                        Note: {booking.notes}
+                      </div>
                     )}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">

@@ -211,7 +211,7 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
  * @param end End time of the slot (must be start + 30 minutes)
  * @returns The created booking or error
  */
-export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
+export async function bookTimeslot(_clientId: string, start: Date, end: Date, notes?: string) {
   // Derive clientId from server session to prevent IDOR
   const session = await getServerSession();
   if (!session?.user?.id) {
@@ -232,6 +232,12 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
   // Prevent booking in the past
   if (input.start < new Date()) {
     throw new BusinessRuleError('Cannot book a timeslot in the past');
+  }
+
+  // Validate notes length
+  const trimmedNotes = notes?.trim() || null;
+  if (trimmedNotes && trimmedNotes.length > 250) {
+    throw new ValidationError('Notes must be 250 characters or fewer');
   }
 
   // Check client role
@@ -327,6 +333,7 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
             clientId: input.clientId,
             shiftId: selectedShift.id,
             status: 'CONFIRMED',
+            notes: trimmedNotes,
           },
           include: {
             client: {
