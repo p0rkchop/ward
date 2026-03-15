@@ -35,9 +35,9 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
 
   const days = Object.keys(slotsByDay).sort();
 
-  // Live booking status — re-fetched on mount and on demand
-  const [liveBookingStatus, setLiveBookingStatus] = useState<ClientEventBookingStatus[]>(bookingStatus);
-  const [checkingStatus, setCheckingStatus] = useState(false);
+  // Live booking status — always fetched fresh before showing overlay
+  const [liveBookingStatus, setLiveBookingStatus] = useState<ClientEventBookingStatus[] | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(true);
 
   const refreshBookingStatus = useCallback(async () => {
     setCheckingStatus(true);
@@ -45,19 +45,22 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
       const fresh = await getClientEventBookingStatus();
       setLiveBookingStatus(fresh);
     } catch {
-      // Fall back to server-rendered data
+      // On error, don't block — allow booking
+      setLiveBookingStatus([]);
     } finally {
       setCheckingStatus(false);
     }
   }, []);
 
-  // Re-check on mount to catch changes since server render
+  // Always fetch fresh status on mount — never rely on server-rendered data alone
   useEffect(() => {
     refreshBookingStatus();
   }, [refreshBookingStatus]);
 
-  // Check if the client has reached booking limits (skip in reschedule mode)
-  const limitReachedEvents = isReschedule ? [] : liveBookingStatus.filter((s) => s.hasReachedLimit);
+  // Check if the client has reached booking limits (skip in reschedule mode, skip while loading)
+  const limitReachedEvents = isReschedule || !liveBookingStatus
+    ? []
+    : liveBookingStatus.filter((s) => s.hasReachedLimit);
   const isBookingBlocked = limitReachedEvents.length > 0 && days.length > 0;
 
   const handleSlotSelect = (slot: TimeSlot) => {
