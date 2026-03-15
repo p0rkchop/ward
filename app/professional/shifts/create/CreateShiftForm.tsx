@@ -38,9 +38,9 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Time references for filtering past dates/times
+  // Time references for filtering past dates/times (use local time, not UTC)
   const now = new Date();
-  const todayStr = `${now.getUTCFullYear()}-${(now.getUTCMonth() + 1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')}`;
+  const todayStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
   const futureEventDays = eventDays.filter((d) => d.date >= todayStr);
 
   // Form state
@@ -60,7 +60,7 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   });
 
-  const currentTimeStr = `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}`;
+  const currentTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   const isToday = date === todayStr;
 
   const timeOptions = selectedEventDay
@@ -96,9 +96,8 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
     setError(null);
 
     try {
-      // Combine date and time in UTC to avoid timezone issues
-      const [hours, minutes] = startTime.split(':').map(Number);
-      const startDate = new Date(`${date}T${startTime}:00.000Z`);
+      // Combine date and time in local timezone (no Z suffix)
+      const startDate = new Date(`${date}T${startTime}:00`);
 
       // Round to nearest 30-minute boundary
       const roundedStart = roundToNearest30Minutes(startDate);

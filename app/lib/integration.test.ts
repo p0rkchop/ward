@@ -140,6 +140,7 @@ describe('Integration Tests - Complete User Flows', () => {
 
       // Mock db.user.findUnique for event assignment check
       vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: 'event-id' } as any)
+      vi.mocked(db.event.findUnique).mockResolvedValue({ timezone: 'UTC' } as any)
 
       // Mock db.eventDay.findFirst for event day validation
       vi.mocked(db.eventDay.findFirst).mockResolvedValue({

@@ -31,6 +31,7 @@ vi.mock('./db', () => {
       shift: createMockDelegate(),
       booking: createMockDelegate(),
       eventDay: createMockDelegate(),
+      event: createMockDelegate(),
     },
   };
 })
@@ -123,6 +124,7 @@ describe('shift-actions', () => {
 
       // Mock db.user.findUnique for event day validation (assigned to event)
       vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: 'event-id' } as any)
+      vi.mocked(db.event.findUnique).mockResolvedValue({ timezone: 'UTC' } as any)
 
       // Mock db.eventDay.findFirst for event day validation
       vi.mocked(db.eventDay.findFirst).mockResolvedValue({
@@ -307,6 +309,7 @@ describe('shift-actions', () => {
     it('throws BusinessRuleError when no event day exists for shift date', async () => {
       setupMocksThroughCapacity()
       vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: 'event-1' } as any)
+      vi.mocked(db.event.findUnique).mockResolvedValue({ timezone: 'UTC' } as any)
       vi.mocked(db.eventDay.findFirst).mockResolvedValue(null)
 
       await expect(createShift(mockResourceId, mockStart, mockEnd))
@@ -326,6 +329,7 @@ describe('shift-actions', () => {
         end: earlyEnd,
       })
       vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: 'event-1' } as any)
+      vi.mocked(db.event.findUnique).mockResolvedValue({ timezone: 'UTC' } as any)
       // Event day has hours 14:00-17:00 but shift is at 08:00-08:30
       vi.mocked(db.eventDay.findFirst).mockResolvedValue({
         id: 'day-1',
@@ -353,6 +357,7 @@ describe('shift-actions', () => {
         end: localEnd,
       })
       vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: 'event-1' } as any)
+      vi.mocked(db.event.findUnique).mockResolvedValue({ timezone: 'UTC' } as any)
       // Event day covers 09:00-17:00, blackout from 10:00-11:00
       vi.mocked(db.eventDay.findFirst).mockResolvedValue({
         id: 'day-1',

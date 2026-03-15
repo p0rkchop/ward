@@ -98,14 +98,22 @@ export async function createShift(
     throw new BusinessRuleError('You must be assigned to an event before creating shifts');
   }
 
+  // Fetch event timezone for time validation
+  const event = await db.event.findUnique({
+    where: { id: professional.eventId },
+    select: { timezone: true },
+  });
+  const eventTimezone = event?.timezone || 'America/Chicago';
+
   // Prevent creating shifts in the past
   if (input.start < new Date()) {
     throw new BusinessRuleError('Cannot create a shift in the past');
   }
 
-  const shiftDate = new Date(input.start);
-  shiftDate.setUTCHours(0, 0, 0, 0);
-  const nextDate = new Date(shiftDate);
+  // Extract the local date in the event timezone for event day lookup
+  const localDateStr = input.start.toLocaleDateString('en-CA', { timeZone: eventTimezone }); // 'YYYY-MM-DD'
+  const shiftDate = new Date(localDateStr + 'T00:00:00Z');
+  const nextDate = new Date(localDateStr + 'T00:00:00Z');
   nextDate.setUTCDate(nextDate.getUTCDate() + 1);
 
   const eventDay = await db.eventDay.findFirst({
@@ -127,10 +135,9 @@ export async function createShift(
     throw new BusinessRuleError('No active event day exists for this date');
   }
 
-  // Check shift falls within event day hours using time strings
-  // (avoids timezone issues with Date object construction)
-  const shiftStartStr = `${input.start.getUTCHours().toString().padStart(2, '0')}:${input.start.getUTCMinutes().toString().padStart(2, '0')}`;
-  const shiftEndStr = `${input.end.getUTCHours().toString().padStart(2, '0')}:${input.end.getUTCMinutes().toString().padStart(2, '0')}`;
+  // Extract local time in the event timezone for comparison with event day hours
+  const shiftStartStr = input.start.toLocaleTimeString('en-GB', { timeZone: eventTimezone, hour: '2-digit', minute: '2-digit', hour12: false });
+  const shiftEndStr = input.end.toLocaleTimeString('en-GB', { timeZone: eventTimezone, hour: '2-digit', minute: '2-digit', hour12: false });
 
   if (shiftStartStr < eventDay.startTime || shiftEndStr > eventDay.endTime) {
     throw new BusinessRuleError(
