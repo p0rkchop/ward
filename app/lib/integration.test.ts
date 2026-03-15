@@ -29,6 +29,7 @@ vi.mock('./db', () => {
       $transaction: vi.fn(),
       user: createMockDelegate(),
       event: createMockDelegate(),
+      eventDay: createMockDelegate(),
       resource: createMockDelegate(),
       shift: createMockDelegate(),
       booking: createMockDelegate(),
@@ -135,6 +136,23 @@ describe('Integration Tests - Complete User Flows', () => {
         id: 'resource-id', name: 'Test', description: null, location: null,
         quantity: 1, professionalsPerUnit: 1, isActive: true,
         deletedAt: null, createdAt: new Date(), updatedAt: new Date(),
+      } as any)
+
+      // Mock db.user.findUnique for event assignment check
+      vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: 'event-id' } as any)
+
+      // Mock db.eventDay.findFirst for event day validation
+      vi.mocked(db.eventDay.findFirst).mockResolvedValue({
+        id: 'event-day-id',
+        eventId: 'event-id',
+        date: new Date('2026-02-22T12:00:00Z'),
+        startTime: '09:00',
+        endTime: '17:00',
+        isActive: true,
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        blackouts: [],
       } as any)
     })
 

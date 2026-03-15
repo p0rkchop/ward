@@ -6,7 +6,6 @@ import { createShift } from '@/app/lib/shift-actions';
 import { roundToNearest30Minutes, isValid30MinuteInterval, isAlignedTo30MinuteBoundary } from '@/app/lib/timeslot-utils';
 import { ValidationError, ConflictError, BusinessRuleError } from '@/app/lib/errors';
 import { useSession } from 'next-auth/react';
-import { format } from 'date-fns';
 import { formatDateWithDay, formatTimeString, prefsFromSession } from '@/app/lib/format-utils';
 
 interface Resource {
@@ -42,10 +41,10 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
   // Form state
   const [resourceId, setResourceId] = useState(resources.length > 0 ? resources[0].id : '');
   const [date, setDate] = useState(
-    eventDays.length > 0 ? eventDays[0].date : format(new Date(), 'yyyy-MM-dd')
+    eventDays[0].date
   );
   const [startTime, setStartTime] = useState(
-    eventDays.length > 0 ? eventDays[0].startTime : '09:00'
+    eventDays[0].startTime
   );
   const [duration, setDuration] = useState(30); // minutes
 
@@ -138,6 +137,23 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
     );
   }
 
+  if (eventDays.length === 0) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Create New Shift</h1>
+        </div>
+        <div className="rounded-md bg-yellow-50 dark:bg-yellow-900/20 p-4">
+          <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">No Event Assigned</h3>
+          <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+            You must be assigned to an active event with upcoming dates before you can create shifts.
+            Please contact an administrator to be assigned to an event.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-8">
@@ -192,42 +208,28 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
           <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Date *
           </label>
-          {availableDates.length > 0 ? (
-            <select
-              id="date"
-              value={date}
-              onChange={(e) => {
-                setDate(e.target.value);
-                // Reset start time when date changes (event hours may differ)
-                const newDay = eventDays.find((d) => d.date === e.target.value);
-                if (newDay) {
-                  setStartTime(newDay.startTime);
-                }
-              }}
-              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              required
-            >
-              {availableDates.map((d) => (
-                <option key={d} value={d}>
-                  {formatDateWithDay(new Date(d + 'T00:00:00'), prefs)}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="date"
-              id="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              min={format(new Date(), 'yyyy-MM-dd')}
-              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              required
-            />
-          )}
+          <select
+            id="date"
+            value={date}
+            onChange={(e) => {
+              setDate(e.target.value);
+              // Reset start time when date changes (event hours may differ)
+              const newDay = eventDays.find((d) => d.date === e.target.value);
+              if (newDay) {
+                setStartTime(newDay.startTime);
+              }
+            }}
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            required
+          >
+            {availableDates.map((d) => (
+              <option key={d} value={d}>
+                {formatDateWithDay(new Date(d + 'T00:00:00'), prefs)}
+              </option>
+            ))}
+          </select>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {availableDates.length > 0
-              ? 'Select from the available event dates.'
-              : 'Select the date for your shift.'}
+            Select from the available event dates.
           </p>
         </div>
 
@@ -308,9 +310,7 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
           <li>Resource availability depends on its capacity (quantity × professionals per unit)</li>
           <li>You cannot create overlapping shifts for yourself (same time period)</li>
           <li>Shifts can only be created by users with the PROFESSIONAL role</li>
-          {eventDays.length > 0 && (
-            <li>Shifts are restricted to your assigned event&apos;s dates and hours</li>
-          )}
+          <li>Shifts are restricted to your assigned event&apos;s dates and hours</li>
         </ul>
       </div>
     </div>

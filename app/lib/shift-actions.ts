@@ -88,54 +88,57 @@ export async function createShift(
   }
 
   // Validate shift against event day schedule and blackout periods
+  // Professionals MUST be assigned to an event to create shifts
   const professional = await db.user.findUnique({
     where: { id: professionalId },
     select: { eventId: true },
   });
 
-  if (professional?.eventId) {
-    const shiftDate = new Date(input.start);
-    shiftDate.setUTCHours(0, 0, 0, 0);
-    const nextDate = new Date(shiftDate);
-    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+  if (!professional?.eventId) {
+    throw new BusinessRuleError('You must be assigned to an event before creating shifts');
+  }
 
-    const eventDay = await db.eventDay.findFirst({
-      where: {
-        eventId: professional.eventId,
-        date: { gte: shiftDate, lt: nextDate },
-        deletedAt: null,
-        isActive: true,
+  const shiftDate = new Date(input.start);
+  shiftDate.setUTCHours(0, 0, 0, 0);
+  const nextDate = new Date(shiftDate);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+
+  const eventDay = await db.eventDay.findFirst({
+    where: {
+      eventId: professional.eventId,
+      date: { gte: shiftDate, lt: nextDate },
+      deletedAt: null,
+      isActive: true,
+    },
+    include: {
+      blackouts: {
+        where: { deletedAt: null },
+        select: { startTime: true, endTime: true, description: true },
       },
-      include: {
-        blackouts: {
-          where: { deletedAt: null },
-          select: { startTime: true, endTime: true, description: true },
-        },
-      },
-    });
+    },
+  });
 
-    if (!eventDay) {
-      throw new BusinessRuleError('No active event day exists for this date');
-    }
+  if (!eventDay) {
+    throw new BusinessRuleError('No active event day exists for this date');
+  }
 
-    // Check shift falls within event day hours using time strings
-    // (avoids timezone issues with Date object construction)
-    const shiftStartStr = `${input.start.getUTCHours().toString().padStart(2, '0')}:${input.start.getUTCMinutes().toString().padStart(2, '0')}`;
-    const shiftEndStr = `${input.end.getUTCHours().toString().padStart(2, '0')}:${input.end.getUTCMinutes().toString().padStart(2, '0')}`;
+  // Check shift falls within event day hours using time strings
+  // (avoids timezone issues with Date object construction)
+  const shiftStartStr = `${input.start.getUTCHours().toString().padStart(2, '0')}:${input.start.getUTCMinutes().toString().padStart(2, '0')}`;
+  const shiftEndStr = `${input.end.getUTCHours().toString().padStart(2, '0')}:${input.end.getUTCMinutes().toString().padStart(2, '0')}`;
 
-    if (shiftStartStr < eventDay.startTime || shiftEndStr > eventDay.endTime) {
+  if (shiftStartStr < eventDay.startTime || shiftEndStr > eventDay.endTime) {
+    throw new BusinessRuleError(
+      `Shift must be within event day hours (${eventDay.startTime} - ${eventDay.endTime})`
+    );
+  }
+
+  // Check shift does not overlap with blackout periods
+  for (const blackout of eventDay.blackouts) {
+    if (shiftStartStr < blackout.endTime && shiftEndStr > blackout.startTime) {
       throw new BusinessRuleError(
-        `Shift must be within event day hours (${eventDay.startTime} - ${eventDay.endTime})`
+        `Shift overlaps with a blackout period (${blackout.startTime} - ${blackout.endTime}${blackout.description ? ': ' + blackout.description : ''})`
       );
-    }
-
-    // Check shift does not overlap with blackout periods
-    for (const blackout of eventDay.blackouts) {
-      if (shiftStartStr < blackout.endTime && shiftEndStr > blackout.startTime) {
-        throw new BusinessRuleError(
-          `Shift overlaps with a blackout period (${blackout.startTime} - ${blackout.endTime}${blackout.description ? ': ' + blackout.description : ''})`
-        );
-      }
     }
   }
 

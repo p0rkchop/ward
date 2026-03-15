@@ -121,8 +121,22 @@ describe('shift-actions', () => {
         deletedAt: null, createdAt: new Date(), updatedAt: new Date(),
       } as any)
 
-      // Mock db.user.findUnique for event day validation (no event assigned)
-      vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: null } as any)
+      // Mock db.user.findUnique for event day validation (assigned to event)
+      vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: 'event-id' } as any)
+
+      // Mock db.eventDay.findFirst for event day validation
+      vi.mocked(db.eventDay.findFirst).mockResolvedValue({
+        id: 'event-day-id',
+        eventId: 'event-id',
+        date: new Date('2026-02-22T12:00:00Z'),
+        startTime: '09:00',
+        endTime: '17:00',
+        isActive: true,
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        blackouts: [],
+      } as any)
 
       // Mock transaction
       const mockShift = {

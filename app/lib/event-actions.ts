@@ -138,8 +138,8 @@ export async function createEvent(data: {
     return { ok: false, error: 'Invalid date format' };
   }
 
-  if (endDate <= startDate) {
-    return { ok: false, error: 'End date must be after start date' };
+  if (endDate < startDate) {
+    return { ok: false, error: 'End date cannot be before start date' };
   }
 
   const defaultStartTime = data.defaultStartTime || '09:00';
@@ -214,6 +214,17 @@ export async function updateEvent(
   if (data.visibleDaysBefore !== undefined) updateData.visibleDaysBefore = Math.max(0, Math.min(365, data.visibleDaysBefore));
   if (data.professionalPassword !== undefined) updateData.professionalPassword = data.professionalPassword.trim();
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
+
+  // Validate date ordering when dates are being updated
+  if (updateData.startDate || updateData.endDate) {
+    const existing = await db.event.findUnique({ where: { id } });
+    if (!existing) return { ok: false, error: 'Event not found' };
+    const effectiveStart = (updateData.startDate as Date) || existing.startDate;
+    const effectiveEnd = (updateData.endDate as Date) || existing.endDate;
+    if (effectiveEnd < effectiveStart) {
+      return { ok: false, error: 'End date cannot be before start date' };
+    }
+  }
 
   try {
     await db.event.update({
