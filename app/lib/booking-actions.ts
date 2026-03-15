@@ -193,8 +193,9 @@ export async function getAvailableTimeslots(start: Date, end: Date) {
     };
   });
 
-  // Filter to only available slots for client UI
-  const availableSlots = slotsWithCapacity.filter(slot => slot.isAvailable);
+  // Filter out past slots and only show available ones for client UI
+  const currentTime = new Date();
+  const availableSlots = slotsWithCapacity.filter(slot => slot.isAvailable && slot.start > currentTime);
 
   return {
     allSlots: slotsWithCapacity,
@@ -225,6 +226,11 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date) {
 
   if (!isAlignedTo30MinuteBoundary(input.start)) {
     throw new ValidationError('Booking start time must be aligned to 30-minute boundaries (e.g., 9:00, 9:30)');
+  }
+
+  // Prevent booking in the past
+  if (input.start < new Date()) {
+    throw new BusinessRuleError('Cannot book a timeslot in the past');
   }
 
   // Check client role

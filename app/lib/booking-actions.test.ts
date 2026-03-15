@@ -81,27 +81,27 @@ describe('booking-actions', () => {
 
   describe('getAvailableTimeslots', () => {
     it('returns available time slots with capacity', async () => {
-      const mockStart = new Date('2026-02-24T10:00:00Z')
-      const mockEnd = new Date('2026-02-24T11:00:00Z')
+      const mockStart = new Date('2099-06-15T10:00:00Z')
+      const mockEnd = new Date('2099-06-15T11:00:00Z')
       const mockSlots = [
-        { start: new Date('2026-02-24T10:00:00Z'), end: new Date('2026-02-24T10:30:00Z') },
-        { start: new Date('2026-02-24T10:30:00Z'), end: new Date('2026-02-24T11:00:00Z') },
+        { start: new Date('2099-06-15T10:00:00Z'), end: new Date('2099-06-15T10:30:00Z') },
+        { start: new Date('2099-06-15T10:30:00Z'), end: new Date('2099-06-15T11:00:00Z') },
       ]
 
       vi.mocked(generateTimeSlots).mockReturnValue(mockSlots)
       // Mock visible events
       vi.mocked(db.event.findMany).mockResolvedValue([
-        { id: 'event-1', startDate: new Date('2026-02-20T12:00:00Z'), visibleDaysBefore: 30 },
+        { id: 'event-1', startDate: new Date('2099-06-01T12:00:00Z'), visibleDaysBefore: 99999 },
       ] as any)
       // Mock shifts that cover both slots (2 shifts, each covering both 30-minute slots)
       const mockShifts = [
-        { id: 'shift-1', startTime: new Date('2026-02-24T09:30:00Z'), endTime: new Date('2026-02-24T11:30:00Z') },
-        { id: 'shift-2', startTime: new Date('2026-02-24T09:45:00Z'), endTime: new Date('2026-02-24T11:15:00Z') },
+        { id: 'shift-1', startTime: new Date('2099-06-15T09:30:00Z'), endTime: new Date('2099-06-15T11:30:00Z') },
+        { id: 'shift-2', startTime: new Date('2099-06-15T09:45:00Z'), endTime: new Date('2099-06-15T11:15:00Z') },
       ]
       // Mock bookings for each slot (one booking per slot)
       const mockBookings = [
-        { startTime: new Date('2026-02-24T10:00:00Z'), endTime: new Date('2026-02-24T10:30:00Z') },
-        { startTime: new Date('2026-02-24T10:30:00Z'), endTime: new Date('2026-02-24T11:00:00Z') },
+        { startTime: new Date('2099-06-15T10:00:00Z'), endTime: new Date('2099-06-15T10:30:00Z') },
+        { startTime: new Date('2099-06-15T10:30:00Z'), endTime: new Date('2099-06-15T11:00:00Z') },
       ]
       vi.mocked(db.shift.findMany).mockResolvedValue(mockShifts as any)
       vi.mocked(db.booking.findMany).mockResolvedValue(mockBookings as any)
@@ -153,8 +153,8 @@ describe('booking-actions', () => {
     })
 
     it('throws error when start >= end', async () => {
-      const start = new Date('2026-02-24T11:00:00Z')
-      const end = new Date('2026-02-24T10:00:00Z')
+      const start = new Date('2099-06-15T11:00:00Z')
+      const end = new Date('2099-06-15T10:00:00Z')
 
       await expect(getAvailableTimeslots(start, end))
         .rejects.toThrow('Start date must be before end date')
@@ -162,29 +162,29 @@ describe('booking-actions', () => {
 
     it('filters out slots with zero capacity', async () => {
       const mockSlots = [
-        { start: new Date('2026-02-24T10:00:00Z'), end: new Date('2026-02-24T10:30:00Z') },
-        { start: new Date('2026-02-24T10:30:00Z'), end: new Date('2026-02-24T11:00:00Z') },
+        { start: new Date('2099-06-15T10:00:00Z'), end: new Date('2099-06-15T10:30:00Z') },
+        { start: new Date('2099-06-15T10:30:00Z'), end: new Date('2099-06-15T11:00:00Z') },
       ]
 
       vi.mocked(generateTimeSlots).mockReturnValue(mockSlots)
       // Mock visible events
       vi.mocked(db.event.findMany).mockResolvedValue([
-        { id: 'event-1', startDate: new Date('2026-02-20T12:00:00Z'), visibleDaysBefore: 30 },
+        { id: 'event-1', startDate: new Date('2099-06-01T12:00:00Z'), visibleDaysBefore: 99999 },
       ] as any)
       // Mock shifts: one shift covers first slot only, none for second slot
       const mockShifts = [
-        { id: 'shift-1', startTime: new Date('2026-02-24T09:30:00Z'), endTime: new Date('2026-02-24T10:29:00Z') },
+        { id: 'shift-1', startTime: new Date('2099-06-15T09:30:00Z'), endTime: new Date('2099-06-15T10:29:00Z') },
       ]
       // Mock bookings: one booking for first slot only
       const mockBookings = [
-        { startTime: new Date('2026-02-24T10:00:00Z'), endTime: new Date('2026-02-24T10:30:00Z') },
+        { startTime: new Date('2099-06-15T10:00:00Z'), endTime: new Date('2099-06-15T10:30:00Z') },
       ]
       vi.mocked(db.shift.findMany).mockResolvedValue(mockShifts as any)
       vi.mocked(db.booking.findMany).mockResolvedValue(mockBookings as any)
 
       const result = await getAvailableTimeslots(
-        new Date('2026-02-24T10:00:00Z'),
-        new Date('2026-02-24T11:00:00Z')
+        new Date('2099-06-15T10:00:00Z'),
+        new Date('2099-06-15T11:00:00Z')
       )
 
       // First slot: shiftCount=1, bookingCount=1 => availableCapacity=0 => isAvailable=false
@@ -201,8 +201,8 @@ describe('booking-actions', () => {
 
   describe('bookTimeslot', () => {
     const mockClientId = 'client-id'
-    const mockStart = new Date('2026-02-24T10:00:00Z')
-    const mockEnd = new Date('2026-02-24T10:30:00Z')
+    const mockStart = new Date('2099-06-15T10:00:00Z')
+    const mockEnd = new Date('2099-06-15T10:30:00Z')
 
     beforeEach(() => {
       vi.mocked(validateSchema).mockReturnValue({
@@ -218,12 +218,12 @@ describe('booking-actions', () => {
     it('creates booking successfully with auto-matching', async () => {
       const mockShift = {
         id: 'shift-id',
-        startTime: new Date('2026-02-24T09:30:00Z'),
-        endTime: new Date('2026-02-24T11:00:00Z'),
+        startTime: new Date('2099-06-15T09:30:00Z'),
+        endTime: new Date('2099-06-15T11:00:00Z'),
         professionalId: 'professional-id',
         resourceId: 'resource-id',
-        createdAt: new Date('2026-02-24T09:00:00Z'),
-        updatedAt: new Date('2026-02-24T09:00:00Z'),
+        createdAt: new Date('2099-06-15T09:00:00Z'),
+        updatedAt: new Date('2099-06-15T09:00:00Z'),
         deletedAt: null,
         resource: { id: 'resource-id', name: 'Test Resource', isActive: true },
         professional: { id: 'professional-id', name: 'Test Professional', phoneNumber: '+1234567890' },
@@ -245,8 +245,8 @@ describe('booking-actions', () => {
               shiftId: mockShift.id,
               status: BookingStatus.CONFIRMED,
               notes: null,
-              createdAt: new Date('2026-02-24T10:00:00Z'),
-              updatedAt: new Date('2026-02-24T10:00:00Z'),
+              createdAt: new Date('2099-06-15T10:00:00Z'),
+              updatedAt: new Date('2099-06-15T10:00:00Z'),
               deletedAt: null,
               client: { id: mockClientId, name: 'Test Client', phoneNumber: '+1234567890', email: null },
               shift: {
@@ -287,8 +287,8 @@ describe('booking-actions', () => {
     it('throws BusinessRuleError when shifts exist but no capacity', async () => {
       const mockShift = {
         id: 'shift-id',
-        startTime: new Date('2026-02-24T09:30:00Z'),
-        endTime: new Date('2026-02-24T11:00:00Z'),
+        startTime: new Date('2099-06-15T09:30:00Z'),
+        endTime: new Date('2099-06-15T11:00:00Z'),
         resource: { id: 'resource-id', name: 'Test Resource', isActive: true },
         professional: { id: 'professional-id', name: 'Test Professional', phoneNumber: '+1234567890' },
         bookings: [{ id: 'existing-booking' }], // Already has a booking for this timeslot
@@ -318,8 +318,8 @@ describe('booking-actions', () => {
           // First attempt: conflict
           const mockShift = {
             id: 'shift-id',
-            startTime: new Date('2026-02-24T09:30:00Z'),
-            endTime: new Date('2026-02-24T11:00:00Z'),
+            startTime: new Date('2099-06-15T09:30:00Z'),
+            endTime: new Date('2099-06-15T11:00:00Z'),
             resource: { id: 'resource-id', name: 'Test Resource', isActive: true },
             professional: { id: 'professional-id', name: 'Test Professional', phoneNumber: '+1234567890' },
             bookings: [],
@@ -337,8 +337,8 @@ describe('booking-actions', () => {
           // Second attempt: success
           const mockShift = {
             id: 'shift-id-2',
-            startTime: new Date('2026-02-24T09:30:00Z'),
-            endTime: new Date('2026-02-24T11:00:00Z'),
+            startTime: new Date('2099-06-15T09:30:00Z'),
+            endTime: new Date('2099-06-15T11:00:00Z'),
             resource: { id: 'resource-id-2', name: 'Test Resource 2', isActive: true },
             professional: { id: 'professional-id-2', name: 'Test Professional 2', phoneNumber: '+1234567891' },
             bookings: [],
@@ -396,8 +396,8 @@ describe('booking-actions', () => {
       const mockBookings = [
         {
           id: 'booking-1',
-          startTime: new Date('2026-02-24T10:00:00Z'),
-          endTime: new Date('2026-02-24T10:30:00Z'),
+          startTime: new Date('2099-06-15T10:00:00Z'),
+          endTime: new Date('2099-06-15T10:30:00Z'),
           clientId: 'client-id',
           shiftId: 'shift-id',
           status: 'CONFIRMED',
@@ -410,8 +410,8 @@ describe('booking-actions', () => {
       ] as any
       vi.mocked(db.booking.findMany).mockResolvedValue(mockBookings)
 
-      const start = new Date('2026-02-24T00:00:00Z')
-      const end = new Date('2026-02-24T00:00:00Z')
+      const start = new Date('2099-06-15T00:00:00Z')
+      const end = new Date('2099-06-15T00:00:00Z')
       const result = await getProfessionalBookings('professional-id', start, end)
 
       expect(result).toEqual(mockBookings)
@@ -464,8 +464,8 @@ describe('booking-actions', () => {
       const mockBookings = [
         {
           id: 'booking-1',
-          startTime: new Date('2026-02-24T10:00:00Z'),
-          endTime: new Date('2026-02-24T10:30:00Z'),
+          startTime: new Date('2099-06-15T10:00:00Z'),
+          endTime: new Date('2099-06-15T10:30:00Z'),
           clientId: 'client-id',
           shiftId: 'shift-id',
           status: 'CONFIRMED',
@@ -478,8 +478,8 @@ describe('booking-actions', () => {
       ] as any
       vi.mocked(db.booking.findMany).mockResolvedValue(mockBookings)
 
-      const start = new Date('2026-02-24T00:00:00Z')
-      const end = new Date('2026-02-24T00:00:00Z')
+      const start = new Date('2099-06-15T00:00:00Z')
+      const end = new Date('2099-06-15T00:00:00Z')
       const result = await getClientBookings('client-id', start, end)
 
       expect(result).toEqual(mockBookings)
@@ -561,16 +561,16 @@ describe('booking-actions', () => {
         id: 'booking-id',
         clientId: 'other-client-id',
         shiftId: 'shift-id',
-        startTime: new Date('2026-02-24T10:00:00Z'),
-        endTime: new Date('2026-02-24T10:30:00Z'),
+        startTime: new Date('2099-06-15T10:00:00Z'),
+        endTime: new Date('2099-06-15T10:30:00Z'),
         status: BookingStatus.CONFIRMED,
         notes: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null,
         shift: {
-          startTime: new Date('2026-02-24T10:00:00Z'),
-          endTime: new Date('2026-02-24T10:30:00Z'),
+          startTime: new Date('2099-06-15T10:00:00Z'),
+          endTime: new Date('2099-06-15T10:30:00Z'),
         },
       }
       vi.mocked(db.booking.findUnique).mockResolvedValue(mockBooking)
@@ -584,16 +584,16 @@ describe('booking-actions', () => {
         id: 'booking-id',
         clientId: 'client-id',
         shiftId: 'shift-id',
-        startTime: new Date('2026-02-24T10:00:00Z'),
-        endTime: new Date('2026-02-24T10:30:00Z'),
+        startTime: new Date('2099-06-15T10:00:00Z'),
+        endTime: new Date('2099-06-15T10:30:00Z'),
         status: BookingStatus.CONFIRMED,
         notes: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: new Date(),
         shift: {
-          startTime: new Date('2026-02-24T10:00:00Z'),
-          endTime: new Date('2026-02-24T10:30:00Z'),
+          startTime: new Date('2099-06-15T10:00:00Z'),
+          endTime: new Date('2099-06-15T10:30:00Z'),
         },
       }
       vi.mocked(db.booking.findUnique).mockResolvedValue(mockBooking)

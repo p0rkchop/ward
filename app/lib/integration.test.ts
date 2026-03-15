@@ -93,8 +93,8 @@ describe('Integration Tests - Complete User Flows', () => {
   describe('Professional Shift Creation Flow', () => {
     const mockProfessionalId = 'professional-id'
     const mockResourceId = 'resource-id'
-    const mockStart = new Date('2026-02-22T10:00:00Z')
-    const mockEnd = new Date('2026-02-22T10:30:00Z')
+    const mockStart = new Date('2099-06-15T10:00:00Z')
+    const mockEnd = new Date('2099-06-15T10:30:00Z')
 
     beforeEach(() => {
       // Mock session for professional
@@ -145,7 +145,7 @@ describe('Integration Tests - Complete User Flows', () => {
       vi.mocked(db.eventDay.findFirst).mockResolvedValue({
         id: 'event-day-id',
         eventId: 'event-id',
-        date: new Date('2026-02-22T12:00:00Z'),
+        date: new Date('2099-06-15T12:00:00Z'),
         startTime: '09:00',
         endTime: '17:00',
         isActive: true,
@@ -221,8 +221,8 @@ describe('Integration Tests - Complete User Flows', () => {
     const mockClientId = 'client-id'
     const mockProfessionalId = 'professional-id'
     const mockResourceId = 'resource-id'
-    const mockStart = new Date('2026-02-22T10:00:00Z')
-    const mockEnd = new Date('2026-02-22T10:30:00Z')
+    const mockStart = new Date('2099-06-15T10:00:00Z')
+    const mockEnd = new Date('2099-06-15T10:30:00Z')
     const mockShiftId = 'shift-id'
 
     beforeEach(() => {
@@ -260,8 +260,8 @@ describe('Integration Tests - Complete User Flows', () => {
       // 1. Mock shift exists (created by professional earlier)
       const mockShift = {
         id: mockShiftId,
-        startTime: new Date('2026-02-22T09:30:00Z'),
-        endTime: new Date('2026-02-22T11:00:00Z'),
+        startTime: new Date('2099-06-15T09:30:00Z'),
+        endTime: new Date('2099-06-15T11:00:00Z'),
         professionalId: mockProfessionalId,
         resourceId: mockResourceId,
         createdAt: new Date(),
@@ -279,11 +279,11 @@ describe('Integration Tests - Complete User Flows', () => {
       vi.mocked(generateTimeSlots).mockReturnValue(mockSlots)
       // Mock visible events
       vi.mocked(db.event.findMany).mockResolvedValue([
-        { id: 'event-1', startDate: new Date('2026-02-20T12:00:00Z'), visibleDaysBefore: 30 },
+        { id: 'event-1', startDate: new Date('2099-06-01T12:00:00Z'), visibleDaysBefore: 99999 },
       ] as any)
       // Mock shifts that cover the slot
       vi.mocked(db.shift.findMany).mockResolvedValue([
-        { id: mockShiftId, startTime: new Date('2026-02-22T09:30:00Z'), endTime: new Date('2026-02-22T11:00:00Z') },
+        { id: mockShiftId, startTime: new Date('2099-06-15T09:30:00Z'), endTime: new Date('2099-06-15T11:00:00Z') },
       ] as any)
       // Mock bookings (none yet)
       vi.mocked(db.booking.findMany).mockResolvedValue([] as any)
@@ -343,8 +343,8 @@ describe('Integration Tests - Complete User Flows', () => {
         endTime: futureEnd,
         status: BookingStatus.CONFIRMED,
         notes: null,
-        createdAt: new Date('2026-02-24T09:00:00Z'),
-        updatedAt: new Date('2026-02-24T09:00:00Z'),
+        createdAt: new Date('2099-06-17T09:00:00Z'),
+        updatedAt: new Date('2099-06-17T09:00:00Z'),
         deletedAt: null,
         shift: {
           startTime: futureStart,
@@ -355,7 +355,7 @@ describe('Integration Tests - Complete User Flows', () => {
       vi.mocked(db.booking.findUnique).mockResolvedValue(mockBooking as any)
       vi.mocked(db.booking.update).mockResolvedValue({
         ...mockBooking,
-        deletedAt: new Date('2026-02-22T11:00:00Z'),
+        deletedAt: new Date('2099-06-15T11:00:00Z'),
         client: { email: null },
         shift: {
           professional: { id: mockProfessionalId, name: 'Test Professional' },

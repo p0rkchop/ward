@@ -38,19 +38,21 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Time references for filtering past dates/times
+  const now = new Date();
+  const todayStr = `${now.getUTCFullYear()}-${(now.getUTCMonth() + 1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')}`;
+  const futureEventDays = eventDays.filter((d) => d.date >= todayStr);
+
   // Form state
   const [resourceId, setResourceId] = useState(resources.length > 0 ? resources[0].id : '');
-  const [date, setDate] = useState(
-    eventDays[0].date
-  );
-  const [startTime, setStartTime] = useState(
-    eventDays[0].startTime
-  );
+  const firstFutureDay = futureEventDays[0] || eventDays[0];
+  const [date, setDate] = useState(firstFutureDay?.date || '');
+  const [startTime, setStartTime] = useState(firstFutureDay?.startTime || '09:00');
   const [duration, setDuration] = useState(30); // minutes
 
   // Available time options (30-minute intervals)
-  // If event days are provided, filter to event hours for the selected date
-  const selectedEventDay = eventDays.find((d) => d.date === date);
+  // Filter to event hours for the selected date, and filter out past times for today
+  const selectedEventDay = futureEventDays.find((d) => d.date === date) || eventDays.find((d) => d.date === date);
 
   const allTimeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
     const hour = Math.floor(i / 2);
@@ -58,15 +60,30 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   });
 
+  const currentTimeStr = `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}`;
+  const isToday = date === todayStr;
+
   const timeOptions = selectedEventDay
-    ? allTimeOptions.filter((time) => time >= selectedEventDay.startTime && time < selectedEventDay.endTime)
+    ? allTimeOptions.filter((time) => {
+        if (time < selectedEventDay.startTime || time >= selectedEventDay.endTime) return false;
+        if (isToday && time <= currentTimeStr) return false;
+        return true;
+      })
     : allTimeOptions;
 
-  // Available dates: if event days provided, only those dates
-  const availableDates = eventDays.length > 0 ? eventDays.map((d) => d.date) : [];
+  // Available dates: only future event dates
+  const availableDates = futureEventDays.map((d) => d.date);
 
-  // Duration options (30-minute increments up to 8 hours)
-  const durationOptions = Array.from({ length: 16 }, (_, i) => (i + 1) * 30); // 30 to 480 minutes
+  // Duration options (30-minute increments, capped to not exceed event day end time)
+  const allDurationOptions = Array.from({ length: 16 }, (_, i) => (i + 1) * 30); // 30 to 480 minutes
+  const durationOptions = selectedEventDay
+    ? (() => {
+        const [startH, startM] = startTime.split(':').map(Number);
+        const [endH, endM] = selectedEventDay.endTime.split(':').map(Number);
+        const maxMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+        return allDurationOptions.filter((d) => d <= maxMinutes);
+      })()
+    : allDurationOptions;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

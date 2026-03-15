@@ -98,6 +98,11 @@ export async function createShift(
     throw new BusinessRuleError('You must be assigned to an event before creating shifts');
   }
 
+  // Prevent creating shifts in the past
+  if (input.start < new Date()) {
+    throw new BusinessRuleError('Cannot create a shift in the past');
+  }
+
   const shiftDate = new Date(input.start);
   shiftDate.setUTCHours(0, 0, 0, 0);
   const nextDate = new Date(shiftDate);

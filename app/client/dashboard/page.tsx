@@ -1,5 +1,5 @@
 import { getServerSession } from '@/app/lib/auth';
-import { getClientBookings } from '@/app/lib/booking-actions';
+import { getClientBookings, getAvailableTimeslots, getVisibleEventHorizon } from '@/app/lib/booking-actions';
 import { redirect } from 'next/navigation';
 import { Role } from '@/app/generated/prisma/enums';
 import { formatTime, formatDateFull, formatDateTimeRange, prefsFromSession } from '@/app/lib/format-utils';
@@ -39,6 +39,7 @@ export default async function ClientDashboard() {
   let tomorrowBookings: BookingWithDetails[] = [];
   let thisWeekBookings: BookingWithDetails[] = [];
   let upcomingBookings: BookingWithDetails[] = [];
+  let availableSlotCount = 0;
   let stats = {
     todayAppointments: 0,
     tomorrowAppointments: 0,
@@ -47,8 +48,13 @@ export default async function ClientDashboard() {
   };
 
   try {
-    // Fetch all future bookings (no end-date cap)
-    const bookings = await getClientBookings(clientId, today);
+    // Fetch all future bookings and available slot count in parallel
+    const horizon = await getVisibleEventHorizon();
+    const [bookings, timeslotData] = await Promise.all([
+      getClientBookings(clientId, today),
+      getAvailableTimeslots(now, horizon),
+    ]);
+    availableSlotCount = timeslotData.availableSlots.length;
 
     todayBookings = bookings.filter(b => {
       const d = new Date(b.startTime);
@@ -157,19 +163,19 @@ export default async function ClientDashboard() {
           </div>
         </Link>
 
-        <Link href="/client/appointments" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md">
+        <Link href="/client/book" className="rounded-lg bg-white dark:bg-gray-900 p-6 shadow transition-shadow hover:shadow-md ring-2 ring-green-200 dark:ring-green-800">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="rounded-md bg-yellow-100 p-3">
-                <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <div className="rounded-md bg-green-100 dark:bg-green-900 p-3">
+                <svg className="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
               </div>
             </div>
             <div className="ml-5">
-              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">This Week</div>
-              <div className="mt-1 text-3xl font-semibold text-gray-900 dark:text-gray-100">{stats.totalThisWeek}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">total this week</div>
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Available Slots</div>
+              <div className="mt-1 text-3xl font-semibold text-green-600 dark:text-green-400">{availableSlotCount}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">open to book</div>
             </div>
           </div>
         </Link>

@@ -95,8 +95,8 @@ describe('shift-actions', () => {
 
   describe('createShift', () => {
     const mockResourceId = 'resource-id'
-    const mockStart = new Date('2026-02-22T10:00:00Z')
-    const mockEnd = new Date('2026-02-22T10:30:00Z')
+    const mockStart = new Date('2099-06-15T10:00:00Z')
+    const mockEnd = new Date('2099-06-15T10:30:00Z')
 
     it('creates shift successfully with valid input', async () => {
       // Mock validation
@@ -128,7 +128,7 @@ describe('shift-actions', () => {
       vi.mocked(db.eventDay.findFirst).mockResolvedValue({
         id: 'event-day-id',
         eventId: 'event-id',
-        date: new Date('2026-02-22T12:00:00Z'),
+        date: new Date('2099-06-15T12:00:00Z'),
         startTime: '09:00',
         endTime: '17:00',
         isActive: true,
@@ -315,9 +315,9 @@ describe('shift-actions', () => {
 
     it('throws BusinessRuleError when shift is outside event day hours', async () => {
       // Use UTC dates to match server-side UTC-based validation
-      const earlyStart = new Date('2026-02-22T08:00:00.000Z');
-      const earlyEnd = new Date('2026-02-22T08:30:00.000Z');
-      const shiftDate = new Date('2026-02-22T00:00:00.000Z');
+      const earlyStart = new Date('2099-06-15T08:00:00.000Z');
+      const earlyEnd = new Date('2099-06-15T08:30:00.000Z');
+      const shiftDate = new Date('2099-06-15T00:00:00.000Z');
 
       setupMocksThroughCapacity()
       vi.mocked(validateSchema).mockReturnValue({
@@ -342,9 +342,9 @@ describe('shift-actions', () => {
     it('throws BusinessRuleError when shift overlaps with blackout period', async () => {
       // Use local-time dates to match how setHours works in the validation code
       // Use UTC dates to match server-side UTC-based validation
-      const localStart = new Date('2026-02-22T10:00:00.000Z');
-      const localEnd = new Date('2026-02-22T10:30:00.000Z');
-      const shiftDate = new Date('2026-02-22T00:00:00.000Z');
+      const localStart = new Date('2099-06-15T10:00:00.000Z');
+      const localEnd = new Date('2099-06-15T10:30:00.000Z');
+      const shiftDate = new Date('2099-06-15T00:00:00.000Z');
 
       setupMocksThroughCapacity()
       vi.mocked(validateSchema).mockReturnValue({
@@ -374,8 +374,8 @@ describe('shift-actions', () => {
       const mockShifts = [
         {
           id: 'shift-1',
-          startTime: new Date('2026-02-22T10:00:00Z'),
-          endTime: new Date('2026-02-22T10:30:00Z'),
+          startTime: new Date('2099-06-15T10:00:00Z'),
+          endTime: new Date('2099-06-15T10:30:00Z'),
           professionalId: 'professional-id',
           resourceId: 'resource-id',
           createdAt: new Date(),
@@ -392,7 +392,7 @@ describe('shift-actions', () => {
       ]
       vi.mocked(db.shift.findMany).mockResolvedValue(mockShifts)
 
-      const start = new Date('2026-02-22T00:00:00Z')
+      const start = new Date('2099-06-15T00:00:00Z')
       const end = new Date('2026-02-23T00:00:00Z')
       const result = await getProfessionalShifts('professional-id', start, end)
 
@@ -440,8 +440,8 @@ describe('shift-actions', () => {
         id: 'shift-id',
         professionalId: 'professional-id',
         resourceId: 'resource-id',
-        startTime: new Date('2026-02-22T10:00:00Z'),
-        endTime: new Date('2026-02-22T10:30:00Z'),
+        startTime: new Date('2099-06-15T10:00:00Z'),
+        endTime: new Date('2099-06-15T10:30:00Z'),
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null,
@@ -483,8 +483,8 @@ describe('shift-actions', () => {
         id: 'shift-id',
         professionalId: 'other-professional-id',
         resourceId: 'resource-id',
-        startTime: new Date('2026-02-22T10:00:00Z'),
-        endTime: new Date('2026-02-22T10:30:00Z'),
+        startTime: new Date('2099-06-15T10:00:00Z'),
+        endTime: new Date('2099-06-15T10:30:00Z'),
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null,
@@ -501,8 +501,8 @@ describe('shift-actions', () => {
         id: 'shift-id',
         professionalId: 'professional-id',
         resourceId: 'resource-id',
-        startTime: new Date('2026-02-22T10:00:00Z'),
-        endTime: new Date('2026-02-22T10:30:00Z'),
+        startTime: new Date('2099-06-15T10:00:00Z'),
+        endTime: new Date('2099-06-15T10:30:00Z'),
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null,
