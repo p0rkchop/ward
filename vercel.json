@@ -11,7 +11,7 @@
     }
   },
   "installCommand": "npm install",
-  "buildCommand": "npx prisma generate && npx prisma db push --skip-generate && npm run build",
+  "buildCommand": "npx prisma generate && npx prisma db push && npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
   "regions": ["iad1"]

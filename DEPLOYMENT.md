@@ -273,7 +273,7 @@ The project includes `vercel.json` with optimized settings:
     }
   },
   "installCommand": "npm install",
-  "buildCommand": "npx prisma generate && npx prisma db push --skip-generate && npm run build",
+  "buildCommand": "npx prisma generate && npx prisma db push && npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
   "regions": ["iad1"]
@@ -283,7 +283,7 @@ The project includes `vercel.json` with optimized settings:
 **Build Process**:
 1. Installs dependencies with `npm install`
 2. Generates Prisma client with `npx prisma generate`
-3. Pushes schema changes to the production database with `npx prisma db push --skip-generate`
+3. Pushes schema changes to the production database with `npx prisma db push`
 4. Builds Next.js application with `npm run build`
 5. Deploys with optimal serverless function settings
 6. Registers Vercel Cron schedule for daily appointment reminders
