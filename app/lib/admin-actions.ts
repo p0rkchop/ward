@@ -295,11 +295,8 @@ export async function cascadeCancelShifts(
       }
     }
 
-    // Soft-delete the shift
-    await db.shift.update({
-      where: { id: shiftId },
-      data: { deletedAt: new Date() },
-    });
+    // Hard-delete the shift to free the unique constraint slot
+    await db.shift.delete({ where: { id: shiftId } });
     cancelledShifts++;
 
     // Notify professional that their shift was cancelled (if no bookings already notified them)

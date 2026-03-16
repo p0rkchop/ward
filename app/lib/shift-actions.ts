@@ -301,9 +301,9 @@ export async function getProfessionalShifts(
 }
 
 /**
- * Cancel a shift (soft delete)
+ * Cancel a shift (hard delete to free unique constraint slot)
  * @param shiftId The shift to cancel
- * @returns The updated shift
+ * @returns The deleted shift
  */
 export async function cancelShift(shiftId: string) {
   // Get authenticated professional from session
@@ -338,10 +338,9 @@ export async function cancelShift(shiftId: string) {
     throw new BusinessRuleError('Cannot cancel shift with confirmed bookings');
   }
 
-  return await db.shift.update({
-    where: { id: shiftId },
-    data: { deletedAt: new Date() },
-  });
+  // Hard-delete so the unique constraint slot (professionalId, startTime, endTime) is freed
+  await db.shift.delete({ where: { id: shiftId } });
+  return shift;
 }
 
 /**

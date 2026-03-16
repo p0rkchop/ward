@@ -453,14 +453,12 @@ describe('shift-actions', () => {
         bookings: [],
       }
       vi.mocked(db.shift.findUnique).mockResolvedValue(mockShift)
-      vi.mocked(db.shift.update).mockResolvedValue({
-        ...mockShift,
-        deletedAt: new Date(),
-      })
+      vi.mocked(db.shift.delete).mockResolvedValue(mockShift as any)
 
       const result = await cancelShift('shift-id')
 
-      expect(result.deletedAt).toBeTruthy()
+      expect(result).toBeDefined()
+      expect(result.id).toBe('shift-id')
       expect(db.shift.findUnique).toHaveBeenCalledWith({
         where: { id: 'shift-id', deletedAt: null },
         include: {
@@ -470,9 +468,8 @@ describe('shift-actions', () => {
           },
         },
       })
-      expect(db.shift.update).toHaveBeenCalledWith({
+      expect(db.shift.delete).toHaveBeenCalledWith({
         where: { id: 'shift-id' },
-        data: { deletedAt: expect.any(Date) },
       })
     })
 
