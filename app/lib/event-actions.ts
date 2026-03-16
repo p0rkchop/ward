@@ -308,24 +308,10 @@ export async function updateEvent(
               if (shiftsToCancel.length > 0) {
                 const shiftIds = shiftsToCancel.map((s) => s.id);
 
-                // Hard-delete bookings on those shifts to free unique constraint slots
-                const cancelledBookings = await db.booking.deleteMany({
-                  where: {
-                    shiftId: { in: shiftIds },
-                    deletedAt: null,
-                  },
-                });
-                cascadedBookings += cancelledBookings.count;
-
-                // Soft-delete the shifts
-                const cancelledShifts = await db.shift.updateMany({
-                  where: {
-                    id: { in: shiftIds },
-                    deletedAt: null,
-                  },
-                  data: { deletedAt: new Date() },
-                });
-                cascadedShifts += cancelledShifts.count;
+                // Cascade-cancel shifts and their bookings with notifications
+                const result = await cascadeCancelShifts(shiftIds);
+                cascadedShifts += result.cancelledShifts;
+                cascadedBookings += result.cancelledBookings;
               }
             }
           }
