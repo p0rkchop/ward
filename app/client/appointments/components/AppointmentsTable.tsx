@@ -58,7 +58,7 @@ export default function AppointmentsTable({ bookings, clientId, isPast = false }
     <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow">
       <div className="px-4 py-5 sm:p-6">
         {error && (
-          <div className="mb-6 rounded-lg bg-red-50 p-4">
+          <div className="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 p-4">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -66,8 +66,8 @@ export default function AppointmentsTable({ bookings, clientId, isPast = false }
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-1 text-sm text-red-700">{error}</div>
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+                <div className="mt-1 text-sm text-red-700 dark:text-red-300">{error}</div>
               </div>
             </div>
           </div>

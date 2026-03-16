@@ -140,11 +140,11 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
 
   if (success) {
     return (
-      <div className="rounded-md bg-green-50 p-4">
+      <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4">
         <div className="flex">
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-green-800">Success!</h3>
-            <div className="mt-2 text-sm text-green-700">
+            <h3 className="text-sm font-medium text-green-800 dark:text-green-200">Success!</h3>
+            <div className="mt-2 text-sm text-green-700 dark:text-green-300">
               <p>Shift created successfully. Redirecting to shifts page...</p>
             </div>
           </div>
@@ -185,11 +185,11 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
       </div>
 
       {error && (
-        <div className="mb-6 rounded-md bg-red-50 p-4">
+        <div className="mb-6 rounded-md bg-red-50 dark:bg-red-900/20 p-4">
           <div className="flex">
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                 <p>{error}</p>
               </div>
             </div>
@@ -322,9 +322,9 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
         </div>
       </form>
 
-      <div className="mt-8 rounded-md bg-blue-50 p-4">
-        <h3 className="text-sm font-medium text-blue-800">Shift Creation Rules</h3>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-blue-700">
+      <div className="mt-8 rounded-md bg-blue-50 dark:bg-blue-900/20 p-4">
+        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">Shift Creation Rules</h3>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-blue-700 dark:text-blue-300">
           <li>Shifts must be at least 30 minutes long</li>
           <li>Shifts must be in multiples of 30 minutes (30, 60, 90, etc.)</li>
           <li>Start times must be aligned to 30-minute boundaries (e.g., 9:00, 9:30)</li>

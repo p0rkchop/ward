@@ -134,7 +134,7 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
 
         <div className="p-6 space-y-6">
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="rounded-lg border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
               {error}
             </div>
           )}
@@ -157,7 +157,7 @@ export default function EventResourcesEditor({ eventId, eventName, onClose }: Pr
                     {assigned.map((er) => (
                       <div
                         key={er.id}
-                        className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3"
+                        className="flex items-center justify-between rounded-lg border border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 px-4 py-3"
                       >
                         <div>
                           <p className="font-medium text-gray-900 dark:text-gray-100">{er.resourceName}</p>

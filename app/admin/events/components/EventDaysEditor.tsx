@@ -185,7 +185,7 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
 
         <div className="p-6">
           {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="mb-4 rounded-lg border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
               {error}
             </div>
           )}
@@ -302,13 +302,13 @@ export default function EventDaysEditor({ eventId, eventName, onClose }: Props) 
                       {day.blackouts.map((b) => (
                         <div
                           key={b.id}
-                          className="flex items-center gap-3 rounded-md bg-red-50 px-3 py-1.5"
+                          className="flex items-center gap-3 rounded-md bg-red-50 dark:bg-red-900/20 px-3 py-1.5"
                         >
-                          <span className="text-sm font-medium text-red-700">
+                          <span className="text-sm font-medium text-red-700 dark:text-red-300">
                             {formatTimeString(b.startTime, prefs)} – {formatTimeString(b.endTime, prefs)}
                           </span>
                           {b.description && (
-                            <span className="text-sm text-red-600">{b.description}</span>
+                            <span className="text-sm text-red-600 dark:text-red-400">{b.description}</span>
                           )}
                           <button
                             onClick={() => handleDeleteBlackout(day.id, b.id)}

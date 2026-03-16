@@ -45,11 +45,11 @@ export default function UpcomingShifts({ shifts, professionalId }: UpcomingShift
     return (
       <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
         {error && (
-          <div className="bg-red-50 p-4">
+          <div className="bg-red-50 dark:bg-red-900/20 p-4">
             <div className="flex">
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+                <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                   <p>{error}</p>
                 </div>
               </div>
@@ -78,11 +78,11 @@ export default function UpcomingShifts({ shifts, professionalId }: UpcomingShift
   return (
     <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
       {error && (
-        <div className="bg-red-50 p-4">
+        <div className="bg-red-50 dark:bg-red-900/20 p-4">
           <div className="flex">
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                 <p>{error}</p>
               </div>
             </div>

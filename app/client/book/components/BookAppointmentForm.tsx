@@ -97,16 +97,16 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
 
   if (success) {
     return (
-      <div className="rounded-lg bg-green-50 p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-          <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-8 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
+          <svg className="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="mt-4 text-lg font-medium text-green-800">
+        <h3 className="mt-4 text-lg font-medium text-green-800 dark:text-green-200">
           {isReschedule ? 'Appointment Rescheduled!' : 'Appointment Booked Successfully!'}
         </h3>
-        <p className="mt-2 text-green-700">
+        <p className="mt-2 text-green-700 dark:text-green-300">
           {isReschedule
             ? 'Your appointment has been rescheduled. Redirecting to your appointments...'
             : 'Your appointment has been confirmed. Redirecting to your appointments...'}
@@ -244,8 +244,8 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
                           onClick={() => handleSlotSelect(slot)}
                           className={`rounded-lg border p-4 text-center transition-colors ${
                             isSelected
-                              ? 'border-green-500 bg-green-50 ring-2 ring-green-500 ring-offset-2'
-                              : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 hover:border-green-300 hover:bg-green-50'
+                              ? 'border-green-500 bg-green-50 dark:bg-green-900/30 ring-2 ring-green-500 ring-offset-2 dark:ring-offset-gray-900'
+                              : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 hover:border-green-300 hover:bg-green-50 dark:hover:bg-green-900/20'
                           }`}
                         >
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{timeStr}</div>
@@ -262,7 +262,7 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
           </div>
 
           {selectedSlot && (
-            <div className="mt-8 rounded-lg bg-blue-50 p-6">
+            <div className="mt-8 rounded-lg bg-blue-50 dark:bg-gray-800 p-6">
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Selected Appointment</h3>
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
@@ -321,7 +321,7 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
           )}
 
           {error && (
-            <div className="mt-6 rounded-lg bg-red-50 p-4">
+            <div className="mt-6 rounded-lg bg-red-50 dark:bg-red-900/20 p-4">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -329,8 +329,8 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Error</h3>
-                  <div className="mt-1 text-sm text-red-700">{error}</div>
+                  <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+                  <div className="mt-1 text-sm text-red-700 dark:text-red-300">{error}</div>
                 </div>
               </div>
             </div>

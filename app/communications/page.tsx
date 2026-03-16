@@ -37,11 +37,11 @@ export default function CommunicationsPolicyPage() {
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
             SMS messages are sent to the phone number you provide during registration. Message frequency varies based on your activity on the platform. Standard message and data rates from your mobile carrier may apply.
           </p>
-          <div className="mt-4 rounded-lg bg-blue-50 border border-blue-200 p-4">
-            <p className="text-sm font-medium text-blue-900">
+          <div className="mt-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-4">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
               To opt out of SMS messages at any time, reply <strong>STOP</strong> to any message you receive from us.
             </p>
-            <p className="text-sm text-blue-700 mt-1">
+            <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
               After opting out, you will receive one final confirmation message. You will no longer receive SMS notifications, though you may still use the Service. To opt back in, contact your event administrator.
             </p>
           </div>
@@ -55,11 +55,11 @@ export default function CommunicationsPolicyPage() {
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
             If you provide an email address, we may send you service-related email communications such as appointment confirmations, schedule changes, and account updates.
           </p>
-          <div className="mt-4 rounded-lg bg-blue-50 border border-blue-200 p-4">
-            <p className="text-sm font-medium text-blue-900">
+          <div className="mt-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-4">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
               To opt out of email communications, click the <strong>Unsubscribe</strong> link included at the bottom of any email you receive from us.
             </p>
-            <p className="text-sm text-blue-700 mt-1">
+            <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
               After unsubscribing, you will no longer receive email notifications. You may still use the Service and receive SMS messages unless separately opted out.
             </p>
           </div>

@@ -76,8 +76,8 @@ export default async function ProfessionalBookingsPage() {
 
       {/* Summary Stats */}
       <div className="mb-6 flex gap-4">
-        <div className="rounded-lg bg-blue-50 px-4 py-3">
-          <span className="text-sm font-medium text-blue-800">
+        <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 px-4 py-3">
+          <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
             {upcomingBookings.length} upcoming
           </span>
         </div>

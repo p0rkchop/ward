@@ -237,7 +237,7 @@ export default function EventsManager({ initialEvents }: Props) {
   return (
     <div>
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300 text-sm">
           {error}
         </div>
       )}
@@ -461,7 +461,7 @@ export default function EventsManager({ initialEvents }: Props) {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {events.map((event) =>
                 editingId === event.id ? (
-                  <tr key={event.id} className="bg-blue-50">
+                  <tr key={event.id} className="bg-blue-50 dark:bg-blue-900/20">
                     <td className="px-6 py-4" colSpan={8}>
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
