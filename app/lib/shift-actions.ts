@@ -15,147 +15,154 @@ import {
   findOverlappingShifts,
 } from '@/app/lib/validation';
 import { Role } from '@/app/generated/prisma/enums';
+import type { ActionResult } from '@/app/lib/action-types';
 
 /**
  * Create a shift (professional booking a resource)
  * @param resourceId The ID of the resource being booked
  * @param start Start time of the shift
  * @param end End time of the shift
- * @returns The created shift or throws an error
+ * @returns ActionResult with the created shift or a structured error
  */
 export async function createShift(
   resourceId: string,
   start: Date,
   end: Date
-) {
-  // Get authenticated professional from session
-  const session = await getServerSession();
-  if (!session?.user) {
-    throw new BusinessRuleError('Authentication required');
-  }
-  if (session.user.role !== Role.PROFESSIONAL) {
-    throw new BusinessRuleError('Only professionals can create shifts');
-  }
-  const professionalId = session.user.id;
-
-  // Validate input schema
-  const input = validateSchema(createShiftSchema, {
-    resourceId,
-    start,
-    end,
-  });
-
-  // Additional business rule validation
-  if (!isValid30MinuteInterval(input.start, input.end)) {
-    throw new ValidationError('Shift duration must be a multiple of 30 minutes');
-  }
-
-  if (!isAlignedTo30MinuteBoundary(input.start)) {
-    throw new ValidationError('Shift start time must be aligned to 30-minute boundaries (e.g., 9:00, 9:30)');
-  }
-
-  // Check professional role
-  await validateProfessionalRole(professionalId);
-
-  // Check resource active
-  await validateResourceActive(input.resourceId);
-
-  // Check for overlapping shifts (application-level check)
-  const { professionalOverlap, resourceOverlapCount } = await findOverlappingShifts(
-    professionalId,
-    input.resourceId,
-    input.start,
-    input.end
-  );
-
-  if (professionalOverlap) {
-    throw new ConflictError('Professional already has a shift during this time period');
-  }
-
-  // Get resource capacity for capacity-based check
-  const resourceForCapacity = await db.resource.findUnique({
-    where: { id: input.resourceId },
-    select: { quantity: true, professionalsPerUnit: true },
-  });
-
-  if (resourceForCapacity) {
-    const totalCapacity = resourceForCapacity.quantity * resourceForCapacity.professionalsPerUnit;
-    if (resourceOverlapCount >= totalCapacity) {
-      throw new ConflictError(
-        `Resource is at capacity (${resourceOverlapCount}/${totalCapacity} slots filled) for this time period`
-      );
-    }
-  }
-
-  // Validate shift against event day schedule and blackout periods
-  // Professionals MUST be assigned to an event to create shifts
-  const professional = await db.user.findUnique({
-    where: { id: professionalId },
-    select: { eventId: true },
-  });
-
-  if (!professional?.eventId) {
-    throw new BusinessRuleError('You must be assigned to an event before creating shifts');
-  }
-
-  // Fetch event timezone for time validation
-  const event = await db.event.findUnique({
-    where: { id: professional.eventId },
-    select: { timezone: true },
-  });
-  const eventTimezone = event?.timezone || 'America/Chicago';
-
-  // Prevent creating shifts in the past
-  if (input.start < new Date()) {
-    throw new BusinessRuleError('Cannot create a shift in the past');
-  }
-
-  // Extract the local date in the event timezone for event day lookup
-  const localDateStr = input.start.toLocaleDateString('en-CA', { timeZone: eventTimezone }); // 'YYYY-MM-DD'
-  const shiftDate = new Date(localDateStr + 'T00:00:00Z');
-  const nextDate = new Date(localDateStr + 'T00:00:00Z');
-  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
-
-  const eventDay = await db.eventDay.findFirst({
-    where: {
-      eventId: professional.eventId,
-      date: { gte: shiftDate, lt: nextDate },
-      deletedAt: null,
-      isActive: true,
-    },
-    include: {
-      blackouts: {
-        where: { deletedAt: null },
-        select: { startTime: true, endTime: true, description: true },
-      },
-    },
-  });
-
-  if (!eventDay) {
-    throw new BusinessRuleError('No active event day exists for this date');
-  }
-
-  // Extract local time in the event timezone for comparison with event day hours
-  const shiftStartStr = input.start.toLocaleTimeString('en-GB', { timeZone: eventTimezone, hour: '2-digit', minute: '2-digit', hour12: false });
-  const shiftEndStr = input.end.toLocaleTimeString('en-GB', { timeZone: eventTimezone, hour: '2-digit', minute: '2-digit', hour12: false });
-
-  if (shiftStartStr < eventDay.startTime || shiftEndStr > eventDay.endTime) {
-    throw new BusinessRuleError(
-      `Shift must be within event day hours (${eventDay.startTime} - ${eventDay.endTime})`
-    );
-  }
-
-  // Check shift does not overlap with blackout periods
-  for (const blackout of eventDay.blackouts) {
-    if (shiftStartStr < blackout.endTime && shiftEndStr > blackout.startTime) {
-      throw new BusinessRuleError(
-        `Shift overlaps with a blackout period (${blackout.startTime} - ${blackout.endTime}${blackout.description ? ': ' + blackout.description : ''})`
-      );
-    }
-  }
-
-  // Create shift transactionally with re-checking constraints
+): Promise<ActionResult<Awaited<ReturnType<typeof db.shift.create>>>> {
   try {
+    // Get authenticated professional from session
+    const session = await getServerSession();
+    if (!session?.user) {
+      return { success: false, error: 'Authentication required', code: 'BUSINESS_RULE' };
+    }
+    if (session.user.role !== Role.PROFESSIONAL) {
+      return { success: false, error: 'Only professionals can create shifts', code: 'BUSINESS_RULE' };
+    }
+    const professionalId = session.user.id;
+
+    // Validate input schema
+    const input = validateSchema(createShiftSchema, {
+      resourceId,
+      start,
+      end,
+    });
+
+    // Additional business rule validation
+    if (!isValid30MinuteInterval(input.start, input.end)) {
+      return { success: false, error: 'Shift duration must be a multiple of 30 minutes', code: 'VALIDATION' };
+    }
+
+    if (!isAlignedTo30MinuteBoundary(input.start)) {
+      return { success: false, error: 'Shift start time must be aligned to 30-minute boundaries (e.g., 9:00, 9:30)', code: 'VALIDATION' };
+    }
+
+    // Check professional role
+    await validateProfessionalRole(professionalId);
+
+    // Check resource active
+    await validateResourceActive(input.resourceId);
+
+    // Check for overlapping shifts (application-level check)
+    const { professionalOverlap, resourceOverlapCount } = await findOverlappingShifts(
+      professionalId,
+      input.resourceId,
+      input.start,
+      input.end
+    );
+
+    if (professionalOverlap) {
+      return { success: false, error: 'Professional already has a shift during this time period', code: 'CONFLICT' };
+    }
+
+    // Get resource capacity for capacity-based check
+    const resourceForCapacity = await db.resource.findUnique({
+      where: { id: input.resourceId },
+      select: { quantity: true, professionalsPerUnit: true },
+    });
+
+    if (resourceForCapacity) {
+      const totalCapacity = resourceForCapacity.quantity * resourceForCapacity.professionalsPerUnit;
+      if (resourceOverlapCount >= totalCapacity) {
+        return {
+          success: false,
+          error: `Resource is at capacity (${resourceOverlapCount}/${totalCapacity} slots filled) for this time period`,
+          code: 'CONFLICT',
+        };
+      }
+    }
+
+    // Validate shift against event day schedule and blackout periods
+    // Professionals MUST be assigned to an event to create shifts
+    const professional = await db.user.findUnique({
+      where: { id: professionalId },
+      select: { eventId: true },
+    });
+
+    if (!professional?.eventId) {
+      return { success: false, error: 'You must be assigned to an event before creating shifts', code: 'BUSINESS_RULE' };
+    }
+
+    // Fetch event timezone for time validation
+    const event = await db.event.findUnique({
+      where: { id: professional.eventId },
+      select: { timezone: true },
+    });
+    const eventTimezone = event?.timezone || 'America/Chicago';
+
+    // Prevent creating shifts in the past
+    if (input.start < new Date()) {
+      return { success: false, error: 'Cannot create a shift in the past', code: 'BUSINESS_RULE' };
+    }
+
+    // Extract the local date in the event timezone for event day lookup
+    const localDateStr = input.start.toLocaleDateString('en-CA', { timeZone: eventTimezone }); // 'YYYY-MM-DD'
+    const shiftDate = new Date(localDateStr + 'T00:00:00Z');
+    const nextDate = new Date(localDateStr + 'T00:00:00Z');
+    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+
+    const eventDay = await db.eventDay.findFirst({
+      where: {
+        eventId: professional.eventId,
+        date: { gte: shiftDate, lt: nextDate },
+        deletedAt: null,
+        isActive: true,
+      },
+      include: {
+        blackouts: {
+          where: { deletedAt: null },
+          select: { startTime: true, endTime: true, description: true },
+        },
+      },
+    });
+
+    if (!eventDay) {
+      return { success: false, error: 'No active event day exists for this date', code: 'BUSINESS_RULE' };
+    }
+
+    // Extract local time in the event timezone for comparison with event day hours
+    const shiftStartStr = input.start.toLocaleTimeString('en-GB', { timeZone: eventTimezone, hour: '2-digit', minute: '2-digit', hour12: false });
+    const shiftEndStr = input.end.toLocaleTimeString('en-GB', { timeZone: eventTimezone, hour: '2-digit', minute: '2-digit', hour12: false });
+
+    if (shiftStartStr < eventDay.startTime || shiftEndStr > eventDay.endTime) {
+      return {
+        success: false,
+        error: `Shift must be within event day hours (${eventDay.startTime} - ${eventDay.endTime})`,
+        code: 'BUSINESS_RULE',
+      };
+    }
+
+    // Check shift does not overlap with blackout periods
+    for (const blackout of eventDay.blackouts) {
+      if (shiftStartStr < blackout.endTime && shiftEndStr > blackout.startTime) {
+        return {
+          success: false,
+          error: `Shift overlaps with a blackout period (${blackout.startTime} - ${blackout.endTime}${blackout.description ? ': ' + blackout.description : ''})`,
+          code: 'BUSINESS_RULE',
+        };
+      }
+    }
+
+    // Create shift transactionally with re-checking constraints
     const shift = await db.$transaction(async (tx) => {
       // Re-check constraints within transaction to prevent race conditions
       const [professional, resource, professionalOverlapShifts, resourceOverlapShifts] = await Promise.all([
@@ -226,24 +233,26 @@ export async function createShift(
       });
     });
 
-    return shift;
+    return { success: true, data: shift };
   } catch (error) {
-    // Handle Prisma unique constraint violations
-    if (error instanceof Error && 'code' in error && error.code === 'P2002') {
-      throw new ConflictError('Shift conflicts with existing shift (unique constraint violation)');
+    if (error instanceof ValidationError) {
+      return { success: false, error: error.message, code: 'VALIDATION' };
     }
-    // Re-throw our custom errors
-    if (
-      error instanceof ValidationError ||
-      error instanceof NotFoundError ||
-      error instanceof ConflictError ||
-      error instanceof BusinessRuleError
-    ) {
-      throw error;
+    if (error instanceof ConflictError) {
+      // Handle Prisma unique constraint violations surfaced as our ConflictError
+      return { success: false, error: error.message, code: 'CONFLICT' };
     }
-    // Unknown error
+    if (error instanceof BusinessRuleError) {
+      return { success: false, error: error.message, code: 'BUSINESS_RULE' };
+    }
+    if (error instanceof NotFoundError) {
+      return { success: false, error: error.message, code: 'NOT_FOUND' };
+    }
+    if (error instanceof Error && 'code' in error && (error as any).code === 'P2002') {
+      return { success: false, error: 'Shift conflicts with existing shift (unique constraint violation)', code: 'CONFLICT' };
+    }
     console.error('Failed to create shift:', error);
-    throw new Error('Failed to create shift');
+    return { success: false, error: 'Failed to create shift', code: 'UNKNOWN' };
   }
 }
 
@@ -303,44 +312,49 @@ export async function getProfessionalShifts(
 /**
  * Cancel a shift (hard delete to free unique constraint slot)
  * @param shiftId The shift to cancel
- * @returns The deleted shift
+ * @returns ActionResult with the deleted shift or a structured error
  */
-export async function cancelShift(shiftId: string) {
-  // Get authenticated professional from session
-  const session = await getServerSession();
-  if (!session?.user) {
-    throw new BusinessRuleError('Authentication required');
-  }
-  if (session.user.role !== Role.PROFESSIONAL) {
-    throw new BusinessRuleError('Only professionals can cancel shifts');
-  }
-  const professionalId = session.user.id;
+export async function cancelShift(shiftId: string): Promise<ActionResult<{ id: string }>> {
+  try {
+    // Get authenticated professional from session
+    const session = await getServerSession();
+    if (!session?.user) {
+      return { success: false, error: 'Authentication required', code: 'BUSINESS_RULE' };
+    }
+    if (session.user.role !== Role.PROFESSIONAL) {
+      return { success: false, error: 'Only professionals can cancel shifts', code: 'BUSINESS_RULE' };
+    }
+    const professionalId = session.user.id;
 
-  const shift = await db.shift.findUnique({
-    where: { id: shiftId, deletedAt: null },
-    include: {
-      bookings: {
-        where: { deletedAt: null, status: 'CONFIRMED' },
-        select: { id: true },
+    const shift = await db.shift.findUnique({
+      where: { id: shiftId, deletedAt: null },
+      include: {
+        bookings: {
+          where: { deletedAt: null, status: 'CONFIRMED' },
+          select: { id: true },
+        },
       },
-    },
-  });
+    });
 
-  if (!shift) {
-    throw new NotFoundError('Shift not found');
+    if (!shift) {
+      return { success: false, error: 'Shift not found', code: 'NOT_FOUND' };
+    }
+
+    if (shift.professionalId !== professionalId) {
+      return { success: false, error: 'Only the shift owner can cancel it', code: 'BUSINESS_RULE' };
+    }
+
+    if (shift.bookings.length > 0) {
+      return { success: false, error: 'Cannot cancel shift with confirmed bookings', code: 'BUSINESS_RULE' };
+    }
+
+    // Hard-delete so the unique constraint slot (professionalId, startTime, endTime) is freed
+    await db.shift.delete({ where: { id: shiftId } });
+    return { success: true, data: { id: shiftId } };
+  } catch (error) {
+    console.error('Failed to cancel shift:', error);
+    return { success: false, error: 'Failed to cancel shift', code: 'UNKNOWN' };
   }
-
-  if (shift.professionalId !== professionalId) {
-    throw new BusinessRuleError('Only the shift owner can cancel it');
-  }
-
-  if (shift.bookings.length > 0) {
-    throw new BusinessRuleError('Cannot cancel shift with confirmed bookings');
-  }
-
-  // Hard-delete so the unique constraint slot (professionalId, startTime, endTime) is freed
-  await db.shift.delete({ where: { id: shiftId } });
-  return shift;
 }
 
 /**

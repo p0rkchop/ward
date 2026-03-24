@@ -43,15 +43,13 @@ export default function AppointmentsTable({ bookings, clientId, isPast = false }
     setCancellingId(bookingId);
     setError(null);
 
-    try {
-      await cancelBooking(bookingId, clientId);
-      router.refresh(); // Refresh the page to show updated list
-    } catch (err: any) {
-      console.error('Error cancelling appointment:', err);
-      setError(err.message || 'Failed to cancel appointment');
-    } finally {
-      setCancellingId(null);
+    const result = await cancelBooking(bookingId, clientId);
+    if (!result.success) {
+      setError(result.error);
+    } else {
+      router.refresh();
     }
+    setCancellingId(null);
   };
 
   return (

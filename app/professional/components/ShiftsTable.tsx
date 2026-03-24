@@ -25,16 +25,13 @@ export default function ShiftsTable({ shifts, professionalId, isPast = false }: 
     setCancellingShiftId(shiftId);
     setError(null);
 
-    try {
-      await cancelShift(shiftId);
-      // Remove the cancelled shift from local state
+    const result = await cancelShift(shiftId);
+    if (!result.success) {
+      setError(result.error);
+    } else {
       setLocalShifts(localShifts.filter(shift => shift.id !== shiftId));
-    } catch (error: any) {
-      console.error('Failed to cancel shift:', error);
-      setError(error.message || 'Failed to cancel shift');
-    } finally {
-      setCancellingShiftId(null);
     }
+    setCancellingShiftId(null);
   };
 
   if (localShifts.length === 0) {

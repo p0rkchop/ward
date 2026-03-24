@@ -15,6 +15,7 @@ import {
 } from '@/app/lib/validation';
 import { sendBookingConfirmation, sendBookingCancellation, sendProfessionalNewBooking, sendProfessionalBookingCancelled } from '@/app/lib/email';
 import { sendPushToUser } from '@/app/lib/push';
+import type { ActionResult } from '@/app/lib/action-types';
 
 // Maximum date range span allowed for timeslot queries (31 days).
 // Prevents unbounded in-memory slot generation that could cause
@@ -316,13 +317,14 @@ export async function getClientEventBookingStatus(): Promise<ClientEventBookingS
  * clientId is derived from the authenticated session — not accepted from the client.
  * @param start Start time of the slot (must align with 30-minute interval)
  * @param end End time of the slot (must be start + 30 minutes)
- * @returns The created booking or error
+ * @returns ActionResult with the created booking or a structured error
  */
-export async function bookTimeslot(_clientId: string, start: Date, end: Date, notes?: string) {
+export async function bookTimeslot(_clientId: string, start: Date, end: Date, notes?: string): Promise<ActionResult<Awaited<ReturnType<typeof db.booking.create>>>> {
+  try {
   // Derive clientId from server session to prevent IDOR
   const session = await getServerSession();
   if (!session?.user?.id) {
-    throw new Error('Authentication required');
+    return { success: false, error: 'Authentication required', code: 'BUSINESS_RULE' };
   }
   const clientId = session.user.id;
 
@@ -554,7 +556,7 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date, no
         }).catch(() => {});
       }
 
-      return booking;
+      return { success: true as const, data: booking };
     } catch (error) {
       lastError = error as Error;
 
@@ -565,17 +567,18 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date, no
         continue;
       }
 
-      // Re-throw our custom errors
+      // Re-throw our custom errors so the outer catch can map them
       if (
         error instanceof ValidationError ||
         error instanceof NotFoundError ||
-        error instanceof BusinessRuleError
+        error instanceof BusinessRuleError ||
+        error instanceof ConflictError
       ) {
         throw error;
       }
 
       // Handle Prisma unique constraint violations
-      if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+      if (error instanceof Error && 'code' in error && (error as any).code === 'P2002') {
         throw new ConflictError('Booking conflicts with existing booking (unique constraint violation)');
       }
 
@@ -587,6 +590,22 @@ export async function bookTimeslot(_clientId: string, start: Date, end: Date, no
   // If we get here, all retries failed
   console.error('Failed to create booking after retries:', lastError);
   throw new Error('Failed to create booking. Please try again.');
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return { success: false, error: error.message, code: 'VALIDATION' };
+    }
+    if (error instanceof ConflictError) {
+      return { success: false, error: error.message, code: 'CONFLICT' };
+    }
+    if (error instanceof BusinessRuleError) {
+      return { success: false, error: error.message, code: 'BUSINESS_RULE' };
+    }
+    if (error instanceof NotFoundError) {
+      return { success: false, error: error.message, code: 'NOT_FOUND' };
+    }
+    const msg = error instanceof Error ? error.message : 'Failed to book appointment';
+    return { success: false, error: msg, code: 'UNKNOWN' };
+  }
 }
 
 /**
@@ -708,113 +727,119 @@ export async function getClientBookings(
  * Cancel a booking
  * clientId is derived from the authenticated session — not accepted from the client.
  * @param bookingId The booking ID to cancel
- * @returns The updated booking
+ * @returns ActionResult with the cancelled booking or a structured error
  */
-export async function cancelBooking(bookingId: string, _clientId?: string) {
-  // Derive clientId from server session to prevent IDOR
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    throw new Error('Authentication required');
-  }
-  const clientId = session.user.id;
+export async function cancelBooking(bookingId: string, _clientId?: string): Promise<ActionResult<{ id: string }>> {
+  try {
+    // Derive clientId from server session to prevent IDOR
+    const session = await getServerSession();
+    if (!session?.user?.id) {
+      return { success: false, error: 'Authentication required', code: 'BUSINESS_RULE' };
+    }
+    const clientId = session.user.id;
 
-  // First, verify the booking exists and belongs to the client
-  const booking = await db.booking.findUnique({
-    where: { id: bookingId },
-    include: {
-      shift: {
-        select: { startTime: true, endTime: true },
+    // First, verify the booking exists and belongs to the client
+    const booking = await db.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        shift: {
+          select: { startTime: true, endTime: true },
+        },
       },
-    },
-  });
+    });
 
-  if (!booking) {
-    throw new NotFoundError(`Booking ${bookingId} not found`);
-  }
+    if (!booking) {
+      return { success: false, error: `Booking ${bookingId} not found`, code: 'NOT_FOUND' };
+    }
 
-  if (booking.clientId !== clientId) {
-    throw new BusinessRuleError('You can only cancel your own bookings');
-  }
+    if (booking.clientId !== clientId) {
+      return { success: false, error: 'You can only cancel your own bookings', code: 'BUSINESS_RULE' };
+    }
 
-  if (booking.deletedAt) {
-    throw new BusinessRuleError('Booking is already cancelled');
-  }
+    if (booking.deletedAt) {
+      return { success: false, error: 'Booking is already cancelled', code: 'BUSINESS_RULE' };
+    }
 
-  // Check if booking is in the past
-  const now = new Date();
-  if (new Date(booking.startTime) < now) {
-    throw new BusinessRuleError('Cannot cancel past bookings');
-  }
+    // Check if booking is in the past
+    const now = new Date();
+    if (new Date(booking.startTime) < now) {
+      return { success: false, error: 'Cannot cancel past bookings', code: 'BUSINESS_RULE' };
+    }
 
-  // Read full booking data for notifications before deleting
-  const fullBooking = await db.booking.findUnique({
-    where: { id: bookingId },
-    include: {
-      client: {
-        select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true },
-      },
-      shift: {
-        include: {
-          professional: {
-            select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true },
-          },
-          resource: {
-            select: { id: true, name: true, description: true, location: true },
+    // Read full booking data for notifications before deleting
+    const fullBooking = await db.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        client: {
+          select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true },
+        },
+        shift: {
+          include: {
+            professional: {
+              select: { id: true, name: true, email: true, notifyViaEmail: true, notifyViaPush: true },
+            },
+            resource: {
+              select: { id: true, name: true, description: true, location: true },
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  if (!fullBooking) {
-    throw new NotFoundError(`Booking ${bookingId} not found`);
+    if (!fullBooking) {
+      return { success: false, error: `Booking ${bookingId} not found`, code: 'NOT_FOUND' };
+    }
+
+    // Hard-delete the booking so the unique constraint slot is freed
+    await db.booking.delete({ where: { id: bookingId } });
+
+    const cancelEmailData = {
+      startTime: fullBooking.startTime,
+      endTime: fullBooking.endTime,
+      professionalName: fullBooking.shift.professional.name ?? 'TBD',
+      resourceName: fullBooking.shift.resource.name,
+      resourceLocation: fullBooking.shift.resource.location,
+    };
+
+    // Fire-and-forget: send cancellation email if client has an email on file
+    if (fullBooking.client?.email && fullBooking.client.notifyViaEmail) {
+      sendBookingCancellation(fullBooking.client.email, cancelEmailData).catch(() => {});
+    }
+
+    // Fire-and-forget: push notification to client
+    if (fullBooking.client?.notifyViaPush) {
+      sendPushToUser(fullBooking.client.id, {
+        title: 'Booking Cancelled',
+        body: `Your appointment with ${cancelEmailData.professionalName} has been cancelled.`,
+        url: '/client/appointments',
+      }).catch(() => {});
+    }
+
+    // Fire-and-forget: notify professional that a slot freed up
+    if (fullBooking.shift.professional.email && fullBooking.shift.professional.notifyViaEmail) {
+      sendProfessionalBookingCancelled(
+        fullBooking.shift.professional.email,
+        fullBooking.client?.name ?? 'Client',
+        cancelEmailData,
+        'client',
+      ).catch(() => {});
+    }
+
+    // Fire-and-forget: push notification to professional
+    if (fullBooking.shift.professional.notifyViaPush) {
+      sendPushToUser(fullBooking.shift.professional.id, {
+        title: 'Booking Cancelled',
+        body: `${fullBooking.client?.name ?? 'A client'} cancelled their appointment.`,
+        url: '/professional/bookings',
+      }).catch(() => {});
+    }
+
+    return { success: true, data: { id: bookingId } };
+  } catch (error) {
+    console.error('Failed to cancel booking:', error);
+    const msg = error instanceof Error ? error.message : 'Failed to cancel booking';
+    return { success: false, error: msg, code: 'UNKNOWN' };
   }
-
-  // Hard-delete the booking so the unique constraint slot is freed
-  await db.booking.delete({ where: { id: bookingId } });
-
-  const cancelEmailData = {
-    startTime: fullBooking.startTime,
-    endTime: fullBooking.endTime,
-    professionalName: fullBooking.shift.professional.name ?? 'TBD',
-    resourceName: fullBooking.shift.resource.name,
-    resourceLocation: fullBooking.shift.resource.location,
-  };
-
-  // Fire-and-forget: send cancellation email if client has an email on file
-  if (fullBooking.client?.email && fullBooking.client.notifyViaEmail) {
-    sendBookingCancellation(fullBooking.client.email, cancelEmailData).catch(() => {});
-  }
-
-  // Fire-and-forget: push notification to client
-  if (fullBooking.client?.notifyViaPush) {
-    sendPushToUser(fullBooking.client.id, {
-      title: 'Booking Cancelled',
-      body: `Your appointment with ${cancelEmailData.professionalName} has been cancelled.`,
-      url: '/client/appointments',
-    }).catch(() => {});
-  }
-
-  // Fire-and-forget: notify professional that a slot freed up
-  if (fullBooking.shift.professional.email && fullBooking.shift.professional.notifyViaEmail) {
-    sendProfessionalBookingCancelled(
-      fullBooking.shift.professional.email,
-      fullBooking.client?.name ?? 'Client',
-      cancelEmailData,
-      'client',
-    ).catch(() => {});
-  }
-
-  // Fire-and-forget: push notification to professional
-  if (fullBooking.shift.professional.notifyViaPush) {
-    sendPushToUser(fullBooking.shift.professional.id, {
-      title: 'Booking Cancelled',
-      body: `${fullBooking.client?.name ?? 'A client'} cancelled their appointment.`,
-      url: '/professional/bookings',
-    }).catch(() => {});
-  }
-
-  return fullBooking;
 }
 
 /**
@@ -827,11 +852,12 @@ export async function rescheduleBooking(
   newStart: Date,
   newEnd: Date,
   notes?: string,
-) {
+): Promise<ActionResult<Awaited<ReturnType<typeof db.booking.create>>>> {
+  try {
   // Derive clientId from server session
   const session = await getServerSession();
   if (!session?.user?.id) {
-    throw new Error('Authentication required');
+    return { success: false, error: 'Authentication required', code: 'BUSINESS_RULE' };
   }
   const clientId = session.user.id;
 
@@ -1018,7 +1044,7 @@ export async function rescheduleBooking(
         }).catch(() => {});
       }
 
-      return newBooking;
+      return { success: true as const, data: newBooking };
     } catch (error) {
       lastError = error as Error;
       if (error instanceof ConflictError && attempt < maxRetries - 1) {
@@ -1031,4 +1057,20 @@ export async function rescheduleBooking(
 
   console.error('Failed to reschedule booking after retries:', lastError);
   throw lastError;
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return { success: false, error: error.message, code: 'VALIDATION' };
+    }
+    if (error instanceof ConflictError) {
+      return { success: false, error: error.message, code: 'CONFLICT' };
+    }
+    if (error instanceof BusinessRuleError) {
+      return { success: false, error: error.message, code: 'BUSINESS_RULE' };
+    }
+    if (error instanceof NotFoundError) {
+      return { success: false, error: error.message, code: 'NOT_FOUND' };
+    }
+    const msg = error instanceof Error ? error.message : 'Failed to reschedule booking';
+    return { success: false, error: msg, code: 'UNKNOWN' };
+  }
 }

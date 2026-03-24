@@ -188,7 +188,8 @@ describe('Integration Tests - Complete User Flows', () => {
 
       const result = await createShift(mockResourceId, mockStart, mockEnd)
 
-      expect(result).toEqual(mockShift)
+      expect(result.success).toBe(true)
+      if (result.success) expect(result.data).toEqual(mockShift)
       expect(validateSchema).toHaveBeenCalled()
       expect(validateProfessionalRole).toHaveBeenCalledWith(mockProfessionalId)
       expect(validateResourceActive).toHaveBeenCalledWith(mockResourceId)
@@ -213,8 +214,9 @@ describe('Integration Tests - Complete User Flows', () => {
         expires: new Date().toISOString(),
       })
 
-      await expect(createShift(mockResourceId, mockStart, mockEnd))
-        .rejects.toThrow('Only professionals can create shifts')
+      const result = await createShift(mockResourceId, mockStart, mockEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Only professionals can create shifts')
     })
   })
 
@@ -326,9 +328,11 @@ describe('Integration Tests - Complete User Flows', () => {
 
       const bookingResult = await bookTimeslot(mockClientId, mockStart, mockEnd)
 
-      expect(bookingResult).toBeDefined()
-      expect(bookingResult.shiftId).toBe(mockShiftId)
-      expect(bookingResult.clientId).toBe(mockClientId)
+      expect(bookingResult.success).toBe(true)
+      if (bookingResult.success) {
+        expect(bookingResult.data.shiftId).toBe(mockShiftId)
+        expect(bookingResult.data.clientId).toBe(mockClientId)
+      }
     })
 
     it('handles booking cancellation flow', async () => {

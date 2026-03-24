@@ -280,8 +280,9 @@ describe('booking-actions', () => {
         } as any)
       })
 
-      await expect(bookTimeslot(mockClientId, mockStart, mockEnd))
-        .rejects.toThrow('No available professionals for the requested timeslot')
+      const result = await bookTimeslot(mockClientId, mockStart, mockEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('No available professionals for the requested timeslot')
     })
 
     it('throws BusinessRuleError when shifts exist but no capacity', async () => {
@@ -306,8 +307,9 @@ describe('booking-actions', () => {
         } as any)
       })
 
-      await expect(bookTimeslot(mockClientId, mockStart, mockEnd))
-        .rejects.toThrow('No available professionals for the requested timeslot')
+      const result = await bookTimeslot(mockClientId, mockStart, mockEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('No available professionals for the requested timeslot')
     })
 
     it('retries on ConflictError', async () => {
@@ -369,7 +371,7 @@ describe('booking-actions', () => {
 
       const result = await bookTimeslot(mockClientId, mockStart, mockEnd)
 
-      expect(result).toBeDefined()
+      expect(result.success).toBe(true)
       expect(callCount).toBe(2)
     })
 
@@ -378,8 +380,9 @@ describe('booking-actions', () => {
         throw new Error('ConflictError') // Not our custom error, will break out
       })
 
-      await expect(bookTimeslot(mockClientId, mockStart, mockEnd))
-        .rejects.toThrow('Failed to create booking')
+      const result = await bookTimeslot(mockClientId, mockStart, mockEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Failed to create booking')
     })
   })
 
@@ -537,18 +540,19 @@ describe('booking-actions', () => {
 
       const result = await cancelBooking('booking-id', 'client-id')
 
-      expect(result).toBeTruthy()
+      expect(result.success).toBe(true)
       expect(db.booking.delete).toHaveBeenCalledWith({ where: { id: 'booking-id' } })
     })
 
-    it('throws NotFoundError for non-existent booking', async () => {
+    it('returns not-found error for non-existent booking', async () => {
       vi.mocked(db.booking.findUnique).mockResolvedValue(null)
 
-      await expect(cancelBooking('nonexistent-id', 'client-id'))
-        .rejects.toThrow('Booking nonexistent-id not found')
+      const result = await cancelBooking('nonexistent-id', 'client-id')
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Booking nonexistent-id not found')
     })
 
-    it('throws BusinessRuleError when client does not own booking', async () => {
+    it('returns error when client does not own booking', async () => {
       const mockBooking = {
         id: 'booking-id',
         clientId: 'other-client-id',
@@ -567,11 +571,12 @@ describe('booking-actions', () => {
       }
       vi.mocked(db.booking.findUnique).mockResolvedValue(mockBooking)
 
-      await expect(cancelBooking('booking-id', 'client-id'))
-        .rejects.toThrow('You can only cancel your own bookings')
+      const result = await cancelBooking('booking-id', 'client-id')
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('You can only cancel your own bookings')
     })
 
-    it('throws BusinessRuleError when booking already cancelled', async () => {
+    it('returns error when booking already cancelled', async () => {
       const mockBooking = {
         id: 'booking-id',
         clientId: 'client-id',
@@ -590,11 +595,12 @@ describe('booking-actions', () => {
       }
       vi.mocked(db.booking.findUnique).mockResolvedValue(mockBooking)
 
-      await expect(cancelBooking('booking-id', 'client-id'))
-        .rejects.toThrow('Booking is already cancelled')
+      const result = await cancelBooking('booking-id', 'client-id')
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Booking is already cancelled')
     })
 
-    it('throws BusinessRuleError when booking is in the past', async () => {
+    it('returns error when booking is in the past', async () => {
       const mockBooking = {
         id: 'booking-id',
         clientId: 'client-id',
@@ -613,8 +619,9 @@ describe('booking-actions', () => {
       }
       vi.mocked(db.booking.findUnique).mockResolvedValue(mockBooking)
 
-      await expect(cancelBooking('booking-id', 'client-id'))
-        .rejects.toThrow('Cannot cancel past bookings')
+      const result = await cancelBooking('booking-id', 'client-id')
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Cannot cancel past bookings')
     })
   })
 })

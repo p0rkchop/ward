@@ -170,7 +170,8 @@ describe('shift-actions', () => {
 
       const result = await createShift(mockResourceId, mockStart, mockEnd)
 
-      expect(result).toEqual(mockShift)
+      expect(result.success).toBe(true)
+      if (result.success) expect(result.data).toEqual(mockShift)
       expect(validateSchema).toHaveBeenCalled()
       expect(isValid30MinuteInterval).toHaveBeenCalledWith(mockStart, mockEnd)
       expect(isAlignedTo30MinuteBoundary).toHaveBeenCalledWith(mockStart)
@@ -184,14 +185,15 @@ describe('shift-actions', () => {
       )
     })
 
-    it('throws BusinessRuleError when user is not authenticated', async () => {
+    it('returns error when user is not authenticated', async () => {
       vi.mocked(getServerSession).mockResolvedValue(null)
 
-      await expect(createShift(mockResourceId, mockStart, mockEnd))
-        .rejects.toThrow('Authentication required')
+      const result = await createShift(mockResourceId, mockStart, mockEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Authentication required')
     })
 
-    it('throws BusinessRuleError when user is not a professional', async () => {
+    it('returns error when user is not a professional', async () => {
       vi.mocked(getServerSession).mockResolvedValue({
         user: {
           id: 'client-id',
@@ -210,11 +212,12 @@ describe('shift-actions', () => {
         expires: new Date().toISOString(),
       })
 
-      await expect(createShift(mockResourceId, mockStart, mockEnd))
-        .rejects.toThrow('Only professionals can create shifts')
+      const result = await createShift(mockResourceId, mockStart, mockEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Only professionals can create shifts')
     })
 
-    it('throws ValidationError for invalid 30-minute interval', async () => {
+    it('returns validation error for invalid 30-minute interval', async () => {
       vi.mocked(validateSchema).mockReturnValue({
         resourceId: mockResourceId,
         start: mockStart,
@@ -222,11 +225,12 @@ describe('shift-actions', () => {
       })
       vi.mocked(isValid30MinuteInterval).mockReturnValue(false)
 
-      await expect(createShift(mockResourceId, mockStart, mockEnd))
-        .rejects.toThrow('Shift duration must be a multiple of 30 minutes')
+      const result = await createShift(mockResourceId, mockStart, mockEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Shift duration must be a multiple of 30 minutes')
     })
 
-    it('throws ValidationError for misaligned start time', async () => {
+    it('returns validation error for misaligned start time', async () => {
       vi.mocked(validateSchema).mockReturnValue({
         resourceId: mockResourceId,
         start: mockStart,
@@ -235,11 +239,12 @@ describe('shift-actions', () => {
       vi.mocked(isValid30MinuteInterval).mockReturnValue(true)
       vi.mocked(isAlignedTo30MinuteBoundary).mockReturnValue(false)
 
-      await expect(createShift(mockResourceId, mockStart, mockEnd))
-        .rejects.toThrow('Shift start time must be aligned to 30-minute boundaries')
+      const result = await createShift(mockResourceId, mockStart, mockEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Shift start time must be aligned to 30-minute boundaries')
     })
 
-    it('throws ConflictError for professional overlap', async () => {
+    it('returns conflict error for professional overlap', async () => {
       vi.mocked(validateSchema).mockReturnValue({
         resourceId: mockResourceId,
         start: mockStart,
@@ -254,11 +259,12 @@ describe('shift-actions', () => {
         resourceOverlapCount: 0,
       })
 
-      await expect(createShift(mockResourceId, mockStart, mockEnd))
-        .rejects.toThrow('Professional already has a shift during this time period')
+      const result = await createShift(mockResourceId, mockStart, mockEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Professional already has a shift during this time period')
     })
 
-    it('throws ConflictError for resource overlap', async () => {
+    it('returns conflict error for resource overlap', async () => {
       vi.mocked(validateSchema).mockReturnValue({
         resourceId: mockResourceId,
         start: mockStart,
@@ -280,8 +286,9 @@ describe('shift-actions', () => {
         deletedAt: null, createdAt: new Date(), updatedAt: new Date(),
       } as any)
 
-      await expect(createShift(mockResourceId, mockStart, mockEnd))
-        .rejects.toThrow('Resource is at capacity')
+      const result = await createShift(mockResourceId, mockStart, mockEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Resource is at capacity')
     })
 
     // Helper to set up mocks through the capacity check (for event day validation tests)
@@ -306,17 +313,18 @@ describe('shift-actions', () => {
       } as any)
     }
 
-    it('throws BusinessRuleError when no event day exists for shift date', async () => {
+    it('returns error when no event day exists for shift date', async () => {
       setupMocksThroughCapacity()
       vi.mocked(db.user.findUnique).mockResolvedValue({ eventId: 'event-1' } as any)
       vi.mocked(db.event.findUnique).mockResolvedValue({ timezone: 'UTC' } as any)
       vi.mocked(db.eventDay.findFirst).mockResolvedValue(null)
 
-      await expect(createShift(mockResourceId, mockStart, mockEnd))
-        .rejects.toThrow('No active event day exists for this date')
+      const result = await createShift(mockResourceId, mockStart, mockEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('No active event day exists for this date')
     })
 
-    it('throws BusinessRuleError when shift is outside event day hours', async () => {
+    it('returns error when shift is outside event day hours', async () => {
       // Use UTC dates to match server-side UTC-based validation
       const earlyStart = new Date('2099-06-15T08:00:00.000Z');
       const earlyEnd = new Date('2099-06-15T08:30:00.000Z');
@@ -339,13 +347,12 @@ describe('shift-actions', () => {
         blackouts: [],
       } as any)
 
-      await expect(createShift(mockResourceId, earlyStart, earlyEnd))
-        .rejects.toThrow('Shift must be within event day hours (14:00 - 17:00)')
+      const result = await createShift(mockResourceId, earlyStart, earlyEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Shift must be within event day hours (14:00 - 17:00)')
     })
 
-    it('throws BusinessRuleError when shift overlaps with blackout period', async () => {
-      // Use local-time dates to match how setHours works in the validation code
-      // Use UTC dates to match server-side UTC-based validation
+    it('returns error when shift overlaps with blackout period', async () => {
       const localStart = new Date('2099-06-15T10:00:00.000Z');
       const localEnd = new Date('2099-06-15T10:30:00.000Z');
       const shiftDate = new Date('2099-06-15T00:00:00.000Z');
@@ -369,8 +376,9 @@ describe('shift-actions', () => {
         ],
       } as any)
 
-      await expect(createShift(mockResourceId, localStart, localEnd))
-        .rejects.toThrow('Shift overlaps with a blackout period (10:00 - 11:00: Lunch)')
+      const result = await createShift(mockResourceId, localStart, localEnd)
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Shift overlaps with a blackout period (10:00 - 11:00: Lunch)')
     })
   })
 
@@ -457,8 +465,8 @@ describe('shift-actions', () => {
 
       const result = await cancelShift('shift-id')
 
-      expect(result).toBeDefined()
-      expect(result.id).toBe('shift-id')
+      expect(result.success).toBe(true)
+      if (result.success) expect(result.data.id).toBe('shift-id')
       expect(db.shift.findUnique).toHaveBeenCalledWith({
         where: { id: 'shift-id', deletedAt: null },
         include: {
@@ -473,14 +481,15 @@ describe('shift-actions', () => {
       })
     })
 
-    it('throws NotFoundError for non-existent shift', async () => {
+    it('returns not-found error for non-existent shift', async () => {
       vi.mocked(db.shift.findUnique).mockResolvedValue(null)
 
-      await expect(cancelShift('nonexistent-id'))
-        .rejects.toThrow('Shift not found')
+      const result = await cancelShift('nonexistent-id')
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Shift not found')
     })
 
-    it('throws BusinessRuleError when shift belongs to different professional', async () => {
+    it('returns error when shift belongs to different professional', async () => {
       const mockShift = {
         id: 'shift-id',
         professionalId: 'other-professional-id',
@@ -494,11 +503,12 @@ describe('shift-actions', () => {
       }
       vi.mocked(db.shift.findUnique).mockResolvedValue(mockShift)
 
-      await expect(cancelShift('shift-id'))
-        .rejects.toThrow('Only the shift owner can cancel it')
+      const result = await cancelShift('shift-id')
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Only the shift owner can cancel it')
     })
 
-    it('throws BusinessRuleError when shift has confirmed bookings', async () => {
+    it('returns error when shift has confirmed bookings', async () => {
       const mockShift = {
         id: 'shift-id',
         professionalId: 'professional-id',
@@ -512,8 +522,9 @@ describe('shift-actions', () => {
       }
       vi.mocked(db.shift.findUnique).mockResolvedValue(mockShift)
 
-      await expect(cancelShift('shift-id'))
-        .rejects.toThrow('Cannot cancel shift with confirmed bookings')
+      const result = await cancelShift('shift-id')
+      expect(result.success).toBe(false)
+      if (!result.success) expect(result.error).toContain('Cannot cancel shift with confirmed bookings')
     })
   })
 

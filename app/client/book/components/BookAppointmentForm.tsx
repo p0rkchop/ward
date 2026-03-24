@@ -78,17 +78,20 @@ export default function BookAppointmentForm({ clientId, slotsByDay, rescheduleBo
     setError(null);
 
     try {
-      if (rescheduleBookingId) {
-        await rescheduleBooking(rescheduleBookingId, selectedSlot.start, selectedSlot.end, notes || undefined);
-      } else {
-        await bookTimeslot(clientId, selectedSlot.start, selectedSlot.end, notes || undefined);
+      const result = rescheduleBookingId
+        ? await rescheduleBooking(rescheduleBookingId, selectedSlot.start, selectedSlot.end, notes || undefined)
+        : await bookTimeslot(clientId, selectedSlot.start, selectedSlot.end, notes || undefined);
+
+      if (!result.success) {
+        setError(result.error);
+        return;
       }
+
       setSuccess(true);
       setTimeout(() => {
         router.push('/client/appointments');
       }, 2000);
     } catch (err: any) {
-      console.error('Error booking appointment:', err);
       setError(err.message || 'Failed to book appointment. Please try again.');
     } finally {
       setLoading(false);

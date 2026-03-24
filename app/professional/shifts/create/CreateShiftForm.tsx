@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createShift } from '@/app/lib/shift-actions';
 import { roundToNearest30Minutes, isValid30MinuteInterval, isAlignedTo30MinuteBoundary } from '@/app/lib/timeslot-utils';
-import { ValidationError, ConflictError, BusinessRuleError } from '@/app/lib/errors';
 import { useSession } from 'next-auth/react';
 import { formatDateWithDay, formatTimeString, prefsFromSession } from '@/app/lib/format-utils';
 
@@ -108,31 +107,29 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
 
       // Validate locally before submitting
       if (!isAlignedTo30MinuteBoundary(roundedStart)) {
-        throw new ValidationError('Start time must be aligned to 30-minute boundaries (e.g., 9:00, 9:30)');
+        setError('Start time must be aligned to 30-minute boundaries (e.g., 9:00, 9:30)');
+        return;
       }
 
       if (!isValid30MinuteInterval(roundedStart, endDate)) {
-        throw new ValidationError('Duration must be a multiple of 30 minutes');
+        setError('Duration must be a multiple of 30 minutes');
+        return;
       }
 
       // Call server action (professionalId extracted from session)
-      await createShift(resourceId, roundedStart, endDate);
+      const result = await createShift(resourceId, roundedStart, endDate);
+
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
 
       setSuccess(true);
       setTimeout(() => {
         router.push('/professional/shifts');
       }, 2000);
     } catch (error: any) {
-      console.error('Failed to create shift:', error);
-      if (error instanceof ValidationError) {
-        setError(error.message);
-      } else if (error instanceof ConflictError) {
-        setError(`Conflict: ${error.message}`);
-      } else if (error instanceof BusinessRuleError) {
-        setError(`Business rule violation: ${error.message}`);
-      } else {
-        setError(error.message || 'Failed to create shift');
-      }
+      setError(error.message || 'Failed to create shift');
     } finally {
       setSubmitting(false);
     }
