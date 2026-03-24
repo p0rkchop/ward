@@ -32,19 +32,28 @@ export default async function CreateShiftPage() {
   const resources = await getActiveResources(eventId);
 
   // Get event day info for time restrictions
-  let eventDays: { date: string; startTime: string; endTime: string }[] = [];
+  let eventDays: { date: string; startTime: string; endTime: string; blackouts: { startTime: string; endTime: string }[] }[] = [];
   if (eventId) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const days = await db.eventDay.findMany({
       where: { eventId, deletedAt: null, isActive: true, date: { gte: today } },
       orderBy: { date: 'asc' },
-      select: { date: true, startTime: true, endTime: true },
+      select: {
+        date: true,
+        startTime: true,
+        endTime: true,
+        blackouts: {
+          where: { deletedAt: null },
+          select: { startTime: true, endTime: true },
+        },
+      },
     });
     eventDays = days.map((d) => ({
       date: d.date.toISOString().split('T')[0],
       startTime: d.startTime,
       endTime: d.endTime,
+      blackouts: d.blackouts,
     }));
   }
 

@@ -21,6 +21,7 @@ interface EventDayInfo {
   date: string; // 'YYYY-MM-DD'
   startTime: string; // 'HH:MM'
   endTime: string; // 'HH:MM'
+  blackouts: { startTime: string; endTime: string }[];
 }
 
 interface CreateShiftFormProps {
@@ -66,6 +67,10 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
     ? allTimeOptions.filter((time) => {
         if (time < selectedEventDay.startTime || time >= selectedEventDay.endTime) return false;
         if (isToday && time <= currentTimeStr) return false;
+        // Exclude times that fall within a blackout period
+        for (const blackout of selectedEventDay.blackouts) {
+          if (time >= blackout.startTime && time < blackout.endTime) return false;
+        }
         return true;
       })
     : allTimeOptions;
@@ -73,13 +78,22 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
   // Available dates: only future event dates
   const availableDates = futureEventDays.map((d) => d.date);
 
-  // Duration options (30-minute increments, capped to not exceed event day end time)
+  // Duration options (30-minute increments, capped to not exceed event day end time or next blackout)
   const allDurationOptions = Array.from({ length: 16 }, (_, i) => (i + 1) * 30); // 30 to 480 minutes
   const durationOptions = selectedEventDay
     ? (() => {
         const [startH, startM] = startTime.split(':').map(Number);
+        const startMinutes = startH * 60 + startM;
         const [endH, endM] = selectedEventDay.endTime.split(':').map(Number);
-        const maxMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+        let maxMinutes = (endH * 60 + endM) - startMinutes;
+        // Also cap at the start of any upcoming blackout
+        for (const blackout of selectedEventDay.blackouts) {
+          const [bH, bM] = blackout.startTime.split(':').map(Number);
+          const blackoutStart = bH * 60 + bM;
+          if (blackoutStart > startMinutes) {
+            maxMinutes = Math.min(maxMinutes, blackoutStart - startMinutes);
+          }
+        }
         return allDurationOptions.filter((d) => d <= maxMinutes);
       })()
     : allDurationOptions;
@@ -329,6 +343,7 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
           <li>You cannot create overlapping shifts for yourself (same time period)</li>
           <li>Shifts can only be created by users with the PROFESSIONAL role</li>
           <li>Shifts are restricted to your assigned event&apos;s dates and hours</li>
+          <li>Blackout periods are excluded from available start times and durations</li>
         </ul>
       </div>
     </div>
