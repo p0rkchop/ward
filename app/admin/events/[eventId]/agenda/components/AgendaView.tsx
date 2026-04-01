@@ -50,6 +50,7 @@ export default function AgendaView({ agenda }: Props) {
   function formatDayLabel(dateStr: string) {
     const d = new Date(dateStr + 'T12:00:00');
     return d.toLocaleDateString('en-US', {
+      timeZone: prefs.timezone,
       weekday: 'short',
       month: 'short',
       day: 'numeric',

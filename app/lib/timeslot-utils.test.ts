@@ -128,7 +128,7 @@ describe('timeslot-utils', () => {
     it('formats a time slot correctly', () => {
       const start = new Date('2026-02-22T09:00:00Z')
       const end = new Date('2026-02-22T09:30:00Z')
-      const result = formatTimeSlot(start, end)
+      const result = formatTimeSlot(start, end, 'UTC')
 
       // Note: toLocaleTimeString uses local timezone, so we test for pattern
       expect(result).toMatch(/\d{1,2}:\d{2} (AM|PM) - \d{1,2}:\d{2} (AM|PM)/)
@@ -137,7 +137,7 @@ describe('timeslot-utils', () => {
     it('handles PM times', () => {
       const start = new Date('2026-02-22T14:00:00Z') // 2:00 PM UTC
       const end = new Date('2026-02-22T14:30:00Z')
-      const result = formatTimeSlot(start, end)
+      const result = formatTimeSlot(start, end, 'UTC')
 
       // Test that format is correct (could be AM or PM depending on timezone)
       expect(result).toMatch(/\d{1,2}:\d{2} (AM|PM) - \d{1,2}:\d{2} (AM|PM)/)

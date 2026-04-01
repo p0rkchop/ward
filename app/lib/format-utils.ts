@@ -1,4 +1,7 @@
-import { format } from 'date-fns';
+// Helper to format a date with timezone support
+function formatWithTimezone(date: Date, timezone: string, options: Intl.DateTimeFormatOptions): string {
+  return new Intl.DateTimeFormat('en-US', { ...options, timeZone: timezone }).format(date);
+}
 
 /**
  * User display preferences for date/time formatting.
@@ -21,46 +24,56 @@ export const DEFAULT_PREFS: DisplayPrefs = {
  * Format a time (e.g. "2:30 PM" or "14:30") based on user preference.
  */
 export function formatTime(date: Date, prefs: DisplayPrefs = DEFAULT_PREFS): string {
+  const timezone = prefs.timezone || DEFAULT_PREFS.timezone;
   if (prefs.timeFormat === '24h') {
-    return format(date, 'HH:mm');
+    return formatWithTimezone(date, timezone, { hour: '2-digit', minute: '2-digit', hour12: false });
   }
-  return format(date, 'h:mm a');
+  return formatWithTimezone(date, timezone, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 /**
  * Format a date (e.g. "Feb 27, 2026" / "27 Feb 2026" / "2026-02-27") based on user preference.
  */
 export function formatDate(date: Date, prefs: DisplayPrefs = DEFAULT_PREFS): string {
+  const timezone = prefs.timezone || DEFAULT_PREFS.timezone;
+
   switch (prefs.dateFormat) {
     case 'DD/MM/YYYY':
-      return format(date, 'dd/MM/yyyy');
+      // Use en-GB locale for day-month-year order
+      return date.toLocaleDateString('en-GB', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
     case 'YYYY-MM-DD':
-      return format(date, 'yyyy-MM-dd');
+      // Format as ISO-like date with timezone adjustment
+      const isoDate = date.toLocaleDateString('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+      return isoDate; // en-CA gives YYYY-MM-DD format
     case 'MM/DD/YYYY':
     default:
-      return format(date, 'MM/dd/yyyy');
+      // Use en-US locale for month-day-year order
+      return date.toLocaleDateString('en-US', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
   }
 }
 
 /**
  * Format a date in a short display format (e.g. "Feb 27, 2026") — always NA-friendly.
  */
-export function formatDateShort(date: Date, _prefs: DisplayPrefs = DEFAULT_PREFS): string {
-  return format(date, 'MMM d, yyyy');
+export function formatDateShort(date: Date, prefs: DisplayPrefs = DEFAULT_PREFS): string {
+  const timezone = prefs.timezone || DEFAULT_PREFS.timezone;
+  return date.toLocaleDateString('en-US', { timeZone: timezone, month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 /**
  * Format a date with the day-of-week (e.g. "Fri, Feb 27, 2026").
  */
-export function formatDateWithDay(date: Date, _prefs: DisplayPrefs = DEFAULT_PREFS): string {
-  return format(date, 'EEE, MMM d, yyyy');
+export function formatDateWithDay(date: Date, prefs: DisplayPrefs = DEFAULT_PREFS): string {
+  const timezone = prefs.timezone || DEFAULT_PREFS.timezone;
+  return date.toLocaleDateString('en-US', { timeZone: timezone, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 /**
  * Format a full date label (e.g. "Friday, February 27").
  */
-export function formatDateFull(date: Date, _prefs: DisplayPrefs = DEFAULT_PREFS): string {
-  return format(date, 'EEEE, MMMM d');
+export function formatDateFull(date: Date, prefs: DisplayPrefs = DEFAULT_PREFS): string {
+  const timezone = prefs.timezone || DEFAULT_PREFS.timezone;
+  return date.toLocaleDateString('en-US', { timeZone: timezone, weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 /**
@@ -81,7 +94,9 @@ export function formatDateTimeRange(start: Date, end: Date, prefs: DisplayPrefs 
  * Format a date + time stamp (e.g. "Feb 27, 2:30 PM").
  */
 export function formatDateTimeShort(date: Date, prefs: DisplayPrefs = DEFAULT_PREFS): string {
-  return `${format(date, 'MMM d')}, ${formatTime(date, prefs)}`;
+  const timezone = prefs.timezone || DEFAULT_PREFS.timezone;
+  const monthDay = date.toLocaleDateString('en-US', { timeZone: timezone, month: 'short', day: 'numeric' });
+  return `${monthDay}, ${formatTime(date, prefs)}`;
 }
 
 /**

@@ -64,13 +64,15 @@ export function timeRangesOverlap(
 /**
  * Formats a time slot for display (e.g., "9:00 AM - 9:30 AM")
  */
-export function formatTimeSlot(start: Date, end: Date): string {
+export function formatTimeSlot(start: Date, end: Date, timezone: string = 'UTC'): string {
   const startTime = start.toLocaleTimeString('en-US', {
+    timeZone: timezone,
     hour: 'numeric',
     minute: '2-digit',
     hour12: true
   });
   const endTime = end.toLocaleTimeString('en-US', {
+    timeZone: timezone,
     hour: 'numeric',
     minute: '2-digit',
     hour12: true
