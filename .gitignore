@@ -54,3 +54,9 @@ KNOWLEDGE-*.md
 
 # local memory and stuff
 ISSUES.md
+
+#vscode
+.vscode/
+
+#any file called pentest
+*pentest*

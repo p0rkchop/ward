@@ -1,0 +1,8 @@
+fix: security hardening — rate-limit SMS endpoint, validate push URLs, gate debug page (#23, #24, #25)
+
+- Wire authRateLimiter into POST /api/auth-test (10 req/15 min per IP),
+  return 429 with X-RateLimit-* headers when exceeded (#23)
+- Validate push subscription endpoint URLs: require HTTPS and allowlist
+  known push service domains (FCM, Mozilla, Apple, Windows) (#24)
+- Gate /auth-test debug page behind NODE_ENV check — returns 404 in
+  production while keeping it available in development (#25)

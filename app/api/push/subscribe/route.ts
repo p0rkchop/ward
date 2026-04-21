@@ -21,6 +21,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid subscription payload' }, { status: 400 });
   }
 
+  // Validate endpoint is an HTTPS URL pointing to a known push service
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(endpoint);
+  } catch {
+    return NextResponse.json({ error: 'Invalid endpoint URL' }, { status: 400 });
+  }
+  if (parsedUrl.protocol !== 'https:') {
+    return NextResponse.json({ error: 'Endpoint must use HTTPS' }, { status: 400 });
+  }
+  const allowedPushDomains = [
+    'fcm.googleapis.com',
+    'updates.push.services.mozilla.com',
+    'push.services.mozilla.com',
+    'notify.windows.com',
+    'push.apple.com',
+    'web.push.apple.com',
+  ];
+  const hostname = parsedUrl.hostname;
+  const isAllowed = allowedPushDomains.some(
+    (domain) => hostname === domain || hostname.endsWith('.' + domain),
+  );
+  if (!isAllowed) {
+    return NextResponse.json({ error: 'Endpoint domain not allowed' }, { status: 400 });
+  }
+
   // Upsert: if the endpoint already exists for any user, update it to this user
   const existing = await db.pushSubscription.findUnique({ where: { endpoint } });
 
