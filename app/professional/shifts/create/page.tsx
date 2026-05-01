@@ -32,7 +32,7 @@ export default async function CreateShiftPage() {
   const resources = await getActiveResources(eventId);
 
   // Get event day info for time restrictions
-  let eventDays: { date: string; startTime: string; endTime: string; blackouts: { startTime: string; endTime: string }[] }[] = [];
+  let eventDays: { date: string; startTime: string; endTime: string; blackouts: { startTime: string; endTime: string; description: string | null }[] }[] = [];
   if (eventId) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -45,7 +45,7 @@ export default async function CreateShiftPage() {
         endTime: true,
         blackouts: {
           where: { deletedAt: null },
-          select: { startTime: true, endTime: true },
+          select: { startTime: true, endTime: true, description: true },
         },
       },
     });

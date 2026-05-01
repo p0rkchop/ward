@@ -21,7 +21,7 @@ interface EventDayInfo {
   date: string; // 'YYYY-MM-DD'
   startTime: string; // 'HH:MM'
   endTime: string; // 'HH:MM'
-  blackouts: { startTime: string; endTime: string }[];
+  blackouts: { startTime: string; endTime: string; description: string | null }[];
 }
 
 interface CreateShiftFormProps {
@@ -245,11 +245,12 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
             value={date}
             onChange={(e) => {
               setDate(e.target.value);
-              // Reset start time when date changes (event hours may differ)
+              // Reset start time and duration when date changes (event hours may differ)
               const newDay = eventDays.find((d) => d.date === e.target.value);
               if (newDay) {
                 setStartTime(newDay.startTime);
               }
+              setDuration(30);
             }}
             className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             required
@@ -272,7 +273,7 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
           <select
             id="startTime"
             value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
+            onChange={(e) => { setStartTime(e.target.value); setDuration(30); }}
             className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             required
           >
@@ -311,6 +312,23 @@ export default function CreateShiftForm({ professionalId, resources, eventDays =
             Shift duration must be a multiple of 30 minutes.
           </p>
         </div>
+
+        {selectedEventDay && selectedEventDay.blackouts.length > 0 && (
+          <div className="rounded-md bg-amber-50 dark:bg-amber-900/20 p-4">
+            <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200">Blackout Periods for This Day</h3>
+            <ul className="mt-2 space-y-1 text-sm text-amber-700 dark:text-amber-300">
+              {selectedEventDay.blackouts.map((b, i) => (
+                <li key={i}>
+                  {formatTimeString(b.startTime, prefs)} – {formatTimeString(b.endTime, prefs)}
+                  {b.description ? `: ${b.description}` : ''}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+              These windows are excluded from available start times and durations.
+            </p>
+          </div>
+        )}
 
         <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
           <div className="flex justify-end space-x-3">
